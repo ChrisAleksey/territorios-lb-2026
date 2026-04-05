@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Territorios LB</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="admin.css">
+
+  <!-- Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body x-data="adminApp()" x-init="init()">
+
+  <!-- Mobile overlay -->
+  <div class="sidebar-overlay" :class="{ active: sidebarOpen }" @click="sidebarOpen = false"></div>
+
+  <!-- ───────────── SIDEBAR ───────────── -->
+  <aside class="sidebar" :class="{ open: sidebarOpen }">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🗺️</span>
+      <span class="logo-text">Territorios LB</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item" :class="{ active: activeSection === 'programa' }"
+              @click="navigate('programa')">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Programa</span>
+      </button>
+      <button class="nav-item" :class="{ active: activeSection === 'capitanes' }"
+              @click="navigate('capitanes')">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Capitanes</span>
+      </button>
+      <button class="nav-item" :class="{ active: activeSection === 'dashboard' }"
+              @click="navigate('dashboard')">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-badge">
+        <span class="badge-dot"></span>
+        <span>Admin</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ───────────── MAIN ───────────── -->
+  <div class="main-wrapper">
+
+    <!-- Top bar (mobile) -->
+    <header class="topbar">
+      <button class="hamburger" @click="sidebarOpen = !sidebarOpen" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+      <span class="topbar-title" x-text="sectionTitle"></span>
+      <div class="topbar-spacer"></div>
+    </header>
+
+    <!-- ══════════ SECCIÓN: PROGRAMA ══════════ -->
+    <section class="content-section"
+             x-show="activeSection === 'programa'"
+             x-transition:enter="section-enter"
+             x-transition:enter-start="section-enter-start"
+             x-transition:enter-end="section-enter-end">
+
+      <div class="section-header">
+        <h1 class="section-title">Programa del Día</h1>
+        <p class="section-sub">Configura la salida y genera los mensajes para los capitanes.</p>
+      </div>
+
+      <!-- Form card -->
+      <div class="card form-card">
+
+        <!-- Session type toggle -->
+        <div class="field-group">
+          <label class="field-label">Tipo de Sesión</label>
+          <div class="pill-tabs">
+            <button class="pill-tab" :class="{ active: sessionTipo === 'presencial' }"
+                    @click="sessionTipo = 'presencial'">
+              🏠 Presencial
+            </button>
+            <button class="pill-tab" :class="{ active: sessionTipo === 'carta' }"
+                    @click="sessionTipo = 'carta'">
+              ✉️ Carta Postal
+            </button>
+          </div>
+        </div>
+
+        <!-- Date / Time / Lugar -->
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label" for="sessionDate">Fecha</label>
+            <input id="sessionDate" type="date" class="field-input" :class="{ shake: errors.date }"
+                   x-model="sessionDate" @change="errors.date = false">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="sessionTime">Hora</label>
+            <input id="sessionTime" type="time" class="field-input" :class="{ shake: errors.time }"
+                   x-model="sessionTime" @change="errors.time = false">
+          </div>
+          <div class="field-group span-2" style="position:relative;">
+            <label class="field-label" for="sessionLugar">Lugar de Encuentro</label>
+            <input id="sessionLugar" type="text" class="field-input"
+                   :class="{ shake: errors.lugar }"
+                   x-model="sessionLugar"
+                   @input="filterSuggestions()"
+                   @focus="filterSuggestions()"
+                   @blur="setTimeout(() => showSuggestions = false, 150)"
+                   @change="errors.lugar = false"
+                   placeholder="ej. Fam. Hernández Mora"
+                   autocomplete="off">
+            <!-- Autocomplete dropdown -->
+            <ul class="autocomplete-list" x-show="showSuggestions && suggestions.length > 0">
+              <template x-for="s in suggestions" :key="s">
+                <li class="autocomplete-item" @mousedown.prevent="selectSuggestion(s)" x-text="s"></li>
+              </template>
+            </ul>
+          </div>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <!-- Captain assignment rows -->
+        <div class="subsection-header">
+          <h2 class="subsection-title">Asignación de Capitanes</h2>
+        </div>
+
+        <div class="assignments-list">
+          <template x-for="(asg, i) in asignaciones" :key="i">
+            <div class="assignment-row" x-show="true"
+                 x-transition:enter="row-enter"
+                 x-transition:enter-start="row-enter-start"
+                 x-transition:enter-end="row-enter-end">
+              <div class="assignment-number" x-text="i + 1"></div>
+              <div class="assignment-fields">
+                <select class="field-input field-select" :class="{ shake: asg.error }"
+                        x-model="asg.capitanId" @change="asg.error = false">
+                  <option value="">— Seleccionar capitán —</option>
+                  <template x-for="cap in capitanes" :key="cap.id">
+                    <option :value="cap.id" x-text="cap.nombre"></option>
+                  </template>
+                </select>
+                <input type="text" class="field-input field-grupos"
+                       :class="{ shake: asg.errorGrupos }"
+                       x-model="asg.grupos"
+                       @change="asg.errorGrupos = false"
+                       placeholder="Grupos (ej. 1, 3, 5)">
+              </div>
+              <button class="btn-remove" @click="removeAsignacion(i)" title="Quitar fila"
+                      x-show="asignaciones.length > 1">✕</button>
+            </div>
+          </template>
+        </div>
+
+        <button class="btn-add-row" @click="addAsignacion()">
+          <span class="btn-add-icon">+</span> Agregar Capitán
+        </button>
+
+        <!-- Generate button -->
+        <button class="btn-generate" @click="generateMessages()" :disabled="generating">
+          <span x-show="!generating">🪄 Generar Mensajes</span>
+          <span x-show="generating" class="spinner-wrap">
+            <span class="spinner"></span> Generando…
+          </span>
+        </button>
+      </div>
+
+      <!-- ──── WhatsApp Cards ──── -->
+      <div x-show="showGenerated"
+           x-transition:enter="section-enter"
+           x-transition:enter-start="section-enter-start"
+           x-transition:enter-end="section-enter-end"
+           class="wa-section">
+
+        <div class="section-header">
+          <h2 class="section-title">Mensajes Listos</h2>
+          <p class="section-sub">
+            <span x-text="generatedCards.length"></span> mensaje(s) generado(s) para
+            <span x-text="formatDateDisplay()"></span>
+          </p>
+        </div>
+
+        <div class="wa-grid">
+          <template x-for="(card, i) in generatedCards" :key="card.capitanId">
+            <div class="wa-card" :style="`animation-delay: ${i * 80}ms`">
+              <div class="wa-card-header">
+                <div class="wa-captain-info">
+                  <div class="wa-avatar" x-text="card.nombre.charAt(0)"></div>
+                  <div>
+                    <div class="wa-name" x-text="card.nombre"></div>
+                    <div class="wa-phone" x-text="'+' + card.tel"></div>
+                  </div>
+                </div>
+                <span class="groups-badge" x-text="'Grupos: ' + card.grupos"></span>
+              </div>
+              <pre class="wa-preview" x-text="card.message"></pre>
+              <a class="btn-whatsapp" :href="getWhatsAppUrl(card)" target="_blank" rel="noopener">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Enviar por WhatsApp
+              </a>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════ SECCIÓN: CAPITANES ══════════ -->
+    <section class="content-section"
+             x-show="activeSection === 'capitanes'"
+             x-transition:enter="section-enter"
+             x-transition:enter-start="section-enter-start"
+             x-transition:enter-end="section-enter-end">
+
+      <div class="section-header-row">
+        <div>
+          <h1 class="section-title">Capitanes</h1>
+          <p class="section-sub">Gestiona los capitanes y sus tokens de acceso.</p>
+        </div>
+        <button class="btn-primary" @click="startAddCapitan()">+ Nuevo Capitán</button>
+      </div>
+
+      <!-- Add / Edit form -->
+      <div class="card form-card" x-show="showCapitanForm"
+           x-transition:enter="section-enter"
+           x-transition:enter-start="section-enter-start"
+           x-transition:enter-end="section-enter-end">
+        <h2 class="subsection-title" x-text="editingCapitanId ? 'Editar Capitán' : 'Nuevo Capitán'"></h2>
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Nombre</label>
+            <input type="text" class="field-input" x-model="capForm.nombre" placeholder="Nombre completo">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono (con código país)</label>
+            <input type="text" class="field-input" x-model="capForm.tel" placeholder="525512345000">
+          </div>
+          <div class="field-group span-2">
+            <label class="field-label">Token</label>
+            <div class="token-row">
+              <input type="text" class="field-input" x-model="capForm.token" placeholder="token-unico">
+              <button class="btn-ghost" @click="capForm.token = generateToken()">↻ Generar</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-ghost" @click="cancelCapitanForm()">Cancelar</button>
+          <button class="btn-primary" @click="saveCapitan()">
+            <span x-text="editingCapitanId ? 'Guardar Cambios' : 'Agregar Capitán'"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Captains table -->
+      <div class="card table-card">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Token</th>
+                <th>Link Personalizado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="cap in capitanes" :key="cap.id">
+                <tr>
+                  <td>
+                    <div class="cap-name-cell">
+                      <div class="cap-avatar" x-text="cap.nombre.charAt(0)"></div>
+                      <span x-text="cap.nombre"></span>
+                    </div>
+                  </td>
+                  <td class="text-mono" x-text="'+' + cap.tel"></td>
+                  <td>
+                    <span class="token-pill" x-text="cap.token"></span>
+                  </td>
+                  <td>
+                    <span class="link-preview" x-text="getCapitanLink(cap.token)"></span>
+                  </td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-action copy"
+                              @click="copyLink(cap.token, cap.id)"
+                              x-text="copiedId === cap.id ? '✓ Copiado!' : 'Copiar link'">
+                      </button>
+                      <button class="btn-action edit" @click="startEditCapitan(cap)">Editar</button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ══════════ SECCIÓN: DASHBOARD ══════════ -->
+    <section class="content-section"
+             x-show="activeSection === 'dashboard'"
+             x-transition:enter="section-enter"
+             x-transition:enter-start="section-enter-start"
+             x-transition:enter-end="section-enter-end">
+
+      <div class="section-header">
+        <h1 class="section-title">Dashboard</h1>
+        <p class="section-sub">Resumen del estado de los territorios.</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(59,130,246,0.15); color: #3b82f6;">🗺️</div>
+          <div class="stat-value">106</div>
+          <div class="stat-label">Total Territorios</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(16,185,129,0.15); color: #10b981;">✅</div>
+          <div class="stat-value" x-text="dashboard.completados"></div>
+          <div class="stat-label">Completados Hoy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(245,158,11,0.15); color: #f59e0b;">⏳</div>
+          <div class="stat-value" x-text="dashboard.enProgreso"></div>
+          <div class="stat-label">En Progreso</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(239,68,68,0.15); color: #ef4444;">📋</div>
+          <div class="stat-value" x-text="dashboard.pendientes"></div>
+          <div class="stat-label">Pendientes</div>
+        </div>
+      </div>
+
+      <div class="card table-card mt-6">
+        <div class="table-card-header">
+          <h2 class="subsection-title" style="margin:0">Grupos por Estado</h2>
+        </div>
+        <div class="groups-status-list">
+          <template x-for="g in dashboard.grupos" :key="g.num">
+            <div class="group-status-row">
+              <div class="group-number">Grupo <span x-text="g.num"></span></div>
+              <div class="group-progress-bar">
+                <div class="group-progress-fill"
+                     :style="`width: ${g.pct}%; background: ${g.color}`"></div>
+              </div>
+              <div class="group-pct" x-text="g.pct + '%'"></div>
+              <span class="status-badge" :class="g.status" x-text="g.statusLabel"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </section>
+
+  </div><!-- /main-wrapper -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item" :class="{ active: activeSection === 'programa' }"
+            @click="navigate('programa')">
+      <span class="bottom-nav-icon">📅</span>
+      <span class="bottom-nav-label">Programa</span>
+    </button>
+    <button class="bottom-nav-item" :class="{ active: activeSection === 'capitanes' }"
+            @click="navigate('capitanes')">
+      <span class="bottom-nav-icon">👥</span>
+      <span class="bottom-nav-label">Capitanes</span>
+    </button>
+    <button class="bottom-nav-item" :class="{ active: activeSection === 'dashboard' }"
+            @click="navigate('dashboard')">
+      <span class="bottom-nav-icon">📊</span>
+      <span class="bottom-nav-label">Dashboard</span>
+    </button>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

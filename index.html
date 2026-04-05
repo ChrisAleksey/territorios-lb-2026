@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Territorios LB 2026</title>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
+
+  <!-- MapLibre GL JS v5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.2.0/dist/maplibre-gl.css">
+
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────────── */
+    :root {
+      --bg: #0a0f1e;
+      --bg2: #111827;
+      --card: rgba(15, 23, 42, 0.92);
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+      --glass: rgba(10, 15, 30, 0.85);
+      --radius-card: 20px;
+      --radius-btn: 14px;
+      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Map ───────────────────────────────────────────────────── */
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    /* Remove MapLibre default controls we don't use */
+    .maplibregl-ctrl-logo,
+    .maplibregl-ctrl-attrib { display: none !important; }
+
+    /* ─── Top Card ──────────────────────────────────────────────── */
+    .top-card {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.95);
+      z-index: 10;
+      width: min(92vw, 420px);
+      background: var(--card);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 16px 18px 14px;
+      box-shadow:
+        0 4px 24px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(255,255,255,0.04) inset,
+        0 1px 0 rgba(255,255,255,0.06) inset;
+      opacity: 0;
+      transition: opacity 0.5s var(--spring), transform 0.5s var(--spring);
+    }
+
+    .top-card.visible {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .top-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .top-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .top-card-group {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-glow);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 6px;
+      padding: 2px 8px;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .top-card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 8px;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text2);
+    }
+
+    .meta-icon {
+      font-size: 13px;
+      flex-shrink: 0;
+      width: 16px;
+      text-align: center;
+    }
+
+    .top-card-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .top-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .progress-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Progress ring */
+    .progress-ring-wrap {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+    }
+
+    .progress-ring-svg {
+      width: 40px;
+      height: 40px;
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.08);
+      stroke-width: 3;
+    }
+
+    .progress-ring-fill {
+      fill: none;
+      stroke: var(--success);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      transition: stroke-dashoffset 1.2s var(--spring) 0.3s;
+    }
+
+    .progress-ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .progress-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .progress-count {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--text2);
+    }
+
+    .meeting-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-glow);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s var(--bounce);
+      white-space: nowrap;
+    }
+
+    .meeting-btn:hover { background: rgba(59,130,246,0.35); }
+    .meeting-btn:active { transform: scale(0.94); }
+
+    /* ─── Bottom Sheet ──────────────────────────────────────────── */
+    .bottom-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      background: var(--card);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-top: 1px solid var(--border);
+      border-radius: 24px 24px 0 0;
+      padding: 0 20px 32px;
+      padding-bottom: calc(32px + env(safe-area-inset-bottom));
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+      transform: translateY(100%);
+      transition: transform 0.45s var(--spring);
+      will-change: transform;
+    }
+
+    .bottom-sheet.open {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      margin: 12px auto 18px;
+    }
+
+    .sheet-territory-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .sheet-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .sheet-badge {
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 4px 9px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .sheet-badge.presencial {
+      color: #4ade80;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.25);
+    }
+
+    .sheet-badge.carta {
+      color: #f87171;
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.25);
+    }
+
+    .sheet-badge.dificil {
+      color: #fbbf24;
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+
+    .sheet-status-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.pendiente { background: var(--text2); }
+    .status-dot.parcial   { background: var(--warning); }
+    .status-dot.completo  { background: var(--success); }
+
+    .status-text-label {
+      font-size: 12px;
+      color: var(--text2);
+      font-weight: 500;
+    }
+
+    /* Action buttons */
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 13px 8px;
+      border-radius: var(--radius-btn);
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      transition: transform 0.12s var(--bounce), box-shadow 0.15s, opacity 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-btn:active { transform: scale(0.93); }
+
+    .action-btn .btn-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .action-btn.completo {
+      background: linear-gradient(135deg, #059669, #10b981);
+      box-shadow: 0 4px 14px rgba(16,185,129,0.3);
+    }
+
+    .action-btn.completo:hover {
+      box-shadow: 0 4px 20px rgba(16,185,129,0.5);
+    }
+
+    .action-btn.parcial {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      box-shadow: 0 4px 14px rgba(245,158,11,0.3);
+    }
+
+    .action-btn.parcial:hover {
+      box-shadow: 0 4px 20px rgba(245,158,11,0.5);
+    }
+
+    .action-btn.pendiente {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+    }
+
+    .action-btn.active-state::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.15);
+      border-radius: inherit;
+    }
+
+    /* Ripple */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.35);
+      transform: scale(0);
+      animation: rippleAnim 0.5s linear;
+      pointer-events: none;
+    }
+
+    @keyframes rippleAnim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    /* Notes area */
+    .notes-wrap {
+      margin-bottom: 14px;
+    }
+
+    .notes-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .notes-textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 13px;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      min-height: 64px;
+    }
+
+    .notes-textarea::placeholder { color: var(--text2); opacity: 0.6; }
+    .notes-textarea:focus {
+      border-color: rgba(59,130,246,0.4);
+      background: rgba(59,130,246,0.04);
+    }
+
+    /* Save button */
+    .save-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border: none;
+      border-radius: var(--radius-btn);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+      transition: transform 0.12s var(--bounce), box-shadow 0.15s, opacity 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .save-btn:hover { box-shadow: 0 4px 24px rgba(59,130,246,0.5); }
+    .save-btn:active { transform: scale(0.97); }
+
+    .save-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ─── Progress bar (bottom) ─────────────────────────────────── */
+    .global-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255,255,255,0.06);
+      z-index: 5;
+    }
+
+    .global-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      transition: width 0.8s var(--spring);
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* ─── Toast ─────────────────────────────────────────────────── */
+    .toast {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      transition: transform 0.4s var(--spring), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast-icon { font-size: 15px; }
+
+    .toast.success { border-color: rgba(16,185,129,0.3); }
+    .toast.error   { border-color: rgba(239,68,68,0.3); }
+    .toast.info    { border-color: rgba(59,130,246,0.3); }
+
+    /* ─── Close sheet backdrop ──────────────────────────────────── */
+    .sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      background: transparent;
+      pointer-events: none;
+      transition: background 0.3s;
+    }
+
+    .sheet-backdrop.active {
+      pointer-events: auto;
+    }
+
+    /* ─── Loading overlay ───────────────────────────────────────── */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+
+    #loading-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .loader-ring {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-size: 14px;
+      color: var(--text2);
+      font-weight: 500;
+    }
+
+    /* ─── Map attribution override ──────────────────────────────── */
+    .maplibregl-ctrl-bottom-right {
+      bottom: 6px;
+      right: 6px;
+    }
+
+    .maplibregl-ctrl-attrib { display: none !important; }
+
+    /* ── Hover tooltip ── */
+    .map-tooltip {
+      position: absolute;
+      z-index: 950;
+      background: rgba(10,15,30,0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+      pointer-events: none;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      letter-spacing: 0.03em;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .map-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Type toggle switch ── */
+    .type-toggle {
+      position: absolute;
+      bottom: 28px; left: 16px;
+      z-index: 900;
+      display: flex;
+      background: rgba(10,15,30,0.88);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 4px;
+      gap: 4px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .type-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 16px;
+      border: none; border-radius: 10px;
+      background: transparent;
+      color: var(--text2);
+      font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s, transform 0.15s;
+      white-space: nowrap;
+    }
+    .type-btn:active { transform: scale(0.95); }
+    .type-btn.active.presencial-active { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .type-btn.active.carta-active      { background: rgba(239,68,68,0.2);  color: #fca5a5; }
+    .type-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .presencial-dot { background: #60a5fa; }
+    .carta-dot      { background: #f87171; }
+
+    /* ── Search bar ── */
+    .search-bar {
+      position: absolute;
+      top: 16px; left: 16px;
+      z-index: 900;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(10,15,30,0.88);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 10px 14px;
+      width: 220px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: width 0.3s var(--spring);
+    }
+    .search-bar:focus-within { width: 280px; border-color: var(--accent); }
+    .search-icon { font-size: 14px; opacity: 0.7; flex-shrink: 0; }
+    #search-input {
+      background: none; border: none; outline: none;
+      color: var(--text); font-size: 0.88rem; width: 100%;
+      font-family: inherit;
+    }
+    #search-input::placeholder { color: var(--text2); }
+    .search-clear {
+      background: none; border: none; color: var(--text2);
+      cursor: pointer; font-size: 12px; padding: 0; flex-shrink: 0;
+    }
+
+    /* ── Legend card ── */
+    .legend-card {
+      position: absolute;
+      bottom: 28px; right: 16px;
+      z-index: 900;
+      background: rgba(10,15,30,0.88);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 14px 16px;
+      min-width: 160px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .legend-title {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 10px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.82rem; color: var(--text); margin-bottom: 7px;
+    }
+    .legend-swatch {
+      width: 32px; height: 14px; border-radius: 3px; flex-shrink: 0;
+      position: relative; overflow: hidden;
+    }
+    /* Presencial: relleno gradiente + borde sólido */
+    .legend-presencial {
+      background: linear-gradient(90deg,hsl(14,92%,52%),hsl(151,92%,52%),hsl(288,92%,52%));
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5);
+    }
+    /* Carta postal: relleno rojo semitransparente + borde punteado rojo */
+    .legend-carta {
+      background: rgba(255,45,45,0.3);
+      border: 2.5px dashed #ff2d2d;
+    }
+    /* Mixto: relleno naranja semitransparente + borde punteado naranja */
+    .legend-mixto {
+      background: rgba(255,140,0,0.3);
+      border: 2.5px dashed #ff8c00;
+    }
+    .legend-completo { background: #10b981; }
+    .legend-parcial  { background: #f59e0b; }
+    .legend-divider  { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <!-- Hover tooltip -->
+  <div class="map-tooltip" id="map-tooltip"></div>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Cargando territorios…</div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Search bar -->
+  <div class="search-bar" id="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search-input" placeholder="Buscar territorio (ej. t30)…"
+           oninput="TerritorialApp.filterBySearch(this.value)">
+    <button class="search-clear" id="search-clear" onclick="TerritorialApp.clearSearch()" style="display:none">✕</button>
+  </div>
+
+  <!-- Type toggle switch -->
+  <div class="type-toggle" id="type-toggle">
+    <button class="type-btn active presencial-active" id="btn-presencial" onclick="TerritorialApp.switchType('presencial')">
+      <span class="type-dot presencial-dot"></span>
+      Presencial
+    </button>
+    <button class="type-btn" id="btn-carta" onclick="TerritorialApp.switchType('carta')">
+      <span class="type-dot carta-dot"></span>
+      Carta Postal
+    </button>
+  </div>
+
+  <!-- Legend / Nomenclatura -->
+  <div class="legend-card" id="legend-card">
+
+    <!-- Presencial mode -->
+    <div id="legend-presencial-section">
+      <div class="legend-title">Presencial</div>
+      <div class="legend-item">
+        <div class="legend-swatch legend-presencial"></div>
+        <span>Territorio presencial</span>
+      </div>
+    </div>
+
+    <!-- Carta Postal mode -->
+    <div id="legend-carta-section" style="display:none">
+      <div class="legend-title">Carta Postal</div>
+      <div class="legend-item">
+        <div class="legend-swatch legend-carta"></div>
+        <span>Carta postal</span>
+      </div>
+    </div>
+
+    <hr class="legend-divider">
+    <div class="legend-item">
+      <div class="legend-swatch legend-completo"></div>
+      <span>Completado</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch legend-parcial"></div>
+      <span>Parcial</span>
+    </div>
+  </div>
+
+  <!-- Top card -->
+  <div class="top-card" id="top-card">
+    <div class="top-card-header">
+      <span class="top-card-title" x-data x-text="$store.app.sessionInfo.capitan || '…'">…</span>
+      <span class="top-card-group" x-data x-text="'Grupo ' + ($store.app.sessionInfo.grupo || '…')">Grupo …</span>
+    </div>
+    <div class="top-card-meta">
+      <div class="meta-row">
+        <span class="meta-icon">📅</span>
+        <span x-data x-text="$store.app.sessionInfo.fecha || '…'">…</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-icon">🕘</span>
+        <span x-data x-text="$store.app.sessionInfo.hora || '…'">…</span>
+      </div>
+    </div>
+    <div class="top-card-divider"></div>
+    <div class="top-card-footer">
+      <div class="progress-info">
+        <!-- SVG progress ring -->
+        <div class="progress-ring-wrap">
+          <svg class="progress-ring-svg" viewBox="0 0 40 40">
+            <circle class="progress-ring-bg" cx="20" cy="20" r="15.9"/>
+            <circle class="progress-ring-fill" id="progress-ring-fill" cx="20" cy="20" r="15.9"
+              stroke-dasharray="100"
+              stroke-dashoffset="100"/>
+          </svg>
+          <div class="progress-ring-label" id="progress-ring-pct">0%</div>
+        </div>
+        <div class="progress-text">
+          <span class="progress-count" id="progress-count">0 / 0</span>
+          <span class="progress-label">completados</span>
+        </div>
+      </div>
+      <button class="meeting-btn" onclick="TerritorialApp.showMeetingPoint()">
+        📍 Punto de reunión
+      </button>
+    </div>
+  </div>
+
+  <!-- Sheet backdrop -->
+  <div class="sheet-backdrop" id="sheet-backdrop" onclick="TerritorialApp.closeSheet()"></div>
+
+  <!-- Bottom sheet -->
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="sheet-territory-header">
+      <div class="sheet-name" id="sheet-name">—</div>
+      <span class="sheet-badge" id="sheet-badge">—</span>
+    </div>
+
+    <div class="sheet-status-row">
+      <div class="status-dot" id="sheet-status-dot"></div>
+      <span class="status-text-label" id="sheet-status-label">Pendiente</span>
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn completo" id="btn-completo" onclick="TerritorialApp.selectStatus('completo', event)">
+        <span class="btn-icon">✅</span>
+        Completo
+      </button>
+      <button class="action-btn parcial" id="btn-parcial" onclick="TerritorialApp.selectStatus('parcial', event)">
+        <span class="btn-icon">🟡</span>
+        Parcial
+      </button>
+      <button class="action-btn pendiente" id="btn-pendiente" onclick="TerritorialApp.selectStatus('pendiente', event)">
+        <span class="btn-icon">↩️</span>
+        Pendiente
+      </button>
+    </div>
+
+    <div class="notes-wrap">
+      <div class="notes-label">Notas (opcional)</div>
+      <textarea
+        class="notes-textarea"
+        id="sheet-notes"
+        placeholder="Ej. Hablar con vecino del 2B…"
+        rows="2"
+      ></textarea>
+    </div>
+
+    <button class="save-btn" id="save-btn" onclick="TerritorialApp.saveStatus()">
+      Guardar
+    </button>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="global-progress" id="global-progress-bar">
+    <div class="global-progress-fill" id="global-progress-fill" style="width:0%"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span class="toast-icon" id="toast-icon"></span>
+    <span id="toast-msg">—</span>
+  </div>
+
+  <!-- MapLibre GL JS -->
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.2.0/dist/maplibre-gl.js"></script>
+
+  <!-- Alpine.js (store for reactive bits) -->
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.store('app', {
+        sessionInfo: {}
+      });
+    });
+  </script>
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+  <!-- GSAP -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+
+  <!-- App logic -->
+  <script src="app.js"></script>
+</body>
+</html>
