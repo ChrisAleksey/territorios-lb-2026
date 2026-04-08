@@ -198,7 +198,10 @@ const TerritorialApp = {
     });
 
     // Recalcular canvas en resize (orientación, etc.)
-    const resizeMap = () => requestAnimationFrame(() => { if (this.map) this.map.resize(); });
+    const resizeMap = () => requestAnimationFrame(() => {
+      document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      if (this.map) this.map.resize();
+    });
     this.map.on('load', resizeMap);
     window.addEventListener('resize', resizeMap, { passive: true });
 

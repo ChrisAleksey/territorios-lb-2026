@@ -11,6 +11,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
 
+  <!-- iOS viewport height fix: set --app-height from window.innerHeight ASAP -->
+  <script>
+    ;(function(){
+      function setH(){
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      setH();
+      window.addEventListener('resize', setH, {passive:true});
+      window.addEventListener('orientationchange', function(){ setTimeout(setH, 100); }, {passive:true});
+    })();
+  </script>
+
   <!-- MapLibre GL JS v5 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.11.0/dist/maplibre-gl.css">
 
@@ -52,28 +64,31 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html {
-      height: 100%; /* necesario para que body tenga referencia de altura */
+      /* --app-height se setea via JS (window.innerHeight) para máxima precisión en iOS 26 */
+      height: var(--app-height, 100%);
+      overflow: hidden;
       background: var(--bg);
-      /* SIN overflow:hidden aquí — eso confunde el viewport de iOS Safari */
     }
 
     body {
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%; /* referencia para elementos absolute hijos (search bar, toggle) */
-      overflow: hidden; /* en body está OK, solo html causa el gap de iOS */
+      height: 100%;
+      overflow: hidden;
       position: relative;
       background: transparent;
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
       -webkit-font-smoothing: antialiased;
-      touch-action: none;
+      /* touch-action: none eliminado del body — MapLibre lo maneja en su canvas */
     }
 
     /* ─── Map ───────────────────────────────────────────────────── */
     #map {
-      position: fixed !important;
+      /* absolute relativo a body (position:relative) — más predecible en iOS 26
+         que fixed, cuya referencia cambia con la Liquid Glass toolbar */
+      position: absolute !important;
       top: 0 !important;
       left: 0 !important;
       right: 0 !important;
