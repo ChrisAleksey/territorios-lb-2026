@@ -116,10 +116,13 @@
     body {
       margin: 0;
       padding: 0;
+      /* position:absolute;top:0 ancora el body al top físico de la ICB (y=0 con
+         viewport-fit=cover), igual que position:fixed. Con position:relative el body
+         empezaba en el layout viewport (y≈103, debajo del URL bar), dejando el top vacío. */
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
-      position: relative;
-      /* screen.height (956px): body cubre el fondo físico completo.
-         El mapa absolute dentro llenará estos 956px, eliminando el gap. */
       height: var(--screen-height, 100svh);
       overflow: clip;
       background: transparent;
