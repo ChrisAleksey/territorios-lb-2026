@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#141318">
   <title>Territorios LB 2026</title>
 
@@ -52,11 +52,13 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
+      margin: 0;
+      padding: 0;
       width: 100%;
-      height: 100%;
+      height: 100%;  /* referencia para elementos absolute hijos (search bar, bottom sheet) */
       overflow: hidden;
       font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
+      background: #000; /* negro: si el mapa tarda en cargar no se ve color raro */
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       touch-action: none;
@@ -65,9 +67,15 @@
     body { position: relative; } /* positioned ancestor para elementos absolute */
 
     /* ─── Map ───────────────────────────────────────────────────── */
+    /* position:fixed = siempre el viewport visual real en iOS Safari.
+       Nunca depende del tamaño de html/body ni del large-viewport-height.
+       !important overridea el position:relative que agrega MapLibre al init. */
     #map {
-      position: absolute !important; /* !important en caso de que MapLibre override */
-      inset: 0 !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
       z-index: 0;
     }
 
