@@ -109,7 +109,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html {
-      background: white;
+      background: var(--bg);
       overscroll-behavior: none;
     }
 
@@ -118,9 +118,11 @@
       padding: 0;
       width: 100%;
       position: relative;
-      height: var(--app-height, 100%);
+      /* screen.height (956px): body cubre el fondo físico completo.
+         El mapa absolute dentro llenará estos 956px, eliminando el gap. */
+      height: var(--screen-height, 100svh);
       overflow: clip;
-      background: white;
+      background: transparent;
       overscroll-behavior: none;
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
@@ -129,14 +131,10 @@
 
     /* ─── Map ───────────────────────────────────────────────────── */
     #map {
-      /* En iOS 26, 100vh = window.outerHeight = 956px (fuente: webkit.org).
-         overflow:clip en body no clippea este fixed → canvas llega al fondo físico */
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100% !important;
-      height: 100vh !important;       /* 100vh = outerH = 956px en iOS 26 */
-      height: var(--screen-height, 100vh) !important; /* JS override como fallback */
+      /* absolute dentro de body (956px) → canvas cubre el fondo físico.
+         Los overlays UI usan position:fixed → viven en el viewport de 796px. */
+      position: absolute !important;
+      inset: 0 !important;
       z-index: 0;
     }
 
@@ -146,7 +144,7 @@
 
     /* ─── Top Card ──────────────────────────────────────────────── */
     .top-card {
-      position: absolute;
+      position: fixed;
       top: calc(16px + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%) scale(0.95);
@@ -318,7 +316,7 @@
 
     /* ─── Territory Bottom Sheet ────────────────────────────────── */
     .bottom-sheet {
-      position: absolute;
+      position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
@@ -561,7 +559,7 @@
 
     /* ─── Progress bar (bottom) ─────────────────────────────────── */
     .global-progress {
-      position: absolute;
+      position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
@@ -579,7 +577,7 @@
 
     /* ─── Toast ─────────────────────────────────────────────────── */
     .toast {
-      position: absolute;
+      position: fixed;
       top: calc(16px + env(safe-area-inset-top));
       left: 50%;
       transform: translateX(-50%) translateY(-80px);
@@ -679,7 +677,7 @@
 
     /* ─── Close sheet backdrop ──────────────────────────────────── */
     .sheet-backdrop {
-      position: absolute;
+      position: fixed;
       inset: 0;
       z-index: 15;
       background: transparent;
@@ -696,7 +694,7 @@
 
     /* ─── Loading overlay ───────────────────────────────────────── */
     #loading-overlay {
-      position: absolute;
+      position: fixed;
       inset: 0;
       z-index: 100;
       background: var(--bg);
@@ -740,7 +738,7 @@
 
     /* ── Hover tooltip ── */
     .map-tooltip {
-      position: absolute;
+      position: fixed;
       z-index: 950;
       background: var(--card);
       backdrop-filter: blur(10px);
@@ -765,7 +763,7 @@
 
     /* ── Type toggle switch ── */
     .type-toggle {
-      position: absolute;
+      position: fixed;
       bottom: calc(28px + env(safe-area-inset-bottom)); left: 16px;
       z-index: 900;
       display: flex;
@@ -800,7 +798,7 @@
 
     /* ── Search bar ── */
     .search-bar {
-      position: absolute;
+      position: fixed;
       top: calc(16px + env(safe-area-inset-top)); left: 16px;
       z-index: 900;
       display: flex; align-items: center; gap: 8px;
@@ -829,7 +827,7 @@
 
     /* ── Legend card ── */
     .legend-card {
-      position: absolute;
+      position: fixed;
       bottom: calc(28px + env(safe-area-inset-bottom)); right: 16px;
       z-index: 900;
       background: var(--card);
@@ -938,7 +936,7 @@
 
     /* ─── Admin territory selection bar ────────────────────────── */
     .admin-select-bar {
-      position: absolute;
+      position: fixed;
       bottom: 0; left: 0; right: 0;
       z-index: 50;
       display: none;
@@ -1012,7 +1010,7 @@
 
     /* ─── Admin login button ────────────────────────────────────── */
     .admin-login-btn {
-      position: absolute;
+      position: fixed;
       top: calc(16px + env(safe-area-inset-top)); right: 16px;
       z-index: 900;
       display: flex; align-items: center; justify-content: center;
@@ -1031,7 +1029,7 @@
 
     /* ─── Login modal ───────────────────────────────────────────── */
     .login-overlay {
-      position: absolute;
+      position: fixed;
       inset: 0;
       z-index: 200;
       background: rgba(0,0,0,0.65);
