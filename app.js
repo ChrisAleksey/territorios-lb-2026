@@ -41,13 +41,13 @@ function hslToHex(h, s, l) {
 /* ─── Territory type detection ─────────────────────────────────────────────── */
 // Fill colours stored in GeoJSON properties come from original KML
 const TYPE_MAP = {
-  '#388e3c': 'presencial', // Verde  = presencial
+  '#388e3c': 'casaencasa', // Verde  = casaencasa
   '#d32f2f': 'carta',      // Rojo   = carta postal
   '#f57c00': 'carta'       // Naranja = carta postal (extraídas a este modo)
 };
 
 const TYPE_LABELS = {
-  presencial: 'Presencial',
+  casaencasa: 'Casa en casa',
   carta:      'Carta Postal',
   dificil:    'Difícil'
 };
@@ -59,7 +59,7 @@ const MOCK_DATA = {
   fecha:       'Sábado 4 de Abril 2026',
   hora:        '9:30 am',
   lugar:       'Fam. Hernández Mora',
-  tipo:        'presencial',
+  tipo:        'casaencasa',
   territorios: ['t1', 't2', 't3', 't4', 't6', 't9'],
   estados:     {}
 };
@@ -77,17 +77,21 @@ const TerritorialApp = {
   territoryStatus:     {},   // { 't1': 'completo', … }
   territoryNotes:      {},   // { 't1': 'note text', … }
   territoryBounds:     {},   // { 't1': LngLatBounds }
-  territoryTypes:      {},   // { 't1': 'presencial'|'carta'|'dificil' }
+  territoryTypes:      {},   // { 't1': 'casaencasa'|'carta'|'dificil' }
   allTerritoryNames:   [],   // unique names from GeoJSON
-  currentType:         'presencial', // 'presencial' | 'carta'
-  selectedTerritory:   null,
-  pendingStatus:       null, // status selected but not yet saved
-  sessionInfo:         {},
+  currentType:         'casaencasa', // 'casaencasa' | 'carta'
+  selectedTerritory:        null,
+  pendingStatus:            null, // status selected but not yet saved
+  sessionInfo:              {},
+  adminSelectCapId:         null,
+  adminSelectedTerritories: new Set(),
+  extraTerritories:         [],   // territorios extra que el capitán eligió
 
   /* ── Entry point ─────────────────────────────────────────────────────────── */
   async init() {
     const params = new URLSearchParams(window.location.search);
-    this.token   = params.get('t') || null;
+    this.token            = params.get('t')            || null;
+    this.adminSelectCapId = params.get('admin_select') || null;
 
     if (this.token) {
       await this.loadFromBackend();
@@ -103,12 +107,15 @@ const TerritorialApp = {
     // Top card y search solo en modo capitán (con token en URL)
     if (this.token) {
       this._showTopCard();
+    } else if (this.adminSelectCapId) {
+      // Modo selección admin: ocultar UI de sesión, mostrar barra de selección
+      document.getElementById('top-card')?.setAttribute('style', 'display:none');
+      document.getElementById('admin-login-btn')?.setAttribute('style', 'display:none');
+      this._initAdminSelectMode();
     } else {
       // Modo vista general: ocultar elementos de sesión
       const topCard  = document.getElementById('top-card');
-      const searchBar = document.getElementById('search-bar');
-      if (topCard)   topCard.style.display   = 'none';
-      if (searchBar) searchBar.style.top     = '16px'; // reposition stays
+      if (topCard) topCard.style.display = 'none';
     }
   },
 
@@ -140,6 +147,19 @@ const TerritorialApp = {
       lugar:   data.lugar
     };
     this.assignedTerritories = (data.territorios || []).map(t => t.toLowerCase());
+
+    // Cargar extras guardados localmente para este token
+    try {
+      const savedExtras = localStorage.getItem(`extras_${this.token}`);
+      if (savedExtras) {
+        const extras = JSON.parse(savedExtras);
+        extras.forEach(t => {
+          if (!this.assignedTerritories.includes(t)) this.assignedTerritories.push(t);
+        });
+        this.extraTerritories = extras;
+      }
+    } catch(e) {}
+
     this.territoryStatus     = Object.fromEntries(
       Object.entries(data.estados || {}).map(([k, v]) => [k.toLowerCase(), v])
     );
@@ -176,6 +196,11 @@ const TerritorialApp = {
       minTileCacheSize: 50,
       attributionControl: false
     });
+
+    // Recalcular canvas en resize (orientación, etc.)
+    const resizeMap = () => requestAnimationFrame(() => { if (this.map) this.map.resize(); });
+    this.map.on('load', resizeMap);
+    window.addEventListener('resize', resizeMap, { passive: true });
 
     // Close bottom sheet when tapping empty map area
     this.map.on('click', (e) => {
@@ -236,7 +261,7 @@ const TerritorialApp = {
       // Territory types from KML fill colour — stored as Set (a territory can have mixed polygons)
       const fillColor = (feature.properties.fill || '').toLowerCase();
       if (!typeMap[name]) typeMap[name] = new Set();
-      typeMap[name].add(TYPE_MAP[fillColor] || 'presencial');
+      typeMap[name].add(TYPE_MAP[fillColor] || 'casaencasa');
 
       // Gradient color per territory — golden angle, pre-converted to hex for MapLibre
       if (!feature.properties.territoryColor) {
@@ -258,6 +283,13 @@ const TerritorialApp = {
     this.territoryBounds    = boundsMap;
     this.territoryTypes     = typeMap;
     this.allTerritoryNames  = Array.from(nameSet);
+  },
+
+  /* Convierte el Set de tipos de un territorio a un string display */
+  _getPrimaryType(name) {
+    const s = this.territoryTypes[name];
+    if (!s) return 'casaencasa';
+    return s.has('carta') ? 'carta' : 'casaencasa';
   },
 
   _extractCoords(geometry) {
@@ -399,6 +431,30 @@ const TerritorialApp = {
       }
     });
 
+    /* ---- 3. Territory labels (symbol layer) ---- */
+    this.map.addLayer({
+      id:     'territory-labels',
+      type:   'symbol',
+      source: 'territories',
+      layout: {
+        'text-field':            ['upcase', ['get', 'name']],
+        'text-font':             ['Arial Bold', 'Arial', 'sans-serif'],
+        'text-size':             ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 9, 15, 12, 17, 15],
+        'text-allow-overlap':    false,
+        'text-ignore-placement': false,
+      },
+      paint: {
+        'text-color':       '#ffffff',
+        'text-halo-color':  'rgba(0,0,0,0.85)',
+        'text-halo-width':  2,
+        'text-opacity': [
+          'case',
+          ['boolean', ['feature-state', 'dim'], false], 0,
+          1
+        ]
+      }
+    });
+
     /* ---- Click handler ---- */
     this.map.on('click', 'territory-fill', (e) => {
       if (!e.features.length) return;
@@ -412,8 +468,8 @@ const TerritorialApp = {
       this.map.getCanvas().style.cursor = 'pointer';
       if (!tooltip || !e.features.length) return;
       const name = (e.features[0].properties.name || '').toUpperCase();
-      const type = this.territoryTypes[e.features[0].properties.name] || 'presencial';
-      const typeLabel = { presencial: '🟢', carta: '🔴', dificil: '🟠' }[type] || '';
+      const type = this._getPrimaryType(e.features[0].properties.name);
+      const typeLabel = { casaencasa: '🟢', carta: '🔴', dificil: '🟠' }[type] || '';
       tooltip.textContent = `${typeLabel} ${name}`;
       tooltip.style.left = (e.point.x + 14) + 'px';
       tooltip.style.top  = (e.point.y - 32) + 'px';
@@ -474,13 +530,25 @@ const TerritorialApp = {
         linear:    false,
         essential: true
       });
+      // Limitar zoom out al nivel donde caben todos los polígonos
+      this.map.once('moveend', () => {
+        this.map.setMinZoom(this.map.getZoom());
+      });
     }
   },
 
   /* ── Territory click ─────────────────────────────────────────────────────── */
   onTerritoryClick(name) {
-    // Only allow interaction with assigned territories in captain mode
-    if (!this.assignedTerritories.includes(name)) return;
+    // Modo selección admin: toggle en vez de abrir sheet
+    if (this.adminSelectCapId) {
+      this.toggleAdminTerritory(name);
+      return;
+    }
+    // Territorio no asignado en modo capitán → ofrecer agregarlo
+    if (this.token && !this.assignedTerritories.includes(name)) {
+      this._showExtraPanel(name);
+      return;
+    }
 
     // Deselect previous
     if (this.selectedTerritory && this.selectedTerritory !== name) {
@@ -503,7 +571,7 @@ const TerritorialApp = {
     const bounds = this.territoryBounds[name];
     if (bounds && !bounds.isEmpty()) {
       this.map.fitBounds(bounds, {
-        padding:   { top: 120, bottom: 420, left: 40, right: 40 },
+        padding:   { top: 120, bottom: 120, left: 40, right: 40 },
         duration:  800,
         linear:    false,
         essential: true
@@ -516,7 +584,7 @@ const TerritorialApp = {
   },
 
   _populateSheet(name) {
-    const type   = this.territoryTypes[name] || 'presencial';
+    const type   = this._getPrimaryType(name);
     const status = this.territoryStatus[name] || 'pendiente';
     const notes  = this.territoryNotes[name]  || '';
 
@@ -637,6 +705,63 @@ const TerritorialApp = {
     this.pendingStatus     = null;
   },
 
+  /* ── Extra territory (capitán elige un territorio extra) ────────────────── */
+  _showExtraPanel(name) {
+    // Deselect any previous
+    if (this.selectedTerritory) {
+      this.map.setFeatureState({ source: 'territories', id: this.selectedTerritory }, { selected: false });
+    }
+    this.selectedTerritory = name;
+    this.map.setFeatureState({ source: 'territories', id: name }, { selected: true });
+
+    // Zoom to territory
+    const bounds = this.territoryBounds[name];
+    if (bounds && !bounds.isEmpty()) {
+      this.map.fitBounds(bounds, {
+        padding: { top: 120, bottom: 380, left: 40, right: 40 },
+        duration: 700, linear: false, essential: true
+      });
+    }
+
+    // Fill header
+    document.getElementById('sheet-name').textContent = name.toUpperCase();
+    const type  = this._getPrimaryType(name);
+    const badge = document.getElementById('sheet-badge');
+    badge.textContent = ({ casaencasa: 'Casa en casa', carta: 'Carta Postal', dificil: 'Difícil' }[type] || type);
+    badge.className   = `sheet-badge ${type}`;
+
+    // Show extra panel, hide normal
+    document.getElementById('extra-panel').classList.add('show');
+    document.getElementById('normal-panel').style.display = 'none';
+
+    this.openSheet();
+  },
+
+  confirmExtraTerritory() {
+    const name = this.selectedTerritory;
+    if (!name) return;
+
+    // Añadir a asignados
+    this.assignedTerritories.push(name);
+    this.extraTerritories.push(name);
+
+    // Persistir extras localmente
+    try {
+      localStorage.setItem(`extras_${this.token}`, JSON.stringify(this.extraTerritories));
+    } catch(e) {}
+
+    // Quitar dim y actualizar mapa
+    this.map.setFeatureState({ source: 'territories', id: name }, { dim: false, selected: true });
+    this.updateProgress();
+
+    // Cerrar panel extra y abrir el normal para ese territorio
+    document.getElementById('extra-panel').classList.remove('show');
+    document.getElementById('normal-panel').style.display = '';
+
+    this._populateSheet(name);
+    this.showToast(`${name.toUpperCase()} agregado a tus territorios`, 'success');
+  },
+
   /* ── Open / close bottom sheet ───────────────────────────────────────────── */
   openSheet() {
     document.getElementById('bottom-sheet').classList.add('open');
@@ -646,6 +771,9 @@ const TerritorialApp = {
   closeSheet() {
     document.getElementById('bottom-sheet').classList.remove('open');
     document.getElementById('sheet-backdrop').classList.remove('active');
+    // Resetear paneles
+    document.getElementById('extra-panel').classList.remove('show');
+    document.getElementById('normal-panel').style.display = '';
 
     if (this.selectedTerritory) {
       this.map.setFeatureState(
@@ -699,10 +827,10 @@ const TerritorialApp = {
     this.currentType = type;
 
     // Update button styles
-    const btnP = document.getElementById('btn-presencial');
+    const btnP = document.getElementById('btn-casaencasa');
     const btnC = document.getElementById('btn-carta');
     if (btnP && btnC) {
-      btnP.className = 'type-btn' + (type === 'presencial' ? ' active presencial-active' : '');
+      btnP.className = 'type-btn' + (type === 'casaencasa' ? ' active casaencasa-active' : '');
       btnC.className = 'type-btn' + (type === 'carta'      ? ' active carta-active'      : '');
     }
 
@@ -710,10 +838,10 @@ const TerritorialApp = {
     this.closeSheet();
 
     // Update legend
-    const lp = document.getElementById('legend-presencial-section');
+    const lp = document.getElementById('legend-casaencasa-section');
     const lc = document.getElementById('legend-carta-section');
     if (lp && lc) {
-      lp.style.display = type === 'presencial' ? '' : 'none';
+      lp.style.display = type === 'casaencasa' ? '' : 'none';
       lc.style.display = type === 'carta'      ? '' : 'none';
     }
 
@@ -766,20 +894,31 @@ const TerritorialApp = {
   },
 
   _setTypeFilter(type) {
-    const presencialFill = '#388e3c';
+    // En modo selección admin: mostrar todos los polígonos sin filtrar por tipo
+    if (this.adminSelectCapId) {
+      ['territory-fill', 'territory-glow', 'territory-labels'].forEach(id => {
+        if (this.map.getLayer(id)) this.map.setFilter(id, null);
+      });
+      ['territory-line', 'territory-line-carta', 'territory-line-mixto'].forEach(id => {
+        if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', 'visible');
+      });
+      return;
+    }
+
+    const casaencasaFill = '#388e3c';
     const cartaFills     = ['#d32f2f', '#f57c00'];
 
-    const fillFilter = type === 'presencial'
-      ? ['==', ['get', 'fill'], presencialFill]
+    const fillFilter = type === 'casaencasa'
+      ? ['==', ['get', 'fill'], casaencasaFill]
       : ['in', ['get', 'fill'], ['literal', cartaFills]];
 
-    ['territory-fill', 'territory-glow'].forEach(id => {
+    ['territory-fill', 'territory-glow', 'territory-labels'].forEach(id => {
       if (this.map.getLayer(id)) this.map.setFilter(id, fillFilter);
     });
 
     // Line layers: toggle visibility by type
     const vis = v => v ? 'visible' : 'none';
-    if (this.map.getLayer('territory-line'))       this.map.setLayoutProperty('territory-line',       'visibility', vis(type === 'presencial'));
+    if (this.map.getLayer('territory-line'))       this.map.setLayoutProperty('territory-line',       'visibility', vis(type === 'casaencasa'));
     if (this.map.getLayer('territory-line-carta'))  this.map.setLayoutProperty('territory-line-carta',  'visibility', vis(type === 'carta'));
     if (this.map.getLayer('territory-line-mixto'))  this.map.setLayoutProperty('territory-line-mixto',  'visibility', vis(type === 'carta'));
   },
@@ -881,6 +1020,101 @@ const TerritorialApp = {
   _hideLoader() {
     const overlay = document.getElementById('loading-overlay');
     if (overlay) overlay.classList.add('hidden');
+  },
+
+  /* ── Admin territory selection mode ─────────────────────────────────────── */
+  _initAdminSelectMode() {
+    // Cargar selección previa de este capitán desde localStorage
+    try {
+      const stored = localStorage.getItem('admin_capitan_territories');
+      if (stored) {
+        const all = JSON.parse(stored);
+        const existing = (all[this.adminSelectCapId] || []).map(t => t.toLowerCase());
+        this.adminSelectedTerritories = new Set(existing);
+      }
+    } catch(e) {}
+
+    // Nombre del capitán
+    let capNombre = this.adminSelectCapId;
+    try {
+      const info = localStorage.getItem('admin_select_info');
+      if (info) capNombre = JSON.parse(info).nombre;
+    } catch(e) {}
+
+    // Ocultar controles que interfieren visualmente
+    ['type-toggle', 'legend-card', 'search-bar'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // Mostrar barra
+    const banner = document.getElementById('admin-select-banner');
+    if (banner) {
+      document.getElementById('admin-select-cap-name').textContent = capNombre;
+      banner.style.display = 'flex';
+    }
+
+    // Aplicar highlights pre-seleccionados
+    for (const name of this.adminSelectedTerritories) {
+      this.map.setFeatureState({ source: 'territories', id: name }, { selected: true });
+    }
+    this._updateAdminSelectCount();
+  },
+
+  toggleAdminTerritory(name) {
+    if (this.adminSelectedTerritories.has(name)) {
+      this.adminSelectedTerritories.delete(name);
+      this.map.setFeatureState({ source: 'territories', id: name }, { selected: false });
+    } else {
+      this.adminSelectedTerritories.add(name);
+      this.map.setFeatureState({ source: 'territories', id: name }, { selected: true });
+    }
+    this._updateAdminSelectCount();
+  },
+
+  _updateAdminSelectCount() {
+    const n  = this.adminSelectedTerritories.size;
+    const el = document.getElementById('admin-select-count');
+    if (el) el.textContent = n === 1 ? '1 territorio' : `${n} territorios`;
+
+    // Actualizar chips
+    const chips = document.getElementById('admin-select-chips');
+    if (!chips) return;
+    chips.innerHTML = '';
+
+    if (n === 0) {
+      chips.innerHTML = '<span class="admin-chips-empty">Toca un territorio en el mapa para seleccionarlo</span>';
+      return;
+    }
+
+    // Ordenar: t1, t2, … t10, t11…
+    const sorted = Array.from(this.adminSelectedTerritories).sort((a, b) => {
+      const na = parseInt(a.replace('t', '')) || 0;
+      const nb = parseInt(b.replace('t', '')) || 0;
+      return na - nb;
+    });
+
+    for (const name of sorted) {
+      const chip = document.createElement('span');
+      chip.className = 'admin-chip';
+      chip.innerHTML = `${name.toUpperCase()} <span class="admin-chip-x">✕</span>`;
+      chip.addEventListener('click', () => this.toggleAdminTerritory(name));
+      chips.appendChild(chip);
+    }
+  },
+
+  confirmAdminSelection() {
+    try {
+      localStorage.setItem('admin_territory_selection', JSON.stringify({
+        capId:       this.adminSelectCapId,
+        territories: Array.from(this.adminSelectedTerritories)
+      }));
+    } catch(e) {}
+    window.location.href = 'admin.html';
+  },
+
+  cancelAdminSelection() {
+    window.location.href = 'admin.html';
   },
 
   _showTopCard() {
