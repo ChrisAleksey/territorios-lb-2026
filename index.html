@@ -51,6 +51,10 @@
     /* ─── Reset & Base ──────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html {
+      background: var(--bg); /* color visible durante carga / gap residual */
+    }
+
     html, body {
       margin: 0;
       padding: 0;
@@ -58,24 +62,29 @@
       height: 100%;  /* referencia para elementos absolute hijos (search bar, bottom sheet) */
       overflow: hidden;
       font-family: 'Inter', system-ui, sans-serif;
-      background: #000; /* negro: si el mapa tarda en cargar no se ve color raro */
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       touch-action: none;
+    }
+
+    body {
+      background: transparent; /* el mapa cubre todo, body no debe colorear gaps */
     }
 
     body { position: relative; } /* positioned ancestor para elementos absolute */
 
     /* ─── Map ───────────────────────────────────────────────────── */
     /* position:fixed = siempre el viewport visual real en iOS Safari.
-       Nunca depende del tamaño de html/body ni del large-viewport-height.
-       !important overridea el position:relative que agrega MapLibre al init. */
+       bottom negativo = workaround para bug de iOS 26.0 (Safari 26) donde
+       position:fixed;inset:0 deja un gap en la parte inferior igual al
+       safe-area-inset-bottom (~34px en iPhone 17). Corregido en Safari 26.1.
+       !important overridea position:relative que agrega MapLibre al init. */
     #map {
       position: fixed !important;
       top: 0 !important;
       left: 0 !important;
       right: 0 !important;
-      bottom: 0 !important;
+      bottom: calc(0px - env(safe-area-inset-bottom, 0px)) !important;
       z-index: 0;
     }
 
