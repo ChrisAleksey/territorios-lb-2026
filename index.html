@@ -52,22 +52,23 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html {
+      height: 100%; /* necesario para que body tenga referencia de altura */
       background: var(--bg);
+      /* SIN overflow:hidden aquí — eso confunde el viewport de iOS Safari */
     }
 
     body {
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%; /* referencia para elementos absolute hijos */
+      height: 100%; /* referencia para elementos absolute hijos (search bar, toggle) */
+      overflow: hidden; /* en body está OK, solo html causa el gap de iOS */
       position: relative;
       background: transparent;
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       touch-action: none;
-      /* SIN overflow:hidden en html/body — eso confunde al viewport de iOS Safari
-         y crea el gap inferior. El mapa fixed cubre todo sin necesitarlo. */
     }
 
     /* ─── Map ───────────────────────────────────────────────────── */
