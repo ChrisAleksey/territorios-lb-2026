@@ -1193,69 +1193,6 @@
     </div>
   </div>
 
-  <!-- Sheet backdrop -->
-  <div class="sheet-backdrop" id="sheet-backdrop" onclick="TerritorialApp.closeSheet()"></div>
-
-  <!-- Territory modal -->
-  <div class="bottom-sheet" id="bottom-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-territory-header">
-      <div class="sheet-name" id="sheet-name">—</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <span class="sheet-badge" id="sheet-badge">—</span>
-        <button class="sheet-close-btn" onclick="TerritorialApp.closeSheet()" aria-label="Cerrar">✕</button>
-      </div>
-    </div>
-
-    <!-- Panel: solicitar territorio extra -->
-    <div class="extra-panel" id="extra-panel">
-      <p class="extra-hint" id="extra-hint">
-        Este territorio no está en tu lista.<br>
-        <strong>¿Quieres agregarlo para trabajarlo hoy?</strong>
-      </p>
-      <div class="extra-actions">
-        <button class="extra-cancel-btn" onclick="TerritorialApp.closeSheet()">Cancelar</button>
-        <button class="extra-add-btn" onclick="TerritorialApp.confirmExtraTerritory()">+ Agregar territorio</button>
-      </div>
-    </div>
-
-    <!-- Panel normal: estado + notas -->
-    <div id="normal-panel">
-    <div class="sheet-status-row">
-      <div class="status-dot" id="sheet-status-dot"></div>
-      <span class="status-text-label" id="sheet-status-label">Pendiente</span>
-    </div>
-
-    <div class="action-row">
-      <button class="action-btn completo" id="btn-completo" onclick="TerritorialApp.selectStatus('completo', event)">
-        <span class="btn-icon">✅</span>
-        Completo
-      </button>
-      <button class="action-btn parcial" id="btn-parcial" onclick="TerritorialApp.selectStatus('parcial', event)">
-        <span class="btn-icon">🟡</span>
-        Parcial
-      </button>
-      <button class="action-btn pendiente" id="btn-pendiente" onclick="TerritorialApp.selectStatus('pendiente', event)">
-        <span class="btn-icon">↩️</span>
-        Pendiente
-      </button>
-    </div>
-
-    <div class="notes-wrap">
-      <div class="notes-label">Notas (opcional)</div>
-      <textarea
-        class="notes-textarea"
-        id="sheet-notes"
-        placeholder="Ej. Incompleto, solo se hizo lado sombra…"
-        rows="2"
-      ></textarea>
-    </div>
-
-    <button class="save-btn" id="save-btn" onclick="TerritorialApp.saveStatus()">
-      Guardar
-    </button>
-    </div><!-- /normal-panel -->
-  </div>
 
   <!-- Admin territory selection bar -->
   <div class="admin-select-bar" id="admin-select-banner">

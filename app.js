@@ -764,16 +764,15 @@ const TerritorialApp = {
 
   /* ── Open / close bottom sheet ───────────────────────────────────────────── */
   openSheet() {
-    document.getElementById('bottom-sheet').classList.add('open');
-    document.getElementById('sheet-backdrop').classList.add('active');
+    document.getElementById('bottom-sheet')?.classList.add('open');
+    document.getElementById('sheet-backdrop')?.classList.add('active');
   },
 
   closeSheet() {
-    document.getElementById('bottom-sheet').classList.remove('open');
-    document.getElementById('sheet-backdrop').classList.remove('active');
-    // Resetear paneles
-    document.getElementById('extra-panel').classList.remove('show');
-    document.getElementById('normal-panel').style.display = '';
+    document.getElementById('bottom-sheet')?.classList.remove('open');
+    document.getElementById('sheet-backdrop')?.classList.remove('active');
+    document.getElementById('extra-panel')?.classList.remove('show');
+    if (document.getElementById('normal-panel')) document.getElementById('normal-panel').style.display = '';
 
     if (this.selectedTerritory) {
       this.map.setFeatureState(
