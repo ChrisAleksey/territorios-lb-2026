@@ -109,7 +109,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html {
-      background: var(--bg);
+      background: white;
       overscroll-behavior: none;
     }
 
@@ -119,11 +119,8 @@
       width: 100%;
       position: relative;
       height: var(--app-height, 100%);
-      /* overflow:clip (NO overflow:hidden) — clip no se propaga al viewport,
-         así el #map fixed no queda clippeado a 796px.
-         overflow:hidden en body HTML se propaga al viewport y clippea fixed children. */
       overflow: clip;
-      background: transparent;
+      background: white;
       overscroll-behavior: none;
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
