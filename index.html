@@ -11,9 +11,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
 
-  <!-- iOS viewport height fix -->
+  <!-- iOS viewport fix: extiende el mapa a screen.height para cubrir el Liquid Glass toolbar -->
   <script>
     ;(function(){
+      // screen.height = altura física real (956px en iPhone 17 Pro Max)
+      // window.innerHeight = área de contenido CSS (796px) — NO llega al fondo físico
+      // El WebKit SÍ renderiza hasta screen.height, por eso necesitamos cubrir ese espacio
+      document.documentElement.style.setProperty('--screen-height', screen.height + 'px');
+      document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+
       function setH(){
         document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
       }
@@ -126,8 +132,14 @@
 
     /* ─── Map ───────────────────────────────────────────────────── */
     #map {
-      position: absolute !important;
-      inset: 0 !important;
+      /* position:fixed independiente del body — no se clipa por overflow:hidden del body.
+         height = screen.height (956px en iPhone 17 Pro Max) para cubrir el Liquid Glass toolbar.
+         El WebKit renderiza hasta screen.height aunque el layout viewport sea solo 796px. */
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: var(--screen-height, 100vh) !important;
       z-index: 0;
     }
 

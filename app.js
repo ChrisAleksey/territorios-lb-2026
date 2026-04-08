@@ -200,6 +200,7 @@ const TerritorialApp = {
     // Recalcular canvas en resize (orientación, etc.)
     const resizeMap = () => requestAnimationFrame(() => {
       document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      document.documentElement.style.setProperty('--screen-height', screen.height + 'px');
       if (this.map) this.map.resize();
     });
     this.map.on('load', resizeMap);
