@@ -110,21 +110,21 @@
 
     html {
       background: var(--bg);
-      /* Sin height explícita — body fixed cubre toda la pantalla */
+      overscroll-behavior: none;
     }
 
     body {
       margin: 0;
       padding: 0;
-      /* position:fixed;inset:0 hace que body SEA el viewport,
-         eliminando cualquier cálculo de altura problemático en iOS 26 */
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      width: 100%;
+      /* position:relative NO crea containing block para fixed children —
+         así el #map fixed escapa el clip y llega a screen.height (956px).
+         height=app-height sirve de referencia para elementos absolute (toggle, search bar) */
+      position: relative;
+      height: var(--app-height, 100%);
       overflow: hidden;
       background: transparent;
+      overscroll-behavior: none;
       font-family: 'Inter', system-ui, sans-serif;
       color: var(--text);
       -webkit-font-smoothing: antialiased;
@@ -132,9 +132,9 @@
 
     /* ─── Map ───────────────────────────────────────────────────── */
     #map {
-      /* position:fixed independiente del body — no se clipa por overflow:hidden del body.
-         height = screen.height (956px en iPhone 17 Pro Max) para cubrir el Liquid Glass toolbar.
-         El WebKit renderiza hasta screen.height aunque el layout viewport sea solo 796px. */
+      /* fixed + height:screen.height (956px) — como body es position:relative,
+         NO clippea este elemento fixed. El canvas llega al fondo físico de pantalla,
+         cubriendo la zona del Liquid Glass toolbar que antes mostraba el fondo oscuro */
       position: fixed !important;
       top: 0 !important;
       left: 0 !important;
