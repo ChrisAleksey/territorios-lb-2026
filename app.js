@@ -295,18 +295,27 @@ const TerritorialApp = {
       if (!typeMap[name]) typeMap[name] = new Set();
       typeMap[name].add(TYPE_MAP[fillColor] || 'casaencasa');
 
-      // Gradient color per territory — golden angle, pre-converted to hex for MapLibre
+      // Gradient color per territory — distribución equidistante en rango seguro
       if (!feature.properties.territoryColor) {
-        const num      = parseInt(name.replace('t', '')) || 0;
-        const rawHue   = (num * 137.508) % 360;
-        const isCarta  = fillColor === '#d32f2f' || fillColor === '#f57c00';
+        const num     = parseInt(name.replace('t', '')) || 0;
+        const isCarta = fillColor === '#d32f2f' || fillColor === '#f57c00';
 
-        // Presenciales: mapear al rango seguro 50°–330° (280°) para excluir
-        // rojos y naranja-rojos que son exclusivos de carta postal.
-        // Carta postal: el color es forzado a #ff2d2d en la capa, territoryColor no importa.
-        const hue = isCarta ? rawHue : 50 + (rawHue / 360) * 280;
+        let hue, lightness;
+        if (isCarta) {
+          // Carta postal: color forzado a rojo en la capa, territoryColor no se usa visualmente
+          hue       = 0;
+          lightness = 52;
+        } else {
+          // Presencial: distribuir equitativamente en 50°–330° (280° sin rojos)
+          // t1 = 50° (amarillo-verde) … t106 = 330° (magenta)
+          // Oscilación de luminosidad en 4 olas → ayuda a distinguir vecinos con hue cercano
+          const TOTAL = 106;
+          const t     = (num - 1) / (TOTAL - 1); // 0..1
+          hue       = 50 + t * 280;
+          lightness = 50 + Math.sin(t * Math.PI * 4) * 8; // oscila ±8% en 4 ciclos
+        }
 
-        feature.properties.territoryColor = hslToHex(hue, 92, 52);
+        feature.properties.territoryColor = hslToHex(hue, 88, lightness);
       }
 
       // Bounds
