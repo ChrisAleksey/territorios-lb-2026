@@ -122,6 +122,10 @@
       --spring:       cubic-bezier(0.16, 1, 0.3, 1);
       --bounce:       cubic-bezier(0.34, 1.56, 0.64, 1);
       --ease:         0.2s ease;
+      --gradient-accent:  linear-gradient(135deg, #5e4d8a, #7560a8);
+      --gradient-success: linear-gradient(135deg, #059669, #10b981);
+      --shadow-accent:    0 4px 16px rgba(117,96,168,0.35);
+      --shadow-accent-lg: 0 4px 24px rgba(117,96,168,0.50);
     }
 
     /* ─── Reset & Base ──────────────────────────────────────────── */
@@ -353,7 +357,7 @@
       justify-content: space-between;
       gap: 12px;
       padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
-      background: linear-gradient(135deg, #059669, #10b981);
+      background: var(--gradient-success);
       color: #fff;
       font-size: 14px;
       font-weight: 600;
@@ -510,7 +514,7 @@
     }
 
     .action-btn.completo {
-      background: linear-gradient(135deg, #059669, #10b981);
+      background: var(--gradient-success);
       box-shadow: 0 4px 14px rgba(16,185,129,0.3);
     }
 
@@ -594,7 +598,7 @@
     .save-btn {
       width: 100%;
       padding: 14px;
-      background: linear-gradient(135deg, #5e4d8a, #7560a8);
+      background: var(--gradient-accent);
       border: none;
       border-radius: var(--r-md);
       font-family: inherit;
@@ -602,13 +606,13 @@
       font-weight: 700;
       color: #fff;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(117,96,168,0.35);
+      box-shadow: var(--shadow-accent);
       transition: transform 0.12s var(--bounce), box-shadow 0.15s, opacity 0.2s;
       position: relative;
       overflow: hidden;
     }
 
-    .save-btn:hover { box-shadow: 0 4px 24px rgba(117,96,168,0.5); }
+    .save-btn:hover { box-shadow: var(--shadow-accent-lg); }
     .save-btn:active { transform: scale(0.97); }
 
     .save-btn:disabled {
@@ -706,11 +710,11 @@
     .extra-cancel-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
     .extra-add-btn {
       padding: 13px;
-      background: linear-gradient(135deg, #5e4d8a, #7560a8);
+      background: var(--gradient-accent);
       border: none; border-radius: var(--r-md);
       font-family: inherit; font-size: 14px; font-weight: 700;
       color: #fff; cursor: pointer;
-      box-shadow: 0 4px 16px rgba(117,96,168,0.35);
+      box-shadow: var(--shadow-accent);
       transition: transform 0.12s var(--bounce), box-shadow 0.15s;
     }
     .extra-add-btn:hover { box-shadow: 0 4px 24px rgba(117,96,168,0.55); }
@@ -1057,7 +1061,7 @@
     .admin-select-cancel:hover { background: rgba(255,255,255,0.1); color: var(--text); }
     .admin-select-confirm {
       flex: 2; padding: 12px;
-      background: linear-gradient(135deg, #059669, #10b981);
+      background: var(--gradient-success);
       border: none; border-radius: 12px;
       font-family: inherit; font-size: 14px; font-weight: 700;
       color: #fff; cursor: pointer;
@@ -1151,15 +1155,15 @@
     .login-submit {
       width: 100%;
       padding: 13px;
-      background: linear-gradient(135deg, #5e4d8a, #7560a8);
+      background: var(--gradient-accent);
       border: none; border-radius: 12px;
       font-family: inherit; font-size: 14px; font-weight: 700;
       color: #fff; cursor: pointer;
-      box-shadow: 0 4px 16px rgba(117,96,168,0.35);
+      box-shadow: var(--shadow-accent);
       transition: transform 0.12s var(--bounce), box-shadow 0.15s;
       margin-bottom: 10px;
     }
-    .login-submit:hover { box-shadow: 0 4px 24px rgba(117,96,168,0.5); }
+    .login-submit:hover { box-shadow: var(--shadow-accent-lg); }
     .login-submit:active { transform: scale(0.97); }
     .login-cancel {
       width: 100%; padding: 10px;
