@@ -134,6 +134,19 @@ function adminApp() {
           localStorage.removeItem('admin_asignaciones_state');
         }
       } catch(e) {}
+
+      // Restaurar campos del programa (lugar, fecha, hora, tipo)
+      try {
+        const savedProg = localStorage.getItem('admin_programa_state');
+        if (savedProg) {
+          const p = JSON.parse(savedProg);
+          if (p.sessionTipo)  this.sessionTipo  = p.sessionTipo;
+          if (p.sessionDate)  this.sessionDate  = p.sessionDate;
+          if (p.sessionTime)  this.sessionTime  = p.sessionTime;
+          if (p.sessionLugar) this.sessionLugar = p.sessionLugar;
+          localStorage.removeItem('admin_programa_state');
+        }
+      } catch(e) {}
     },
 
     /* ════════════════════════════════════════════
@@ -296,8 +309,14 @@ _(Toca el link para ver tus territorios asignados)_`;
       try {
         localStorage.setItem('admin_select_info', JSON.stringify({ id: cap.id, nombre: cap.nombre }));
         localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan));
-        // Guardar estado de asignaciones para restaurar al volver
+        // Guardar estado completo del programa para restaurar al volver
         localStorage.setItem('admin_asignaciones_state', JSON.stringify(this.asignaciones));
+        localStorage.setItem('admin_programa_state', JSON.stringify({
+          sessionTipo:  this.sessionTipo,
+          sessionDate:  this.sessionDate,
+          sessionTime:  this.sessionTime,
+          sessionLugar: this.sessionLugar,
+        }));
       } catch(e) {}
       window.location.href = `index.html?admin_select=${cap.id}`;
     },
