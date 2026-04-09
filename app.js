@@ -82,6 +82,9 @@ const TerritorialApp = {
   territoryStatus:     {},   // { 't1': 'completo', … }
   territoryNotes:      {},   // { 't1': 'note text', … }
   addingExtraMode:     false, // modo "agregar territorio extra"
+  submitted:           false, // informe enviado al backend
+  submitTime:          null,  // hora del último envío
+  _isDebug:            false,
   _glowInterval:       null,
   _toastTimer:         null,
   territoryBounds:     {},   // { 't1': LngLatBounds }
@@ -100,6 +103,7 @@ const TerritorialApp = {
     const params = new URLSearchParams(window.location.search);
     this.token            = params.get('t')            || null;
     this.adminSelectCapId = params.get('admin_select') || null;
+    this._isDebug         = params.has('debug');
 
     if (this.token) {
       await this.loadFromBackend();
@@ -865,6 +869,119 @@ const TerritorialApp = {
 
     const barFill = document.getElementById('global-progress-fill');
     if (barFill) barFill.style.width = `${pct}%`;
+
+    this._updateFinishBar();
+  },
+
+  /* ── Finish Bar ──────────────────────────────────────────────────────────── */
+  _updateFinishBar() {
+    if (!this.token) return;
+    const bar = document.getElementById('finish-bar');
+    if (!bar) return;
+
+    const total    = this.assignedTerritories.length;
+    const completo = this.assignedTerritories.filter(n => this.territoryStatus[n] === 'completo').length;
+    const parcial  = this.assignedTerritories.filter(n => this.territoryStatus[n] === 'parcial').length;
+    const reported = completo + parcial;
+    const pct      = total > 0 ? Math.round((reported / total) * 100) : 0;
+
+    const fill  = document.getElementById('finish-bar-fill');
+    const label = document.getElementById('finish-bar-label');
+    const btn   = document.getElementById('finish-bar-btn');
+
+    if (fill) {
+      fill.style.width = `${pct}%`;
+      fill.style.background = pct === 100 ? 'var(--success)' : '';
+    }
+    if (label) label.textContent = `${reported} / ${total} reportados`;
+    if (btn) {
+      if (this.submitted) {
+        btn.textContent = 'Enviado ✓';
+        btn.classList.add('submitted');
+      } else {
+        btn.textContent = pct === 100 ? 'Finalizar ✓' : 'Finalizar';
+        btn.classList.remove('submitted');
+      }
+    }
+  },
+
+  openFinishSheet() {
+    const total     = this.assignedTerritories.length;
+    const completo  = this.assignedTerritories.filter(n => this.territoryStatus[n] === 'completo').length;
+    const parcial   = this.assignedTerritories.filter(n => this.territoryStatus[n] === 'parcial').length;
+    const pendiente = total - completo - parcial;
+
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('finish-count-completo',  completo);
+    setEl('finish-count-parcial',   parcial);
+    setEl('finish-count-pendiente', pendiente);
+
+    const warning = document.getElementById('finish-warning');
+    if (warning) warning.style.display = pendiente > 0 ? '' : 'none';
+    setEl('finish-pending-count', pendiente);
+
+    const subInfo = document.getElementById('finish-submitted-info');
+    if (subInfo) subInfo.style.display = this.submitted ? '' : 'none';
+    if (this.submitTime) setEl('finish-submit-time', this.submitTime);
+
+    const btn = document.getElementById('finish-submit-btn');
+    if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+
+    document.getElementById('finish-sheet')?.classList.add('open');
+    document.getElementById('finish-backdrop')?.classList.add('active');
+  },
+
+  closeFinishSheet() {
+    document.getElementById('finish-sheet')?.classList.remove('open');
+    document.getElementById('finish-backdrop')?.classList.remove('active');
+  },
+
+  async submitInforme() {
+    const btn = document.getElementById('finish-submit-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+
+    const payload = {
+      token:       this.token,
+      capitan:     this.sessionInfo.capitan,
+      grupo:       this.sessionInfo.grupo,
+      fecha:       this.sessionInfo.fecha,
+      territorios: this.assignedTerritories.map(name => ({
+        id:     name,
+        estado: this.territoryStatus[name] || 'pendiente',
+        notas:  this.territoryNotes[name]  || ''
+      }))
+    };
+
+    try {
+      if (BACKEND_URL === 'PLACEHOLDER_APPS_SCRIPT_URL') {
+        if (!this._isDebug) {
+          this.showToast('Backend no configurado aún', 'error');
+          if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+          return;
+        }
+        // Mock: simular delay de red
+        await new Promise(r => setTimeout(r, 1500));
+      } else {
+        const res = await fetch(BACKEND_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ action: 'submitInforme', ...payload })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      }
+
+      this.submitted  = true;
+      this.submitTime = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
+      this.closeFinishSheet();
+      this.showToast('Informe enviado ✓', 'success');
+      this._updateFinishBar();
+
+    } catch (err) {
+      console.error('[TerritorialApp] Error sending informe', err);
+      this.showToast('Error al enviar', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+    }
   },
 
   /* ── Meeting point ───────────────────────────────────────────────────────── */
@@ -1180,13 +1297,15 @@ const TerritorialApp = {
   _showTopCard() {
     const card = document.getElementById('top-card');
     if (card) {
-      // Trigger scale-in animation
       requestAnimationFrame(() => {
         requestAnimationFrame(() => card.classList.add('visible'));
       });
     }
-    // Animate progress ring after card is visible
-    setTimeout(() => this.updateProgress(), 400);
+    // Mostrar barra inferior de finalizar
+    setTimeout(() => {
+      document.getElementById('finish-bar')?.classList.add('visible');
+      this.updateProgress();
+    }, 400);
   }
 };
 

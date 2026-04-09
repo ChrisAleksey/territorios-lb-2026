@@ -755,6 +755,181 @@
       -webkit-backdrop-filter: blur(3px);
     }
 
+    /* ─── Finish Bar ─────────────────────────────────────────────── */
+    .finish-bar {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 18;
+      background: var(--card);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+      flex-direction: column;
+      gap: 2px;
+    }
+    .finish-bar.visible { display: flex; }
+    body:has(.bottom-sheet.open) .finish-bar,
+    body:has(.finish-sheet.open) .finish-bar { display: none !important; }
+
+    .finish-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .finish-bar-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .finish-bar-fill {
+      height: 100%;
+      background: var(--gradient-accent);
+      border-radius: 99px;
+      transition: width 0.5s var(--spring), background 0.4s;
+      width: 0%;
+    }
+    .finish-bar-label {
+      font-size: 12px;
+      color: var(--text2);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .finish-bar-btn {
+      background: var(--gradient-accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-sm);
+      padding: 9px 14px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: var(--shadow-accent);
+      transition: transform 0.12s var(--bounce), box-shadow 0.15s;
+      flex-shrink: 0;
+    }
+    .finish-bar-btn:active { transform: scale(0.96); }
+    .finish-bar-btn.submitted {
+      background: var(--gradient-success);
+      box-shadow: 0 4px 16px rgba(16,185,129,0.35);
+    }
+
+    /* ─── Finish Sheet ───────────────────────────────────────────── */
+    .finish-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      background: transparent;
+      pointer-events: none;
+      transition: background 0.3s;
+    }
+    .finish-backdrop.active {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .finish-sheet {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 30;
+      background: var(--card-solid);
+      border-radius: var(--r-xl) var(--r-xl) 0 0;
+      border-top: 1px solid var(--border);
+      padding: 0 20px calc(28px + env(safe-area-inset-bottom));
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.55);
+      transform: translateY(110%);
+      transition: transform 0.45s var(--spring);
+      will-change: transform;
+    }
+    .finish-sheet.open { transform: translateY(0); }
+
+    .finish-sheet-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .finish-summary {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .finish-stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 8px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+    }
+    .finish-stat.completo  { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); }
+    .finish-stat.parcial   { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.2);  }
+    .finish-stat-icon  { font-size: 18px; line-height: 1; }
+    .finish-stat-num   { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.1; }
+    .finish-stat-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+
+    .finish-warning {
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--warning);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .finish-submitted-info {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: var(--r-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--success);
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+    .finish-sheet-actions { display: flex; flex-direction: column; gap: 10px; }
+    .finish-submit-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--gradient-accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-md);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-accent);
+      transition: transform 0.12s var(--bounce), opacity 0.2s;
+    }
+    .finish-submit-btn:disabled { opacity: 0.6; cursor: default; }
+    .finish-submit-btn:not(:disabled):active { transform: scale(0.98); }
+    .finish-cancel-btn {
+      width: 100%;
+      padding: 13px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text2);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .finish-cancel-btn:active { background: rgba(255,255,255,0.1); color: var(--text); }
+
     /* ─── Loading overlay ───────────────────────────────────────── */
     #loading-overlay {
       position: fixed;
@@ -1402,6 +1577,61 @@
   <!-- Progress bar -->
   <div class="global-progress" id="global-progress-bar">
     <div class="global-progress-fill" id="global-progress-fill" style="width:0%"></div>
+  </div>
+
+  <!-- Finish bar -->
+  <div class="finish-bar" id="finish-bar">
+    <div class="finish-bar-row">
+      <div class="finish-bar-track">
+        <div class="finish-bar-fill" id="finish-bar-fill"></div>
+      </div>
+      <span class="finish-bar-label" id="finish-bar-label">0 / 0 reportados</span>
+      <button class="finish-bar-btn" id="finish-bar-btn" onclick="TerritorialApp.openFinishSheet()">
+        Finalizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Finish sheet backdrop -->
+  <div class="finish-backdrop" id="finish-backdrop" onclick="TerritorialApp.closeFinishSheet()"></div>
+
+  <!-- Finish sheet -->
+  <div class="finish-sheet" id="finish-sheet">
+    <div class="sheet-handle"></div>
+    <div class="finish-sheet-title">Finalizar servicio</div>
+
+    <div class="finish-summary">
+      <div class="finish-stat completo">
+        <span class="finish-stat-icon">✅</span>
+        <span class="finish-stat-num" id="finish-count-completo">0</span>
+        <span class="finish-stat-label">completos</span>
+      </div>
+      <div class="finish-stat parcial">
+        <span class="finish-stat-icon">🔶</span>
+        <span class="finish-stat-num" id="finish-count-parcial">0</span>
+        <span class="finish-stat-label">parciales</span>
+      </div>
+      <div class="finish-stat">
+        <span class="finish-stat-icon">⏳</span>
+        <span class="finish-stat-num" id="finish-count-pendiente">0</span>
+        <span class="finish-stat-label">sin reportar</span>
+      </div>
+    </div>
+
+    <div class="finish-warning" id="finish-warning" style="display:none">
+      ⚠️ Tienes <strong id="finish-pending-count">0</strong> territorios sin reportar. Puedes finalizar de todos modos.
+    </div>
+
+    <div class="finish-submitted-info" id="finish-submitted-info" style="display:none">
+      ✅ Informe enviado · <span id="finish-submit-time"></span>
+    </div>
+
+    <div class="finish-sheet-actions">
+      <button class="finish-submit-btn" id="finish-submit-btn" onclick="TerritorialApp.submitInforme()">
+        Enviar informe
+      </button>
+      <button class="finish-cancel-btn" onclick="TerritorialApp.closeFinishSheet()">Cancelar</button>
+    </div>
   </div>
 
   <!-- Toast -->
