@@ -2,7 +2,6 @@
 
 /* ─── Constants ────────────────────────────────────────────────────────────── */
 const BACKEND_URL = 'PLACEHOLDER_APPS_SCRIPT_URL';
-const MOCK_TOKEN  = 'fernando123';
 
 const MAP_CENTER = [-99.092817, 19.611175]; // MapLibre: [lng, lat]
 const MAP_ZOOM   = 14;
@@ -83,6 +82,8 @@ const TerritorialApp = {
   territoryStatus:     {},   // { 't1': 'completo', … }
   territoryNotes:      {},   // { 't1': 'note text', … }
   addingExtraMode:     false, // modo "agregar territorio extra"
+  _glowInterval:       null,
+  _toastTimer:         null,
   territoryBounds:     {},   // { 't1': LngLatBounds }
   territoryTypes:      {},   // { 't1': 'casaencasa'|'carta'|'dificil' }
   allTerritoryNames:   [],   // unique names from GeoJSON
@@ -634,15 +635,15 @@ const TerritorialApp = {
   _updateStatusIndicator(status) {
     const dot   = document.getElementById('sheet-status-dot');
     const label = document.getElementById('sheet-status-label');
-    dot.className = `status-dot ${status}`;
+    if (dot)   dot.className = `status-dot ${status}`;
     const labels = { pendiente: 'Pendiente', parcial: 'En progreso', completo: 'Completo' };
-    label.textContent = labels[status] || 'Pendiente';
+    if (label) label.textContent = labels[status] || 'Pendiente';
   },
 
   _updateActiveButton(status) {
     ['completo', 'parcial', 'pendiente'].forEach((s) => {
       const btn = document.getElementById(`btn-${s}`);
-      btn.classList.toggle('active-state', s === status);
+      if (btn) btn.classList.toggle('active-state', s === status);
     });
   },
 
@@ -1152,7 +1153,11 @@ const TerritorialApp = {
     for (const name of sorted) {
       const chip = document.createElement('span');
       chip.className = 'admin-chip';
-      chip.innerHTML = `${name.toUpperCase()} <span class="admin-chip-x">✕</span>`;
+      chip.textContent = name.toUpperCase();
+      const x = document.createElement('span');
+      x.className = 'admin-chip-x';
+      x.textContent = '✕';
+      chip.appendChild(x);
       chip.addEventListener('click', () => this.toggleAdminTerritory(name));
       chips.appendChild(chip);
     }

@@ -4,16 +4,30 @@
    ============================================================ */
 
 const CAPITANES = [
-  { id: 'cap1',  nombre: 'Abraam Maldonado',       tel: '525512345001', token: 'abraam-abc123'   },
-  { id: 'cap2',  nombre: 'Fernando Frausto',        tel: '525512345002', token: 'fernando-def456' },
-  { id: 'cap3',  nombre: 'Jorge Diez Reyes',        tel: '525512345003', token: 'jorge-ghi789'    },
-  { id: 'cap4',  nombre: 'Ivan García',             tel: '525512345004', token: 'ivan-jkl012'     },
-  { id: 'cap5',  nombre: 'Roberto Aparicio',        tel: '525512345005', token: 'roberto-mno345'  },
-  { id: 'cap6',  nombre: 'Javier Garcia',           tel: '525512345006', token: 'javier-pqr678'   },
-  { id: 'cap7',  nombre: 'Alfredo Montiel',         tel: '525512345007', token: 'alfredo-stu901'  },
-  { id: 'cap8',  nombre: 'Jose Luis Najera',        tel: '525512345008', token: 'jose-vwx234'     },
-  { id: 'cap9',  nombre: 'Fernando Reyes Piferrer', tel: '525512345009', token: 'freyes-yz0567'   },
-  { id: 'cap10', nombre: 'Aleksey Cruz',            tel: '525512345010', token: 'aleksey-abc890'  },
+  { id: 'cap1',  nombre: 'Hno. Abraham Maldonado',        tel: '', token: 'abraham-mal001'    },
+  { id: 'cap2',  nombre: 'Hno. Alejandro Vazquez Maciel', tel: '', token: 'alejandro-vaz002'  },
+  { id: 'cap3',  nombre: 'Hno. Aleksey Cruz',             tel: '', token: 'aleksey-cru003'    },
+  { id: 'cap4',  nombre: 'Hno. Amadiz Lozano',            tel: '', token: 'amadiz-loz004'     },
+  { id: 'cap5',  nombre: 'Hno. Arturo Aparicio',          tel: '', token: 'arturo-apa005'     },
+  { id: 'cap6',  nombre: 'Hno. Christian Cruz Grajales',   tel: '', token: 'christian-cru006'  },
+  { id: 'cap7',  nombre: 'Hno. Emanuel Evangelista',      tel: '', token: 'emanuel-eva007'    },
+  { id: 'cap8',  nombre: 'Hno. Fernando Frausto Trujillo',tel: '', token: 'fernando-fra008'   },
+  { id: 'cap9',  nombre: 'Hno. Francisco Javier Garcia',  tel: '', token: 'francisco-gar009'  },
+  { id: 'cap10', nombre: 'Hno. Ivan García',              tel: '', token: 'ivan-gar010'       },
+  { id: 'cap11', nombre: 'Hno. Joel Espinosa Hernandez',  tel: '', token: 'joel-esp011'       },
+  { id: 'cap12', nombre: 'Hno. Jorge Diez Frausto',       tel: '', token: 'jorge-fra012'      },
+  { id: 'cap13', nombre: 'Hno. Jorge Diez Reyes',         tel: '', token: 'jorge-rey013'      },
+  { id: 'cap14', nombre: 'Hno. Jose Alberto Davila',      tel: '', token: 'jose-dav014'       },
+  { id: 'cap15', nombre: 'Hno. Jose Luis Najera',         tel: '', token: 'jose-naj015'       },
+  { id: 'cap16', nombre: 'Hno. José Carlos Matadamas',    tel: '', token: 'jose-mat016'       },
+  { id: 'cap17', nombre: 'Hno. Juan Carlos Valero',       tel: '', token: 'juan-val017'       },
+  { id: 'cap18', nombre: 'Hno. Luis Fernando Ruiz',       tel: '', token: 'luis-rui018'       },
+  { id: 'cap19', nombre: 'Hno. Luis Roberto Aparicio',    tel: '', token: 'luis-apa019'       },
+  { id: 'cap20', nombre: 'Hno. Nestor Yedan Montoya',     tel: '', token: 'nestor-mon020'     },
+  { id: 'cap21', nombre: 'Hno. Omar Vazquez Maciel',      tel: '', token: 'omar-vaz021'       },
+  { id: 'cap22', nombre: 'Hno. Orlando Najera',           tel: '', token: 'orlando-naj022'    },
+  { id: 'cap23', nombre: 'Hno. René Villegas Cano',       tel: '', token: 'rene-vil023'       },
+  { id: 'cap24', nombre: 'Hno. Sergio Armando Hernandez', tel: '', token: 'sergio-her024'     },
 ];
 
 const KNOWN_LOCATIONS = [
@@ -57,7 +71,7 @@ function adminApp() {
     },
 
     /* ── Programa form ── */
-    sessionTipo: 'presencial',
+    sessionTipo: 'casaencasa',
     sessionDate: '',
     sessionTime: '09:30',
     sessionLugar: '',
@@ -79,6 +93,7 @@ function adminApp() {
     editingCapitanId: null,
     capForm: { nombre: '', tel: '', token: '' },
     copiedId: null,
+    territoriosPorCapitan: {},
 
     /* ── Dashboard ── */
     dashboard: {
@@ -93,6 +108,32 @@ function adminApp() {
     ════════════════════════════════════════════ */
     init() {
       this.sessionDate = new Date().toISOString().split('T')[0];
+
+      // Cargar territorios guardados por capitán
+      try {
+        const stored = localStorage.getItem('admin_capitan_territories');
+        if (stored) this.territoriosPorCapitan = JSON.parse(stored);
+      } catch(e) {}
+
+      // Recoger selección pendiente del mapa
+      try {
+        const result = localStorage.getItem('admin_territory_selection');
+        if (result) {
+          const { capId, territories } = JSON.parse(result);
+          this.territoriosPorCapitan = { ...this.territoriosPorCapitan, [capId]: territories };
+          localStorage.removeItem('admin_territory_selection');
+          localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan));
+        }
+      } catch(e) {}
+
+      // Restaurar asignaciones guardadas antes de ir al mapa
+      try {
+        const savedAsg = localStorage.getItem('admin_asignaciones_state');
+        if (savedAsg) {
+          this.asignaciones = JSON.parse(savedAsg);
+          localStorage.removeItem('admin_asignaciones_state');
+        }
+      } catch(e) {}
     },
 
     /* ════════════════════════════════════════════
@@ -139,7 +180,10 @@ function adminApp() {
        MESSAGE GENERATION
     ════════════════════════════════════════════ */
     generateMessages() {
-      // Validate
+      // Reset errores previos
+      this.errors = { date: false, time: false, lugar: false };
+      this.asignaciones.forEach(asg => { asg.error = false; asg.errorGrupos = false; });
+
       let valid = true;
 
       if (!this.sessionDate) { this.errors.date = true; valid = false; }
@@ -245,10 +289,26 @@ _(Toca el link para ver tus territorios asignados)_`;
     cancelCapitanForm() {
       this.showCapitanForm = false;
       this.editingCapitanId = null;
+      this.capForm = { nombre: '', tel: '', token: '' };
+    },
+
+    openTerritorySelector(cap) {
+      try {
+        localStorage.setItem('admin_select_info', JSON.stringify({ id: cap.id, nombre: cap.nombre }));
+        localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan));
+        // Guardar estado de asignaciones para restaurar al volver
+        localStorage.setItem('admin_asignaciones_state', JSON.stringify(this.asignaciones));
+      } catch(e) {}
+      window.location.href = `index.html?admin_select=${cap.id}`;
+    },
+
+    getCapitanTerritoryCount(capId) {
+      const t = this.territoriosPorCapitan[capId];
+      return t ? t.length : 0;
     },
 
     saveCapitan() {
-      if (!this.capForm.nombre.trim() || !this.capForm.tel.trim() || !this.capForm.token.trim()) return;
+      if (!this.capForm.nombre.trim() || !this.capForm.token.trim()) return;
 
       if (this.editingCapitanId) {
         const idx = this.capitanes.findIndex(c => c.id === this.editingCapitanId);
