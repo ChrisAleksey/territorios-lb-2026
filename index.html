@@ -785,6 +785,49 @@
       bottom: calc(84px + env(safe-area-inset-bottom));
     }
 
+    /* ─── Informe Bar (vista general, admin) ─────────────────────── */
+    .informe-bar {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 910;
+      background: var(--card);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+      flex-direction: column;
+      gap: 2px;
+    }
+    .informe-bar.visible { display: flex; }
+    body:has(.bottom-sheet.open) .informe-bar,
+    body:has(.finish-sheet.open) .informe-bar { display: none !important; }
+
+    /* Push flotantes cuando informe bar visible */
+    body:has(.informe-bar.visible) .type-toggle {
+      bottom: calc(84px + env(safe-area-inset-bottom));
+      transition: bottom 0.35s var(--spring);
+    }
+    body:has(.informe-bar.visible) .legend-card {
+      bottom: calc(84px + env(safe-area-inset-bottom));
+      transition: bottom 0.35s var(--spring);
+    }
+
+    .informe-lock-btn {
+      width: 100%;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      color: var(--text2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .informe-lock-btn:active { background: rgba(255,255,255,0.08); }
+    .informe-lock-hint { font-size: 11px; color: var(--text3); font-weight: 400; }
+
     .finish-bar-row {
       display: flex;
       align-items: center;
@@ -1180,6 +1223,12 @@
         bottom: calc(74px + env(safe-area-inset-bottom));
       }
       body:has(.finish-bar.visible) .legend-card {
+        bottom: calc(118px + env(safe-area-inset-bottom));
+      }
+      body:has(.informe-bar.visible) .type-toggle {
+        bottom: calc(74px + env(safe-area-inset-bottom));
+      }
+      body:has(.informe-bar.visible) .legend-card {
         bottom: calc(118px + env(safe-area-inset-bottom));
       }
 
@@ -1614,13 +1663,33 @@
     </div>
   </div>
 
+  <!-- Informe bar (vista general) -->
+  <div class="informe-bar" id="informe-bar">
+    <!-- Estado bloqueado -->
+    <div id="informe-locked">
+      <button class="informe-lock-btn" onclick="AdminLogin.openForInforme()">
+        🔒 Agregar informe <span class="informe-lock-hint">— Inicia sesión</span>
+      </button>
+    </div>
+    <!-- Estado desbloqueado -->
+    <div class="finish-bar-row" id="informe-unlocked" style="display:none">
+      <div class="finish-bar-track">
+        <div class="finish-bar-fill" id="informe-bar-fill"></div>
+      </div>
+      <span class="finish-bar-label" id="informe-bar-label">0 marcados</span>
+      <button class="finish-bar-btn" id="informe-bar-btn" onclick="TerritorialApp.openInformeSheet()">
+        Agregar informe
+      </button>
+    </div>
+  </div>
+
   <!-- Finish sheet backdrop -->
   <div class="finish-backdrop" id="finish-backdrop" onclick="TerritorialApp.closeFinishSheet()"></div>
 
   <!-- Finish sheet -->
   <div class="finish-sheet" id="finish-sheet">
     <div class="sheet-handle"></div>
-    <div class="finish-sheet-title">Finalizar servicio</div>
+    <div class="finish-sheet-title" id="finish-sheet-title">Finalizar servicio</div>
 
     <div class="finish-summary">
       <div class="finish-stat completo">
@@ -1684,9 +1753,21 @@
   <!-- Admin login logic -->
   <script>
     const AdminLogin = {
-      ALLOWED: ['rene', 'villegas', 'christian', 'aleksey'],
+      ALLOWED:    ['rene', 'villegas', 'christian', 'aleksey'],
+      isLoggedIn: false,
+      _mode:      'admin', // 'admin' | 'informe'
 
       open() {
+        this._mode = 'admin';
+        this._openModal();
+      },
+
+      openForInforme() {
+        this._mode = 'informe';
+        this._openModal();
+      },
+
+      _openModal() {
         const overlay = document.getElementById('login-overlay');
         const input   = document.getElementById('login-name-input');
         const err     = document.getElementById('login-error');
@@ -1707,7 +1788,13 @@
         const name  = input.value.trim().toLowerCase();
 
         if (this.ALLOWED.some(word => name.includes(word))) {
-          window.location.href = 'admin.html';
+          if (this._mode === 'informe') {
+            this.isLoggedIn = true;
+            this.close();
+            TerritorialApp._unlockInformeBar();
+          } else {
+            window.location.href = 'admin.html';
+          }
         } else {
           input.classList.add('error');
           err.classList.add('show');

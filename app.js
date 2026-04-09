@@ -119,7 +119,12 @@ const TerritorialApp = {
     // Top card y search solo en modo capitán (con token en URL)
     if (this.token) {
       this._showTopCard();
-    } else if (this.adminSelectCapId) {
+    } else if (!this.adminSelectCapId) {
+      // Vista general → mostrar barra de informe
+      setTimeout(() => this._showInformeBar(), 400);
+    }
+
+    if (this.adminSelectCapId) {
       // Modo selección admin: ocultar UI de sesión, mostrar barra de selección
       document.getElementById('top-card')?.setAttribute('style', 'display:none');
       document.getElementById('admin-login-btn')?.setAttribute('style', 'display:none');
@@ -697,6 +702,7 @@ const TerritorialApp = {
     );
 
     this.updateProgress();
+    this._updateInformeBar();
 
     // POST to backend
     if (BACKEND_URL !== 'PLACEHOLDER_APPS_SCRIPT_URL') {
@@ -940,12 +946,17 @@ const TerritorialApp = {
     const btn = document.getElementById('finish-submit-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
 
+    // En vista general usar todos los territorios marcados; en modo capitán usar los asignados
+    const srcTerritories = this.token
+      ? this.assignedTerritories
+      : this.allTerritoryNames.filter(n => this.territoryStatus[n]);
+
     const payload = {
       token:       this.token,
       capitan:     this.sessionInfo.capitan,
       grupo:       this.sessionInfo.grupo,
       fecha:       this.sessionInfo.fecha,
-      territorios: this.assignedTerritories.map(name => ({
+      territorios: srcTerritories.map(name => ({
         id:     name,
         estado: this.territoryStatus[name] || 'pendiente',
         notas:  this.territoryNotes[name]  || ''
@@ -1306,6 +1317,61 @@ const TerritorialApp = {
       document.getElementById('finish-bar')?.classList.add('visible');
       this.updateProgress();
     }, 400);
+  },
+
+  /* ── Informe bar (vista general, admin) ──────────────────────────────────── */
+  _showInformeBar() {
+    // Solo en vista general (sin token, sin adminSelect)
+    if (this.token || this.adminSelectCapId) return;
+    document.getElementById('informe-bar')?.classList.add('visible');
+  },
+
+  _unlockInformeBar() {
+    const locked   = document.getElementById('informe-locked');
+    const unlocked = document.getElementById('informe-unlocked');
+    if (locked)   locked.style.display   = 'none';
+    if (unlocked) unlocked.style.display = '';
+    this._updateInformeBar();
+  },
+
+  _updateInformeBar() {
+    if (this.token) return;
+    const names    = this.allTerritoryNames;
+    const marked   = names.filter(n => this.territoryStatus[n] && this.territoryStatus[n] !== 'pendiente').length;
+    const total    = names.length;
+    const pct      = total > 0 ? Math.round((marked / total) * 100) : 0;
+
+    const fill  = document.getElementById('informe-bar-fill');
+    const label = document.getElementById('informe-bar-label');
+    if (fill)  { fill.style.width = `${pct}%`; fill.style.background = pct === 100 ? 'var(--success)' : ''; }
+    if (label) label.textContent = `${marked} / ${total} marcados`;
+  },
+
+  openInformeSheet() {
+    const names     = this.allTerritoryNames;
+    const completo  = names.filter(n => this.territoryStatus[n] === 'completo').length;
+    const parcial   = names.filter(n => this.territoryStatus[n] === 'parcial').length;
+    const pendiente = names.length - completo - parcial;
+
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('finish-sheet-title',      'Agregar informe del día');
+    setEl('finish-count-completo',   completo);
+    setEl('finish-count-parcial',    parcial);
+    setEl('finish-count-pendiente',  pendiente);
+
+    const warning = document.getElementById('finish-warning');
+    if (warning) warning.style.display = pendiente > 0 ? '' : 'none';
+    setEl('finish-pending-count', pendiente);
+
+    const subInfo = document.getElementById('finish-submitted-info');
+    if (subInfo) subInfo.style.display = this.submitted ? '' : 'none';
+    if (this.submitTime) setEl('finish-submit-time', this.submitTime);
+
+    const btn = document.getElementById('finish-submit-btn');
+    if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+
+    document.getElementById('finish-sheet')?.classList.add('open');
+    document.getElementById('finish-backdrop')?.classList.add('active');
   }
 };
 
