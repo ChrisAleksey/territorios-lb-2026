@@ -54,14 +54,20 @@ const TYPE_LABELS = {
 
 /* ─── Mock data (no backend / fallback) ────────────────────────────────────── */
 const MOCK_DATA = {
-  capitan:     'Fernando Frausto',
-  grupo:       '1, 3, 5',
-  fecha:       'Sábado 4 de Abril 2026',
+  capitan:     'Aleksey Cruz',
+  grupo:       '2, 4',
+  fecha:       'Sábado 12 de Abril 2026',
   hora:        '9:30 am',
   lugar:       'Fam. Hernández Mora',
   tipo:        'casaencasa',
-  territorios: ['t1', 't2', 't3', 't4', 't6', 't9'],
-  estados:     {}
+  territorios: ['t40', 't41', 't42', 't47', 't48', 't49', 't50', 't54', 't56', 't57'],
+  estados:     {
+    't40': 'completo',
+    't41': 'completo',
+    't42': 'completo',
+    't47': 'parcial',
+    't48': 'parcial',
+  }
 };
 
 /* ══════════════════════════════════════════════════════════════════════════════
