@@ -336,6 +336,43 @@
     .meeting-btn:hover { background: rgba(117,96,168,0.35); }
     .meeting-btn:active { transform: scale(0.94); }
 
+    .add-territory-btn {
+      background: rgba(16,185,129,0.12);
+      color: var(--success);
+      border-color: rgba(16,185,129,0.25);
+    }
+    .add-territory-btn:hover { background: rgba(16,185,129,0.22); }
+
+    /* Banner: modo agregar territorio extra */
+    .add-extra-banner {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(16,185,129,0.4);
+    }
+    .add-extra-banner.show { display: flex; }
+    .add-extra-banner-text { flex: 1; }
+    .add-extra-banner-cancel {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      padding: 6px 14px; cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .add-extra-banner-cancel:hover { background: rgba(255,255,255,0.3); }
+
     /* ─── Territory Bottom Sheet ────────────────────────────────── */
     .bottom-sheet {
       position: fixed;
@@ -1225,6 +1262,12 @@
     </div>
   </div>
 
+  <!-- Banner: modo agregar territorio -->
+  <div class="add-extra-banner" id="add-extra-banner">
+    <span class="add-extra-banner-text">Toca el territorio que quieres agregar</span>
+    <button class="add-extra-banner-cancel" onclick="TerritorialApp.cancelAddExtraMode()">Cancelar</button>
+  </div>
+
   <!-- Top card -->
   <div class="top-card" id="top-card">
     <div class="top-card-header">
@@ -1259,9 +1302,15 @@
           <span class="progress-label">completados</span>
         </div>
       </div>
-      <button class="meeting-btn" onclick="TerritorialApp.showMeetingPoint()">
-        📍 Punto de reunión
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button class="meeting-btn" onclick="TerritorialApp.showMeetingPoint()">
+          📍 Reunión
+        </button>
+        <button class="meeting-btn add-territory-btn" id="add-extra-btn"
+                onclick="TerritorialApp.startAddExtraMode()">
+          ＋ Territorio
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1339,7 +1388,7 @@
     <div class="extra-panel" id="extra-panel">
       <p class="extra-hint">Este territorio no está en tu lista.<br><strong>¿Deseas agregarlo?</strong></p>
       <div class="extra-actions">
-        <button class="extra-cancel-btn" onclick="TerritorialApp.closeSheet()">Cancelar</button>
+        <button class="extra-cancel-btn" onclick="TerritorialApp.cancelAddExtraMode()">Cancelar</button>
         <button class="extra-add-btn" onclick="TerritorialApp.confirmExtraTerritory()">+ Agregar a mi lista</button>
       </div>
     </div>

@@ -82,6 +82,7 @@ const TerritorialApp = {
   assignedTerritories: [],   // ['t1', 't2', …]
   territoryStatus:     {},   // { 't1': 'completo', … }
   territoryNotes:      {},   // { 't1': 'note text', … }
+  addingExtraMode:     false, // modo "agregar territorio extra"
   territoryBounds:     {},   // { 't1': LngLatBounds }
   territoryTypes:      {},   // { 't1': 'casaencasa'|'carta'|'dificil' }
   allTerritoryNames:   [],   // unique names from GeoJSON
@@ -219,11 +220,15 @@ const TerritorialApp = {
         [e.point.x - pad, e.point.y - pad],
         [e.point.x + pad, e.point.y + pad]
       ];
-      const features = this.map.queryRenderedFeatures(bbox, { layers: ['territory-fill'] });
-      if (!features.length) {
-        this.closeSheet();
-        return;
-      }
+      const allFeatures = this.map.queryRenderedFeatures(bbox, { layers: ['territory-fill'] });
+      if (!allFeatures.length) { this.closeSheet(); return; }
+
+      // Con token: solo asignados son tocables, salvo en modo agregar extra
+      const features = (this.token && !this.addingExtraMode)
+        ? allFeatures.filter(f => this.assignedTerritories.includes(f.properties.name?.toLowerCase()))
+        : allFeatures;
+
+      if (!features.length) { this.closeSheet(); return; }
       const name = features[0].properties.name;
       if (name) this.onTerritoryClick(name.toLowerCase());
     });
@@ -771,6 +776,38 @@ const TerritorialApp = {
 
     this._populateSheet(name);
     this.showToast(`${name.toUpperCase()} agregado a tus territorios`, 'success');
+    this._exitAddExtraMode();
+  },
+
+  /* ── Modo agregar territorio extra ───────────────────────────────────────── */
+  startAddExtraMode() {
+    this.addingExtraMode = true;
+    // Hacer visibles todos los territorios no asignados
+    for (const name of this.allTerritoryNames) {
+      if (!this.assignedTerritories.includes(name)) {
+        this.map.setFeatureState({ source: 'territories', id: name }, { dim: false });
+      }
+    }
+    document.getElementById('add-extra-banner')?.classList.add('show');
+    document.getElementById('top-card')?.classList.remove('visible');
+  },
+
+  cancelAddExtraMode() {
+    this._exitAddExtraMode();
+    this.closeSheet();
+  },
+
+  _exitAddExtraMode() {
+    if (!this.addingExtraMode) return;
+    this.addingExtraMode = false;
+    // Volver a dimear los no asignados
+    for (const name of this.allTerritoryNames) {
+      if (!this.assignedTerritories.includes(name)) {
+        this.map.setFeatureState({ source: 'territories', id: name }, { dim: true });
+      }
+    }
+    document.getElementById('add-extra-banner')?.classList.remove('show');
+    document.getElementById('top-card')?.classList.add('visible');
   },
 
   /* ── Open / close bottom sheet ───────────────────────────────────────────── */
