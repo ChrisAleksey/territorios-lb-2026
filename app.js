@@ -212,14 +212,20 @@ const TerritorialApp = {
     this.map.on('load', resizeMap);
     window.addEventListener('resize', resizeMap, { passive: true });
 
-    // Close bottom sheet when tapping empty map area
+    // Click con tolerancia táctil: bbox ±20px alrededor del toque
     this.map.on('click', (e) => {
-      const features = this.map.queryRenderedFeatures(e.point, {
-        layers: ['territory-fill']
-      });
+      const pad = 20;
+      const bbox = [
+        [e.point.x - pad, e.point.y - pad],
+        [e.point.x + pad, e.point.y + pad]
+      ];
+      const features = this.map.queryRenderedFeatures(bbox, { layers: ['territory-fill'] });
       if (!features.length) {
         this.closeSheet();
+        return;
       }
+      const name = features[0].properties.name;
+      if (name) this.onTerritoryClick(name.toLowerCase());
     });
   },
 
@@ -465,12 +471,7 @@ const TerritorialApp = {
       }
     });
 
-    /* ---- Click handler ---- */
-    this.map.on('click', 'territory-fill', (e) => {
-      if (!e.features.length) return;
-      const name = e.features[0].properties.name;
-      if (name) this.onTerritoryClick(name.toLowerCase());
-    });
+    /* ---- Click handler: gestionado en initMap con tolerancia táctil ---- */
 
     /* ---- Hover tooltip ---- */
     const tooltip = document.getElementById('map-tooltip');
