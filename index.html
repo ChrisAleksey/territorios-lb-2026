@@ -874,8 +874,9 @@
       width: 220px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
       transition: width 0.3s var(--spring);
+      max-width: calc(100vw - 88px); /* evita sobreencimarse con el botón admin (40px) + márgenes */
     }
-    .search-bar:focus-within { width: 280px; border-color: var(--accent); }
+    .search-bar:focus-within { width: 280px; border-color: var(--accent); max-width: calc(100vw - 88px); }
     .search-icon { font-size: 14px; opacity: 0.7; flex-shrink: 0; }
     #search-input {
       background: none; border: none; outline: none;
