@@ -1285,6 +1285,66 @@
     </div>
   </div>
 
+  <!-- Sheet backdrop -->
+  <div class="sheet-backdrop" id="sheet-backdrop" onclick="TerritorialApp.closeSheet()"></div>
+
+  <!-- Territory bottom sheet -->
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="sheet-territory-header">
+      <div>
+        <div class="sheet-name" id="sheet-name">—</div>
+        <div class="sheet-status-row">
+          <div class="status-dot pendiente" id="sheet-status-dot"></div>
+          <span class="status-text-label" id="sheet-status-label">Pendiente</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <span class="sheet-badge" id="sheet-badge"></span>
+        <button class="sheet-close-btn" onclick="TerritorialApp.closeSheet()">✕</button>
+      </div>
+    </div>
+
+    <!-- Panel normal: botones de estado + notas + guardar -->
+    <div id="normal-panel">
+      <div class="action-row">
+        <button class="action-btn completo" id="btn-completo"
+                onclick="TerritorialApp.selectStatus('completo', event)">
+          <span class="btn-icon">✅</span>
+          Completado
+        </button>
+        <button class="action-btn parcial" id="btn-parcial"
+                onclick="TerritorialApp.selectStatus('parcial', event)">
+          <span class="btn-icon">🔄</span>
+          En progreso
+        </button>
+        <button class="action-btn pendiente" id="btn-pendiente"
+                onclick="TerritorialApp.selectStatus('pendiente', event)">
+          <span class="btn-icon">⏳</span>
+          Pendiente
+        </button>
+      </div>
+      <div class="notes-wrap">
+        <div class="notes-label">Notas</div>
+        <textarea class="notes-textarea" id="sheet-notes"
+                  placeholder="Observaciones del territorio…" rows="2"></textarea>
+      </div>
+      <button class="save-btn" id="save-btn" onclick="TerritorialApp.saveStatus()">
+        Guardar
+      </button>
+    </div>
+
+    <!-- Panel extra: territorio no asignado -->
+    <div class="extra-panel" id="extra-panel">
+      <p class="extra-hint">Este territorio no está en tu lista.<br><strong>¿Deseas agregarlo?</strong></p>
+      <div class="extra-actions">
+        <button class="extra-cancel-btn" onclick="TerritorialApp.closeSheet()">Cancelar</button>
+        <button class="extra-add-btn" onclick="TerritorialApp.confirmExtraTerritory()">+ Agregar a mi lista</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Progress bar -->
   <div class="global-progress" id="global-progress-bar">
     <div class="global-progress-fill" id="global-progress-fill" style="width:0%"></div>
