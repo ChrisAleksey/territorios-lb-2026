@@ -266,8 +266,9 @@ const TerritorialApp = {
           this._applyTypeFilter(); // Aplica filtro tipo + asignación
           this.updateProgress();
 
-          // Fit to assigned territories
+          // Fit to assigned territories y bloquear paneo fuera del área
           this._fitToAssigned();
+          this._setMapBounds();
 
           resolve();
         } catch (err) {
@@ -533,6 +534,36 @@ const TerritorialApp = {
         );
       }
     }
+  },
+
+  /* ── Restringir paneo al área de territorios ────────────────────────────── */
+  _setMapBounds() {
+    // Usar TODOS los territorios para calcular el área máxima visible,
+    // independientemente de si el capitán tiene solo algunos asignados
+    const combined  = new maplibregl.LngLatBounds();
+    let   hasBounds = false;
+
+    for (const name of this.allTerritoryNames) {
+      const b = this.territoryBounds[name];
+      if (b && !b.isEmpty()) {
+        combined.extend(b);
+        hasBounds = true;
+      }
+    }
+
+    if (!hasBounds) return;
+
+    const sw = combined.getSouthWest();
+    const ne = combined.getNorthEast();
+
+    // Padding del 40% del extent en cada eje para que no se sienta asfixiante
+    const padLng = (ne.lng - sw.lng) * 0.40;
+    const padLat = (ne.lat - sw.lat) * 0.40;
+
+    this.map.setMaxBounds([
+      [sw.lng - padLng, sw.lat - padLat],  // SW
+      [ne.lng + padLng, ne.lat + padLat],  // NE
+    ]);
   },
 
   /* ── Fit map to assigned territories ────────────────────────────────────── */
