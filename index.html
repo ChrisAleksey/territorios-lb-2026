@@ -71,6 +71,17 @@
           upd2();
           window.addEventListener('resize', upd2);
           document.body.appendChild(dbg);
+
+          // Debug: animar la barra de progreso global
+          var pcts = [0, 25, 50, 75, 100, 0];
+          var pi = 0;
+          function animBar(){
+            var fill = document.getElementById('global-progress-fill');
+            if(fill){ fill.style.width = pcts[pi] + '%'; }
+            pi = (pi + 1) % pcts.length;
+            setTimeout(animBar, pi === 0 ? 600 : 1200);
+          }
+          setTimeout(animBar, 800);
         });
       }
     })();
