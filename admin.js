@@ -126,15 +126,6 @@ function adminApp() {
         }
       } catch(e) {}
 
-      // Restaurar asignaciones guardadas antes de ir al mapa
-      try {
-        const savedAsg = localStorage.getItem('admin_asignaciones_state');
-        if (savedAsg) {
-          this.asignaciones = JSON.parse(savedAsg);
-          localStorage.removeItem('admin_asignaciones_state');
-        }
-      } catch(e) {}
-
       // Restaurar campos del programa (lugar, fecha, hora, tipo)
       try {
         const savedProg = localStorage.getItem('admin_programa_state');
@@ -145,6 +136,17 @@ function adminApp() {
           if (p.sessionTime)  this.sessionTime  = p.sessionTime;
           if (p.sessionLugar) this.sessionLugar = p.sessionLugar;
           localStorage.removeItem('admin_programa_state');
+        }
+      } catch(e) {}
+
+      // Restaurar asignaciones en $nextTick: el x-model del <select> necesita que
+      // las <option> estén ya renderizadas para hacer match con capitanId guardado
+      try {
+        const savedAsg = localStorage.getItem('admin_asignaciones_state');
+        if (savedAsg) {
+          const asg = JSON.parse(savedAsg);
+          localStorage.removeItem('admin_asignaciones_state');
+          this.$nextTick(() => { this.asignaciones = asg; });
         }
       } catch(e) {}
     },
