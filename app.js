@@ -315,7 +315,9 @@ const TerritorialApp = {
           lightness = 50 + Math.sin(t * Math.PI * 4) * 8; // oscila ±8% en 4 ciclos
         }
 
-        feature.properties.territoryColor = hslToHex(hue, 88, lightness);
+        feature.properties.territoryColor     = hslToHex(hue, 88, lightness);
+        // Versión oscura del mismo hue para el borde — crea separación clara entre vecinos
+        feature.properties.territoryColorDark = hslToHex(hue, 80, lightness - 22);
       }
 
       // Bounds
@@ -432,7 +434,7 @@ const TerritorialApp = {
           ['==', ['feature-state', 'status'], 'parcial'],    '#f59e0b',
           ['boolean', ['feature-state', 'selected'], false], '#ffffff',
           ['boolean', ['feature-state', 'searched'], false], '#ffffff',
-          ['get', 'territoryColor']
+          ['get', 'territoryColorDark']
         ],
         'line-width':   lineWidth,
         'line-opacity': lineOpacity
