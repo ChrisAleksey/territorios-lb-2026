@@ -14,12 +14,12 @@ const MAP_STYLE = {
       type: 'raster',
       // Google Hybrid: satélite + calles + nombres integrados
       tiles: [
-        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2',
-        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2',
-        'https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2',
-        'https://mt3.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&scale=2',
+        'https://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt2.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        'https://mt3.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
       ],
-      tileSize: 512,
+      tileSize: 256,
       attribution: '© Google'
     }
   },
