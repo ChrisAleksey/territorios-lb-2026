@@ -585,13 +585,20 @@ const TerritorialApp = {
     }
 
     if (hasBounds) {
+      // Padding asimétrico según modo para que el centro visual quede perfecto:
+      // Capitán: top-card ocupa ~210px arriba; finish-bar + type-toggle ~130px abajo
+      // Vista general: solo search-bar ~70px arriba; informe-bar + type-toggle ~130px abajo
+      const padding = this.token
+        ? { top: 210, bottom: 130, left: 50, right: 50 }
+        : { top: 80,  bottom: 130, left: 50, right: 50 };
+
       this.map.fitBounds(combined, {
-        padding:   { top: 130, bottom: 100, left: 40, right: 40 },
-        duration:  800,
+        padding,
+        duration:  900,
         linear:    false,
         essential: true
       });
-      // Limitar zoom out al nivel donde caben todos los polígonos
+      // Bloquear zoom out al nivel que muestra todos los polígonos
       this.map.once('moveend', () => {
         this.map.setMinZoom(this.map.getZoom());
       });
