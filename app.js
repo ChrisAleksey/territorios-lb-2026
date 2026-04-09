@@ -297,8 +297,15 @@ const TerritorialApp = {
 
       // Gradient color per territory — golden angle, pre-converted to hex for MapLibre
       if (!feature.properties.territoryColor) {
-        const num = parseInt(name.replace('t', '')) || 0;
-        const hue = (num * 137.508) % 360;
+        const num      = parseInt(name.replace('t', '')) || 0;
+        const rawHue   = (num * 137.508) % 360;
+        const isCarta  = fillColor === '#d32f2f' || fillColor === '#f57c00';
+
+        // Presenciales: mapear al rango seguro 50°–330° (280°) para excluir
+        // rojos y naranja-rojos que son exclusivos de carta postal.
+        // Carta postal: el color es forzado a #ff2d2d en la capa, territoryColor no importa.
+        const hue = isCarta ? rawHue : 50 + (rawHue / 360) * 280;
+
         feature.properties.territoryColor = hslToHex(hue, 92, 52);
       }
 
