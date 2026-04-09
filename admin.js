@@ -187,8 +187,31 @@ function adminApp() {
 
     removeAsignacion(i) {
       if (this.asignaciones.length > 1) {
+        const capId = this.asignaciones[i].capitanId;
+        // Limpiar territorios del capitán al quitar la fila
+        if (capId) {
+          delete this.territoriosPorCapitan[capId];
+          try { localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan)); } catch(e) {}
+        }
         this.asignaciones.splice(i, 1);
       }
+    },
+
+    onCapitanChange(asg, newCapId, event) {
+      // Verificar duplicado — un capitán solo puede aparecer una vez
+      if (newCapId && this.asignaciones.some(a => a !== asg && a.capitanId === newCapId)) {
+        asg.error = true;
+        event.target.value = asg.capitanId; // revertir select visualmente
+        setTimeout(() => { asg.error = false; }, 700);
+        return;
+      }
+      // Limpiar territorios del capitán anterior al cambiar
+      if (asg.capitanId && asg.capitanId !== newCapId) {
+        delete this.territoriosPorCapitan[asg.capitanId];
+        try { localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan)); } catch(e) {}
+      }
+      asg.capitanId = newCapId;
+      asg.error = false;
     },
 
     /* ════════════════════════════════════════════

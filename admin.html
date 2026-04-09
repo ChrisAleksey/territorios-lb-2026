@@ -148,7 +148,8 @@
               <div class="assignment-number" x-text="i + 1"></div>
               <div class="assignment-fields">
                 <select class="field-input field-select" :class="{ shake: asg.error }"
-                        x-model="asg.capitanId" @change="asg.error = false">
+                        :value="asg.capitanId"
+                        @change="onCapitanChange(asg, $event.target.value, $event)">
                   <option value="">— Seleccionar capitán —</option>
                   <template x-for="cap in capitanes" :key="cap.id">
                     <option :value="cap.id" x-text="cap.nombre"></option>
