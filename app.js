@@ -786,10 +786,13 @@ const TerritorialApp = {
   /* ── Modo agregar territorio extra ───────────────────────────────────────── */
   startAddExtraMode() {
     this.addingExtraMode = true;
-    // Marcar no asignados como "addable" → gris oscuro en el mapa
     for (const name of this.allTerritoryNames) {
-      if (!this.assignedTerritories.includes(name)) {
+      if (this.assignedTerritories.includes(name)) {
+        // Mis territorios → gris (ya los tengo)
         this.map.setFeatureState({ source: 'territories', id: name }, { addable: true });
+      } else {
+        // Disponibles → colores normales
+        this.map.setFeatureState({ source: 'territories', id: name }, { dim: false });
       }
     }
     document.getElementById('add-extra-banner')?.classList.add('show');
@@ -804,10 +807,11 @@ const TerritorialApp = {
   _exitAddExtraMode() {
     if (!this.addingExtraMode) return;
     this.addingExtraMode = false;
-    // Quitar estado addable → vuelven a ser fantasmas (dim)
     for (const name of this.allTerritoryNames) {
-      if (!this.assignedTerritories.includes(name)) {
+      if (this.assignedTerritories.includes(name)) {
         this.map.setFeatureState({ source: 'territories', id: name }, { addable: false });
+      } else {
+        this.map.setFeatureState({ source: 'territories', id: name }, { dim: true });
       }
     }
     document.getElementById('add-extra-banner')?.classList.remove('show');
