@@ -40,15 +40,19 @@
           ].join(';');
           function upd(){
             var vv = window.visualViewport;
+            var br = document.body.getBoundingClientRect();
+            var hr = document.documentElement.getBoundingClientRect();
+            var cs = getComputedStyle(document.documentElement);
             dbg.innerHTML = [
               'innerH: '    + window.innerHeight,
-              'outerH: '    + window.outerHeight,
               'screenH: '   + screen.height,
-              'bodyH: '     + document.body.offsetHeight,
-              'htmlH: '     + document.documentElement.offsetHeight,
-              'vvH: '       + (vv ? Math.round(vv.height) : '—'),
+              '--scrH: '    + (cs.getPropertyValue('--screen-height')||'—').trim(),
+              'body.top: '  + Math.round(br.top),
+              'body.h: '    + Math.round(br.height),
+              'html.top: '  + Math.round(hr.top),
+              'html.h: '    + Math.round(hr.height),
               'vvOffY: '    + (vv ? Math.round(vv.offsetTop) : '—'),
-              '--appH: '    + (getComputedStyle(document.documentElement).getPropertyValue('--app-height')||'—').trim(),
+              'safeT: '     + getComputedStyle(document.documentElement).getPropertyValue('--safe-t'),
               'safeB: '     + getComputedStyle(document.documentElement).getPropertyValue('--safe-b'),
             ].join('<br>');
           }
@@ -56,8 +60,12 @@
           var safeEl = document.createElement('div');
           safeEl.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;pointer-events:none;visibility:hidden;';
           document.body.appendChild(safeEl);
+          var safeTEl = document.createElement('div');
+          safeTEl.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px);width:1px;pointer-events:none;visibility:hidden;';
+          document.body.appendChild(safeTEl);
           function upd2(){
             document.documentElement.style.setProperty('--safe-b', safeEl.offsetHeight + 'px');
+            document.documentElement.style.setProperty('--safe-t', safeTEl.offsetHeight + 'px');
             upd();
           }
           upd2();
@@ -109,7 +117,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html {
-      background: var(--bg);
+      background: white;
       overscroll-behavior: none;
     }
 
