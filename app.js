@@ -556,9 +556,9 @@ const TerritorialApp = {
     const sw = combined.getSouthWest();
     const ne = combined.getNorthEast();
 
-    // Padding del 40% del extent en cada eje para que no se sienta asfixiante
-    const padLng = (ne.lng - sw.lng) * 0.40;
-    const padLat = (ne.lat - sw.lat) * 0.40;
+    // Padding del 80% del extent — suficiente para panear a los bordes sin salir de la zona
+    const padLng = (ne.lng - sw.lng) * 0.80;
+    const padLat = (ne.lat - sw.lat) * 0.80;
 
     this.map.setMaxBounds([
       [sw.lng - padLng, sw.lat - padLat],  // SW
