@@ -405,18 +405,18 @@ const TerritorialApp = {
     /* Shared line-width expression */
     const lineWidth = [
       'interpolate', ['linear'], ['zoom'],
-      8,  60.0,
-      10, 40.0,
-      12, 22.0,
-      14,  9.0,
-      16,  3.5,
-      18,  1.5
+      8,   3.0,
+      10,  2.5,
+      12,  2.0,
+      14,  1.5,
+      16,  1.2,
+      18,  0.8
     ];
     const lineOpacity = [
       'case',
       ['boolean', ['feature-state', 'addable'], false], 0.55,
       ['boolean', ['feature-state', 'dim'], false],     0.08,
-      1.0
+      0.72
     ];
 
     /* ---- 2a. Presencial — solid border ---- */
@@ -434,7 +434,7 @@ const TerritorialApp = {
           ['==', ['feature-state', 'status'], 'parcial'],    '#f59e0b',
           ['boolean', ['feature-state', 'selected'], false], '#ffffff',
           ['boolean', ['feature-state', 'searched'], false], '#ffffff',
-          ['get', 'territoryColorDark']
+          '#ffffff'
         ],
         'line-width':   lineWidth,
         'line-opacity': lineOpacity
