@@ -352,6 +352,7 @@ const TerritorialApp = {
       paint:  {
         'fill-color': [
           'case',
+          ['boolean', ['feature-state', 'addable'], false],  '#2d3748',
           ['boolean', ['feature-state', 'dim'], false],      'rgba(0,0,0,0)',
           ['==', ['feature-state', 'status'], 'completo'],   '#10b981',
           ['==', ['feature-state', 'status'], 'parcial'],    '#f59e0b',
@@ -362,6 +363,7 @@ const TerritorialApp = {
         ],
         'fill-opacity': [
           'case',
+          ['boolean', ['feature-state', 'addable'], false],  0.45,
           ['boolean', ['feature-state', 'dim'], false],      0.02,
           ['==', ['feature-state', 'status'], 'completo'],   0.55,
           ['==', ['feature-state', 'status'], 'parcial'],    0.50,
@@ -383,7 +385,8 @@ const TerritorialApp = {
     ];
     const lineOpacity = [
       'case',
-      ['boolean', ['feature-state', 'dim'], false], 0.08,
+      ['boolean', ['feature-state', 'addable'], false], 0.55,
+      ['boolean', ['feature-state', 'dim'], false],     0.08,
       1.0
     ];
 
@@ -396,6 +399,7 @@ const TerritorialApp = {
       paint:  {
         'line-color': [
           'case',
+          ['boolean', ['feature-state', 'addable'], false],  '#4a5568',
           ['boolean', ['feature-state', 'dim'], false],      '#111111',
           ['==', ['feature-state', 'status'], 'completo'],   '#10b981',
           ['==', ['feature-state', 'status'], 'parcial'],    '#f59e0b',
@@ -782,10 +786,10 @@ const TerritorialApp = {
   /* ── Modo agregar territorio extra ───────────────────────────────────────── */
   startAddExtraMode() {
     this.addingExtraMode = true;
-    // Hacer visibles todos los territorios no asignados
+    // Marcar no asignados como "addable" → gris oscuro en el mapa
     for (const name of this.allTerritoryNames) {
       if (!this.assignedTerritories.includes(name)) {
-        this.map.setFeatureState({ source: 'territories', id: name }, { dim: false });
+        this.map.setFeatureState({ source: 'territories', id: name }, { addable: true });
       }
     }
     document.getElementById('add-extra-banner')?.classList.add('show');
@@ -800,10 +804,10 @@ const TerritorialApp = {
   _exitAddExtraMode() {
     if (!this.addingExtraMode) return;
     this.addingExtraMode = false;
-    // Volver a dimear los no asignados
+    // Quitar estado addable → vuelven a ser fantasmas (dim)
     for (const name of this.allTerritoryNames) {
       if (!this.assignedTerritories.includes(name)) {
-        this.map.setFeatureState({ source: 'territories', id: name }, { dim: true });
+        this.map.setFeatureState({ source: 'territories', id: name }, { addable: false });
       }
     }
     document.getElementById('add-extra-banner')?.classList.remove('show');
