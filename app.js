@@ -585,12 +585,14 @@ const TerritorialApp = {
     }
 
     if (hasBounds) {
-      // Padding asimétrico según modo para que el centro visual quede perfecto:
-      // Capitán: top-card ocupa ~210px arriba; finish-bar + type-toggle ~130px abajo
-      // Vista general: solo search-bar ~70px arriba; informe-bar + type-toggle ~130px abajo
+      // En móvil se suma padding extra al bottom para que los territorios queden
+      // un poco más arriba en pantalla (vista ligeramente más abajo)
+      const isMobile  = window.innerWidth < 768;
+      const bottomPad = isMobile ? 180 : 130;
+
       const padding = this.token
-        ? { top: 210, bottom: 130, left: 50, right: 50 }
-        : { top: 80,  bottom: 130, left: 50, right: 50 };
+        ? { top: 210, bottom: bottomPad, left: 50, right: 50 }
+        : { top: 80,  bottom: bottomPad, left: 50, right: 50 };
 
       this.map.fitBounds(combined, {
         padding,
