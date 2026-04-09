@@ -295,29 +295,16 @@ const TerritorialApp = {
       if (!typeMap[name]) typeMap[name] = new Set();
       typeMap[name].add(TYPE_MAP[fillColor] || 'casaencasa');
 
-      // Gradient color per territory — distribución equidistante en rango seguro
+      // Color por territorio — ángulo dorado para máxima dispersión visual (colores vividos aleatorios)
       if (!feature.properties.territoryColor) {
         const num     = parseInt(name.replace('t', '')) || 0;
+        const rawHue  = (num * 137.508) % 360;
         const isCarta = fillColor === '#d32f2f' || fillColor === '#f57c00';
 
-        let hue, lightness;
-        if (isCarta) {
-          // Carta postal: color forzado a rojo en la capa, territoryColor no se usa visualmente
-          hue       = 0;
-          lightness = 52;
-        } else {
-          // Presencial: distribuir equitativamente en 50°–330° (280° sin rojos)
-          // t1 = 50° (amarillo-verde) … t106 = 330° (magenta)
-          // Oscilación de luminosidad en 4 olas → ayuda a distinguir vecinos con hue cercano
-          const TOTAL = 106;
-          const t     = (num - 1) / (TOTAL - 1); // 0..1
-          hue       = 50 + t * 280;
-          lightness = 50 + Math.sin(t * Math.PI * 4) * 8; // oscila ±8% en 4 ciclos
-        }
+        // Presenciales: excluir rojo/naranja-rojo (0°–50°, 330°–360°) reservados para carta postal
+        const hue = isCarta ? rawHue : 50 + (rawHue / 360) * 280;
 
-        feature.properties.territoryColor     = hslToHex(hue, 88, lightness);
-        // Versión oscura del mismo hue para el borde — crea separación clara entre vecinos
-        feature.properties.territoryColorDark = hslToHex(hue, 80, lightness - 22);
+        feature.properties.territoryColor = hslToHex(hue, 92, 52);
       }
 
       // Bounds
@@ -405,18 +392,18 @@ const TerritorialApp = {
     /* Shared line-width expression */
     const lineWidth = [
       'interpolate', ['linear'], ['zoom'],
-      8,   3.0,
-      10,  2.5,
-      12,  2.0,
-      14,  1.5,
-      16,  1.2,
-      18,  0.8
+      8,  60.0,
+      10, 40.0,
+      12, 22.0,
+      14,  9.0,
+      16,  3.5,
+      18,  1.5
     ];
     const lineOpacity = [
       'case',
       ['boolean', ['feature-state', 'addable'], false], 0.55,
       ['boolean', ['feature-state', 'dim'], false],     0.08,
-      0.72
+      1.0
     ];
 
     /* ---- 2a. Presencial — solid border ---- */
@@ -434,7 +421,7 @@ const TerritorialApp = {
           ['==', ['feature-state', 'status'], 'parcial'],    '#f59e0b',
           ['boolean', ['feature-state', 'selected'], false], '#ffffff',
           ['boolean', ['feature-state', 'searched'], false], '#ffffff',
-          '#ffffff'
+          ['get', 'territoryColor']
         ],
         'line-width':   lineWidth,
         'line-opacity': lineOpacity
