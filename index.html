@@ -760,7 +760,7 @@
       display: none;
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      z-index: 18;
+      z-index: 910;
       background: var(--card);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -772,6 +772,18 @@
     .finish-bar.visible { display: flex; }
     body:has(.bottom-sheet.open) .finish-bar,
     body:has(.finish-sheet.open) .finish-bar { display: none !important; }
+
+    /* Empujar botones flotantes en desktop cuando finish bar es visible */
+    body:has(.finish-bar.visible) .type-toggle,
+    body:has(.finish-bar.visible) .legend-card {
+      transition: bottom 0.35s var(--spring);
+    }
+    body:has(.finish-bar.visible) .type-toggle {
+      bottom: calc(84px + env(safe-area-inset-bottom));
+    }
+    body:has(.finish-bar.visible) .legend-card {
+      bottom: calc(84px + env(safe-area-inset-bottom));
+    }
 
     .finish-bar-row {
       display: flex;
@@ -823,7 +835,7 @@
     .finish-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 25;
+      z-index: 920;
       background: transparent;
       pointer-events: none;
       transition: background 0.3s;
@@ -837,7 +849,7 @@
     .finish-sheet {
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      z-index: 30;
+      z-index: 930;
       background: var(--card-solid);
       border-radius: var(--r-xl) var(--r-xl) 0 0;
       border-top: 1px solid var(--border);
@@ -1004,6 +1016,7 @@
       position: fixed;
       bottom: calc(28px + env(safe-area-inset-bottom)); left: 16px;
       z-index: 901;
+      transition: bottom 0.35s var(--spring);
       display: flex;
       background: var(--card);
       backdrop-filter: blur(20px) saturate(180%);
@@ -1069,6 +1082,7 @@
       position: fixed;
       bottom: calc(28px + env(safe-area-inset-bottom)); right: 16px;
       z-index: 903;
+      transition: bottom 0.35s var(--spring);
       background: var(--card);
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -1159,6 +1173,14 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.25s;
+      }
+
+      /* Empujar botones flotantes cuando el finish bar está visible */
+      body:has(.finish-bar.visible) .type-toggle {
+        bottom: calc(74px + env(safe-area-inset-bottom));
+      }
+      body:has(.finish-bar.visible) .legend-card {
+        bottom: calc(118px + env(safe-area-inset-bottom));
       }
 
       /* Top card: compact on small screens */
