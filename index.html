@@ -195,6 +195,24 @@
       transform: translateX(-50%) scale(1);
     }
 
+    .top-card.collapsed .top-card-meta,
+    .top-card.collapsed .top-card-footer {
+      display: none;
+    }
+
+    .top-card-toggle {
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .top-card.collapsed .top-card-toggle { transform: rotate(180deg); }
+
     .top-card-header {
       display: flex;
       align-items: flex-start;
@@ -1458,9 +1476,12 @@
 
   <!-- Top card -->
   <div class="top-card" id="top-card">
-    <div class="top-card-header">
+    <div class="top-card-header" onclick="document.getElementById('top-card').classList.toggle('collapsed')" style="cursor:pointer">
       <span class="top-card-title" x-data x-text="$store.app.sessionInfo.capitan || '…'">…</span>
-      <span class="top-card-group" x-data x-text="'Grupo ' + ($store.app.sessionInfo.grupo || '…')">Grupo …</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="top-card-group" x-data x-text="'Grupo ' + ($store.app.sessionInfo.grupo || '…')">Grupo …</span>
+        <button class="top-card-toggle" onclick="event.stopPropagation();document.getElementById('top-card').classList.toggle('collapsed')">▾</button>
+      </div>
     </div>
     <div class="top-card-meta">
       <div class="meta-row">
