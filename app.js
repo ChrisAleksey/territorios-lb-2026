@@ -1497,7 +1497,11 @@ const TerritorialApp = {
     const card = document.getElementById('top-card');
     if (card) {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => card.classList.add('visible'));
+        requestAnimationFrame(() => {
+          card.classList.add('visible');
+          // Auto-colapsar después de 4 segundos
+          setTimeout(() => card.classList.add('collapsed'), 4000);
+        });
       });
     }
     // Mostrar barra inferior de finalizar
