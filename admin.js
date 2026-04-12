@@ -3,6 +3,11 @@
    Alpine.js x-data function
    ============================================================ */
 
+const _norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+// Mapa normalizado → key original para lookup sin tildes
+const _LOCATION_KEYS = {};  // se llena después de definir LOCATION_TERRITORIES
+
 const CAPITANES = [
   { id: 'cap1',  nombre: 'Hno. Abraham Maldonado',        tel: '', token: 'abraham-mal001'    },
   { id: 'cap2',  nombre: 'Hno. Alejandro Vazquez Maciel', tel: '', token: 'alejandro-vaz002'  },
@@ -30,20 +35,44 @@ const CAPITANES = [
   { id: 'cap24', nombre: 'Hno. Sergio Armando Hernandez', tel: '', token: 'sergio-her024'     },
 ];
 
+const KNOWN_GRUPOS = ['1','2','3','4','5','6','7','8','9','10','11','Congregación'];
+
 const KNOWN_LOCATIONS = [
   'Fam. Hernández Mora',
-  'Fam. Rivas Arredondo',
-  'Fam. Najera Galvan',
   'Fam. Espinosa Valencia',
+  'Fam. Nájera Galván',
+  'Fam. Reyes Maldonado',
+  'Fam. Maldonado Vilchis',
+  'Fam. Lozano Gonzales',
+  'Salón del Reino / Casa de Toñito',
+  'Fam. Rivas Arredondo',
   'Fam. Diez Reyes',
   'Fam. Hernández Alanís',
-  'Fam. Lozano Gonzales',
-  'Fam. Maldonado Vilchis',
-  'Fam. Reyes Maldonado',
-  'Salón del Reino',
-  'Casa de Toño',
-  'Fam. Aparicio',
+  'Fam. Aparicio López',
 ];
+
+function _tRange(from, to) {
+  const arr = [];
+  for (let i = from; i <= to; i++) arr.push(`t${i}`);
+  return arr;
+}
+
+const LOCATION_TERRITORIES = {
+  'Fam. Hernández Mora':             _tRange(1,   11),
+  'Fam. Espinosa Valencia':          _tRange(12,  22),
+  'Fam. Nájera Galván':              _tRange(23,  33),
+  'Fam. Reyes Maldonado':            _tRange(34,  37),
+  'Fam. Maldonado Vilchis':          _tRange(38,  42),
+  'Fam. Lozano Gonzales':            _tRange(43,  47),
+  'Salón del Reino / Casa de Toñito':_tRange(48,  68),
+  'Fam. Rivas Arredondo':            _tRange(69,  76),
+  'Fam. Diez Reyes':                 _tRange(77,  82),
+  'Fam. Hernández Alanís':           _tRange(83,  89),
+  'Fam. Aparicio López':             _tRange(90, 106),
+};
+
+// Índice normalizado para lookup sin tildes
+Object.keys(LOCATION_TERRITORIES).forEach(k => { _LOCATION_KEYS[_norm(k)] = k; });
 
 // Mock dashboard groups data
 const MOCK_GRUPOS = [
@@ -67,25 +96,26 @@ function adminApp() {
     sidebarOpen: false,
 
     get sectionTitle() {
-      return { programa: 'Programa del Día', capitanes: 'Capitanes', dashboard: 'Dashboard' }[this.activeSection];
+      return { programa: 'Programa del Día', capitanes: 'Capitanes', dashboard: 'Dashboard', historial: 'Historial' }[this.activeSection];
     },
 
     /* ── Programa form ── */
     sessionTipo: 'casaencasa',
     sessionDate: '',
     sessionTime: '09:30',
-    sessionLugar: '',
-    asignaciones: [{ capitanId: '', grupos: '', error: false, errorGrupos: false }],
+    asignaciones: [{ capitanId: '', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false }],
+    allGrupos: KNOWN_GRUPOS,
 
     /* ── Autocomplete ── */
     showSuggestions: false,
     suggestions: [],
+    activeSuggestionAsg: null,
 
     /* ── Generation state ── */
     generating: false,
     showGenerated: false,
     generatedCards: [],
-    errors: { date: false, time: false, lugar: false },
+    errors: { date: false, time: false },
 
     /* ── Capitanes section ── */
     capitanes: JSON.parse(JSON.stringify(CAPITANES)),
@@ -109,10 +139,21 @@ function adminApp() {
     init() {
       this.sessionDate = new Date().toISOString().split('T')[0];
 
-      // Cargar territorios guardados por capitán
+      // Cargar territorios asignados (siempre, no solo al volver del selector)
       try {
         const stored = localStorage.getItem('admin_capitan_territories');
-        if (stored) this.territoriosPorCapitan = JSON.parse(stored);
+        if (stored) {
+          const raw = JSON.parse(stored);
+          // Sanear: solo conservar entradas con valores formato t+número
+          const clean = {};
+          for (const [k, v] of Object.entries(raw)) {
+            if (Array.isArray(v)) {
+              const valid = v.filter(x => /^t\d+$/i.test(x));
+              if (valid.length) clean[k] = valid;
+            }
+          }
+          this.territoriosPorCapitan = clean;
+        }
       } catch(e) {}
 
       // Recoger selección pendiente del mapa
@@ -134,7 +175,6 @@ function adminApp() {
           if (p.sessionTipo)  this.sessionTipo  = p.sessionTipo;
           if (p.sessionDate)  this.sessionDate  = p.sessionDate;
           if (p.sessionTime)  this.sessionTime  = p.sessionTime;
-          if (p.sessionLugar) this.sessionLugar = p.sessionLugar;
           localStorage.removeItem('admin_programa_state');
         }
       } catch(e) {}
@@ -162,19 +202,21 @@ function adminApp() {
     /* ════════════════════════════════════════════
        AUTOCOMPLETE
     ════════════════════════════════════════════ */
-    filterSuggestions() {
-      const q = this.sessionLugar.toLowerCase().trim();
+    filterSuggestionsForAsg(asg) {
+      this.activeSuggestionAsg = asg;
+      const q = _norm(asg.lugar.trim());
       if (!q) {
         this.suggestions = KNOWN_LOCATIONS.slice();
       } else {
-        this.suggestions = KNOWN_LOCATIONS.filter(l => l.toLowerCase().includes(q));
+        this.suggestions = KNOWN_LOCATIONS.filter(l => _norm(l).includes(q));
       }
       this.showSuggestions = true;
     },
 
     selectSuggestion(s) {
-      this.sessionLugar = s;
+      if (this.activeSuggestionAsg) this.activeSuggestionAsg.lugar = s;
       this.showSuggestions = false;
+      this.activeSuggestionAsg = null;
       this.errors.lugar = false;
     },
 
@@ -182,7 +224,14 @@ function adminApp() {
        ASIGNACIONES
     ════════════════════════════════════════════ */
     addAsignacion() {
-      this.asignaciones.push({ capitanId: '', grupos: '', error: false, errorGrupos: false });
+      this.asignaciones.push({ capitanId: '', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false });
+    },
+
+    toggleGrupo(asg, g) {
+      const idx = asg.grupos.indexOf(g);
+      if (idx === -1) asg.grupos.push(g);
+      else asg.grupos.splice(idx, 1);
+      asg.errorGrupos = false;
     },
 
     removeAsignacion(i) {
@@ -226,13 +275,13 @@ function adminApp() {
 
       if (!this.sessionDate) { this.errors.date = true; valid = false; }
       if (!this.sessionTime) { this.errors.time = true; valid = false; }
-      if (!this.sessionLugar.trim()) { this.errors.lugar = true; valid = false; }
 
       let atLeastOne = false;
       this.asignaciones.forEach(asg => {
         if (!asg.capitanId) { asg.error = true; valid = false; }
-        if (!asg.grupos.trim()) { asg.errorGrupos = true; valid = false; }
-        if (asg.capitanId && asg.grupos.trim()) atLeastOne = true;
+        if (!asg.grupos.length) { asg.errorGrupos = true; valid = false; }
+        if (!asg.lugar.trim()) { asg.errorLugar = true; valid = false; }
+        if (asg.capitanId && asg.grupos.length && asg.lugar.trim()) atLeastOne = true;
       });
 
       if (!valid || !atLeastOne) return;
@@ -244,10 +293,9 @@ function adminApp() {
         const baseUrl = this._getBaseUrl();
         const fechaStr   = this.formatDate(this.sessionDate);
         const horaStr    = this.formatTime(this.sessionTime);
-        const lugarStr   = this.sessionLugar.trim();
 
         this.generatedCards = this.asignaciones
-          .filter(asg => asg.capitanId && asg.grupos.trim())
+          .filter(asg => asg.capitanId && asg.grupos.length && asg.lugar.trim())
           .map(asg => {
             const cap = this.capitanes.find(c => c.id === asg.capitanId);
             if (!cap) return null;
@@ -256,8 +304,8 @@ function adminApp() {
             const message =
 `🗓️ *Fecha:* ${fechaStr}
 ⏰ *Hora:* ${horaStr}
-📍 *Punto de encuentro:* ${lugarStr}
-👥 *Grupos:* ${asg.grupos.trim()}
+📍 *Punto de encuentro:* ${asg.lugar.trim()}
+👥 *Grupos:* ${asg.grupos.join(', ')}
 
 🗺️ *Tu mapa de territorios:*
 ${mapLink}
@@ -269,7 +317,7 @@ _(Toca el link para ver tus territorios asignados)_`;
               nombre:    cap.nombre,
               tel:       cap.tel,
               token:     cap.token,
-              grupos:    asg.grupos.trim(),
+              grupos:    asg.grupos.join(', '),
               message,
             };
           })
@@ -324,23 +372,40 @@ _(Toca el link para ver tus territorios asignados)_`;
       });
     },
 
+    resetPrograma() {
+      this.sessionDate  = new Date().toISOString().split('T')[0];
+      this.sessionTime  = '09:30 AM';
+      this.sessionTipo  = 'casaencasa';
+      this.asignaciones = [{ capitanId: '', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false }];
+      this.territoriosPorCapitan = {};
+      this.showGenerated = false;
+      this.generatedCards = [];
+      localStorage.removeItem('admin_capitan_territories');
+    },
+
     cancelCapitanForm() {
       this.showCapitanForm = false;
       this.editingCapitanId = null;
       this.capForm = { nombre: '', tel: '', token: '' };
     },
 
-    openTerritorySelector(cap) {
+    openTerritorySelector(cap, lugar) {
       try {
         localStorage.setItem('admin_select_info', JSON.stringify({ id: cap.id, nombre: cap.nombre }));
         localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan));
+        // Tipo de sesión para filtrar por presencial/carta
+        localStorage.setItem('admin_session_tipo', this.sessionTipo);
+        // Territorios permitidos según el lugar de encuentro
+        const _lugarKey = _LOCATION_KEYS[_norm(lugar)] || lugar;
+        const allowed = LOCATION_TERRITORIES[_lugarKey] || null;
+        if (allowed) localStorage.setItem('admin_allowed_territories', JSON.stringify(allowed));
+        else localStorage.removeItem('admin_allowed_territories');
         // Guardar estado completo del programa para restaurar al volver
         localStorage.setItem('admin_asignaciones_state', JSON.stringify(this.asignaciones));
         localStorage.setItem('admin_programa_state', JSON.stringify({
           sessionTipo:  this.sessionTipo,
           sessionDate:  this.sessionDate,
           sessionTime:  this.sessionTime,
-          sessionLugar: this.sessionLugar,
         }));
       } catch(e) {}
       window.location.href = `index.html?admin_select=${cap.id}`;
@@ -348,7 +413,16 @@ _(Toca el link para ver tus territorios asignados)_`;
 
     getCapitanTerritoryCount(capId) {
       const t = this.territoriosPorCapitan[capId];
-      return t ? t.length : 0;
+      if (!t) return 0;
+      return t.filter(x => /^t\d+$/i.test(x)).length;
+    },
+
+    getCapitanTerritoryList(capId) {
+      const t = this.territoriosPorCapitan[capId];
+      if (!t || !t.length) return '';
+      const valid = t.filter(x => /^t\d+$/i.test(x));
+      if (!valid.length) return '';
+      return valid.sort((a, b) => parseInt(a.slice(1)) - parseInt(b.slice(1))).join(', ');
     },
 
     saveCapitan() {

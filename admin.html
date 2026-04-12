@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Admin — Territorios LB</title>
 
   <!-- Google Fonts -->
@@ -15,6 +15,16 @@
 
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+  <!-- Protección: debe venir del login modal -->
+  <script>
+    if (!sessionStorage.getItem('admin_auth')) {
+      window.location.replace('index.html');
+    }
+    function goToMap() {
+      window.location.href = 'index.html';
+    }
+  </script>
 </head>
 <body x-data="adminApp()" x-init="init()">
 
@@ -44,10 +54,15 @@
         <span class="nav-icon">📊</span>
         <span class="nav-label">Dashboard</span>
       </button>
+      <button class="nav-item" :class="{ active: activeSection === 'historial' }"
+              @click="navigate('historial')">
+        <span class="nav-icon">🕐</span>
+        <span class="nav-label">Historial</span>
+      </button>
     </nav>
 
     <div class="sidebar-footer">
-      <a href="index.html" class="nav-item map-link">
+      <a href="#" onclick="goToMap(); return false;" class="nav-item map-link">
         <span class="nav-icon">🗺️</span>
         <span class="nav-label">Ver Mapa</span>
       </a>
@@ -63,9 +78,7 @@
 
     <!-- Top bar (mobile) -->
     <header class="topbar">
-      <button class="hamburger" @click="sidebarOpen = !sidebarOpen" aria-label="Menú">
-        <span></span><span></span><span></span>
-      </button>
+      <div class="topbar-spacer"></div>
       <span class="topbar-title" x-text="sectionTitle"></span>
       <div class="topbar-spacer"></div>
     </header>
@@ -91,7 +104,7 @@
           <div class="pill-tabs">
             <button class="pill-tab" :class="{ active: sessionTipo === 'casaencasa' }"
                     @click="sessionTipo = 'casaencasa'">
-              🏠 Presencial
+              🏠 Casa en casa
             </button>
             <button class="pill-tab" :class="{ active: sessionTipo === 'carta' }"
                     @click="sessionTipo = 'carta'">
@@ -112,31 +125,13 @@
             <input id="sessionTime" type="time" class="field-input" :class="{ shake: errors.time }"
                    x-model="sessionTime" @change="errors.time = false">
           </div>
-          <div class="field-group span-2" style="position:relative;">
-            <label class="field-label" for="sessionLugar">Lugar de Encuentro</label>
-            <input id="sessionLugar" type="text" class="field-input"
-                   :class="{ shake: errors.lugar }"
-                   x-model="sessionLugar"
-                   @input="filterSuggestions()"
-                   @focus="filterSuggestions()"
-                   @blur="setTimeout(() => showSuggestions = false, 150)"
-                   @change="errors.lugar = false"
-                   placeholder="ej. Fam. Hernández Mora"
-                   autocomplete="off">
-            <!-- Autocomplete dropdown -->
-            <ul class="autocomplete-list" x-show="showSuggestions && suggestions.length > 0">
-              <template x-for="s in suggestions" :key="s">
-                <li class="autocomplete-item" @mousedown.prevent="selectSuggestion(s)" x-text="s"></li>
-              </template>
-            </ul>
-          </div>
         </div>
 
         <div class="section-divider"></div>
 
         <!-- Captain assignment rows -->
         <div class="subsection-header">
-          <h2 class="subsection-title">Asignación de Capitanes</h2>
+          <h2 class="subsection-title">Lugares de Encuentro</h2>
         </div>
 
         <div class="assignments-list">
@@ -147,6 +142,21 @@
                  x-transition:enter-end="row-enter-end">
               <div class="assignment-number" x-text="i + 1"></div>
               <div class="assignment-fields">
+                <div class="field-lugar-wrap" style="grid-column: 1 / -1; position: relative;">
+                  <input type="text" class="field-input" :class="{ shake: asg.errorLugar }"
+                         x-model="asg.lugar"
+                         @input="filterSuggestionsForAsg(asg)"
+                         @focus="filterSuggestionsForAsg(asg)"
+                         @blur="setTimeout(() => showSuggestions = false, 150)"
+                         @change="asg.errorLugar = false"
+                         placeholder="Lugar de encuentro…"
+                         autocomplete="off">
+                  <ul class="autocomplete-list" x-show="showSuggestions && activeSuggestionAsg === asg && suggestions.length > 0">
+                    <template x-for="s in suggestions" :key="s">
+                      <li class="autocomplete-item" @mousedown.prevent="selectSuggestion(s)" x-text="s"></li>
+                    </template>
+                  </ul>
+                </div>
                 <select class="field-input field-select" :class="{ shake: asg.error }"
                         :value="asg.capitanId"
                         @change="onCapitanChange(asg, $event.target.value, $event)">
@@ -155,18 +165,23 @@
                     <option :value="cap.id" x-text="cap.nombre"></option>
                   </template>
                 </select>
-                <input type="text" class="field-input field-grupos"
-                       :class="{ shake: asg.errorGrupos }"
-                       x-model="asg.grupos"
-                       @change="asg.errorGrupos = false"
-                       placeholder="Grupos (ej. 1, 3, 5)">
+                <div class="grupos-picker" :class="{ shake: asg.errorGrupos }" style="grid-column: 1 / -1;">
+                  <template x-for="g in allGrupos" :key="g">
+                    <button type="button" class="grupo-pill"
+                            :class="{ active: asg.grupos.includes(g) }"
+                            @click="toggleGrupo(asg, g)"
+                            x-text="g">
+                    </button>
+                  </template>
+                </div>
                 <button class="btn-territorios"
                         :disabled="!asg.capitanId"
-                        @click="openTerritorySelector(capitanes.find(c => c.id === asg.capitanId))">
-                  <span x-show="!asg.capitanId">+ Agregar territorio</span>
-                  <span x-show="asg.capitanId && getCapitanTerritoryCount(asg.capitanId) === 0">+ Agregar territorio</span>
-                  <span x-show="asg.capitanId && getCapitanTerritoryCount(asg.capitanId) > 0"
-                        x-text="getCapitanTerritoryCount(asg.capitanId) + ' territorios asignados — editar'"></span>
+                        @click="openTerritorySelector(capitanes.find(c => c.id === asg.capitanId), asg.lugar)">
+                  <span x-show="!asg.capitanId || getCapitanTerritoryCount(asg.capitanId) === 0">+ Agregar territorio</span>
+                  <span x-show="asg.capitanId && getCapitanTerritoryCount(asg.capitanId) > 0" class="btn-territorios-list">
+                    <span class="btn-territorios-names" x-text="getCapitanTerritoryList(asg.capitanId)"></span>
+                    <span class="btn-territorios-edit">— editar</span>
+                  </span>
                 </button>
               </div>
               <button class="btn-remove" @click="removeAsignacion(i)" title="Quitar fila"
@@ -176,10 +191,11 @@
         </div>
 
         <button class="btn-add-row" @click="addAsignacion()">
-          <span class="btn-add-icon">+</span> Agregar Capitán
+          <span class="btn-add-icon">+</span> Agregar Lugar de Encuentro
         </button>
 
         <!-- Generate button -->
+        <button class="btn-ghost" @click="resetPrograma()" style="width:100%;margin-bottom:8px;">🗑 Limpiar formulario</button>
         <button class="btn-generate" @click="generateMessages()" :disabled="generating">
           <span x-show="!generating">🪄 Generar Mensajes</span>
           <span x-show="generating" class="spinner-wrap">
@@ -208,7 +224,7 @@
             <div class="wa-card" :style="`animation-delay: ${i * 80}ms`">
               <div class="wa-card-header">
                 <div class="wa-captain-info">
-                  <div class="wa-avatar" x-text="card.nombre.charAt(0)"></div>
+                  <div class="wa-avatar" x-text="card.nombre.replace(/^(Hno\.|Hna\.)\s*/i,'').charAt(0)"></div>
                   <div>
                     <div class="wa-name" x-text="card.nombre"></div>
                     <div class="wa-phone" x-text="'+' + card.tel"></div>
@@ -283,9 +299,9 @@
             <thead>
               <tr>
                 <th>Nombre</th>
-                <th>Teléfono</th>
+                <th class="hide-mobile">Teléfono</th>
                 <th>Token</th>
-                <th>Link Personalizado</th>
+                <th class="hide-mobile">Link Personalizado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -294,15 +310,15 @@
                 <tr>
                   <td>
                     <div class="cap-name-cell">
-                      <div class="cap-avatar" x-text="cap.nombre.charAt(0)"></div>
+                      <div class="cap-avatar" x-text="cap.nombre.replace(/^(Hno\.|Hna\.)\s*/i,'').charAt(0)"></div>
                       <span x-text="cap.nombre"></span>
                     </div>
                   </td>
-                  <td class="text-mono" x-text="'+' + cap.tel"></td>
+                  <td class="hide-mobile text-mono" x-text="'+' + cap.tel"></td>
                   <td>
                     <span class="token-pill" x-text="cap.token"></span>
                   </td>
-                  <td>
+                  <td class="hide-mobile">
                     <span class="link-preview" x-text="getCapitanLink(cap.token)"></span>
                   </td>
                   <td>
@@ -358,23 +374,24 @@
         </div>
       </div>
 
-      <div class="card table-card mt-6">
-        <div class="table-card-header">
-          <h2 class="subsection-title" style="margin:0">Grupos por Estado</h2>
-        </div>
-        <div class="groups-status-list">
-          <template x-for="g in dashboard.grupos" :key="g.num">
-            <div class="group-status-row">
-              <div class="group-number">Grupo <span x-text="g.num"></span></div>
-              <div class="group-progress-bar">
-                <div class="group-progress-fill"
-                     :style="`width: ${g.pct}%; background: ${g.color}`"></div>
-              </div>
-              <div class="group-pct" x-text="g.pct + '%'"></div>
-              <span class="status-badge" :class="g.status" x-text="g.statusLabel"></span>
-            </div>
-          </template>
-        </div>
+
+    </section>
+
+    <!-- ══════════ SECCIÓN: HISTORIAL ══════════ -->
+    <section class="content-section"
+             x-show="activeSection === 'historial'"
+             x-transition:enter="section-enter"
+             x-transition:enter-start="section-enter-start"
+             x-transition:enter-end="section-enter-end">
+
+      <div class="section-header">
+        <h1 class="section-title">Historial</h1>
+        <p class="section-sub">Registro de salidas y servicios anteriores.</p>
+      </div>
+
+      <div class="card" style="padding: 40px 24px; text-align: center; color: var(--text2);">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">🕐</div>
+        <p style="font-size: 0.95rem; font-weight: 500;">Próximamente — aquí aparecerán los servicios guardados.</p>
       </div>
 
     </section>
@@ -397,6 +414,15 @@
             @click="navigate('dashboard')">
       <span class="bottom-nav-icon">📊</span>
       <span class="bottom-nav-label">Dashboard</span>
+    </button>
+    <button class="bottom-nav-item" :class="{ active: activeSection === 'historial' }"
+            @click="navigate('historial')">
+      <span class="bottom-nav-icon">🕐</span>
+      <span class="bottom-nav-label">Historial</span>
+    </button>
+    <button class="bottom-nav-item" onclick="goToMap()">
+      <span class="bottom-nav-icon">🗺️</span>
+      <span class="bottom-nav-label">Ver Mapa</span>
     </button>
   </nav>
 

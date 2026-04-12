@@ -470,7 +470,33 @@ input[type="time"] { color-scheme: dark; }
   gap: 10px;
 }
 
-.field-grupos { font-variant-numeric: tabular-nums; }
+.grupos-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 2px;
+}
+
+.grupo-pill {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--ease), color var(--ease), border-color var(--ease);
+  line-height: 1;
+}
+
+.grupo-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(117,96,168,0.3);
+}
 
 .btn-territorios {
   grid-column: 1 / -1;
@@ -490,6 +516,25 @@ input[type="time"] { color-scheme: dark; }
 }
 .btn-territorios:disabled {
   opacity: 0.35; cursor: not-allowed;
+}
+
+.btn-territorios-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-territorios-names {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.btn-territorios-edit {
+  color: rgba(117,96,168,0.6);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .btn-remove {
@@ -963,7 +1008,7 @@ input[type="time"] { color-scheme: dark; }
 
 .bottom-nav-item.active { color: var(--accent); }
 .bottom-nav-icon { font-size: 20px; }
-.bottom-nav-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.bottom-nav-label { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
 
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE
@@ -1003,6 +1048,21 @@ input[type="time"] { color-scheme: dark; }
   .status-badge { display: none; }
 
   .wa-grid { grid-template-columns: 1fr; }
+
+  .hide-mobile { display: none; }
+
+  /* Título de sección redundante — el topbar ya lo muestra */
+  .section-header .section-title,
+  .section-header-row .section-title { display: none; }
+  .section-header { margin-bottom: 8px; }
+
+  /* Tabla capitanes: compactar para que no fuerce zoom */
+  .data-table th,
+  .data-table td { padding: 10px 12px; }
+  .action-buttons { flex-direction: column; gap: 4px; }
+  .btn-action { font-size: 11px; padding: 5px 8px; text-align: center; }
+  .token-pill { max-width: 110px; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
+  .cap-name-cell span { font-size: 12px; }
 }
 
 @media (max-width: 480px) {

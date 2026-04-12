@@ -69,6 +69,27 @@ const MOCK_DATA = {
   }
 };
 
+/* ─── Territorios por lugar de encuentro ───────────────────────────────────── */
+function _tRange(from, to) {
+  const arr = [];
+  for (let i = from; i <= to; i++) arr.push(`t${i}`);
+  return arr;
+}
+
+const LOCATION_TERRITORIES = {
+  'Fam. Hernández Mora':              _tRange(1,   11),
+  'Fam. Espinosa Valencia':           _tRange(12,  22),
+  'Fam. Nájera Galván':               _tRange(23,  33),
+  'Fam. Reyes Maldonado':             _tRange(34,  37),
+  'Fam. Maldonado Vilchis':           _tRange(38,  42),
+  'Fam. Lozano Gonzales':             _tRange(43,  47),
+  'Salón del Reino / Casa de Toñito': _tRange(48,  68),
+  'Fam. Rivas Arredondo':             _tRange(69,  76),
+  'Fam. Diez Reyes':                  _tRange(77,  82),
+  'Fam. Hernández Alanís':            _tRange(83,  89),
+  'Fam. Aparicio López':              _tRange(90, 106),
+};
+
 /* ══════════════════════════════════════════════════════════════════════════════
    TerritorialApp
 ══════════════════════════════════════════════════════════════════════════════ */
@@ -87,6 +108,9 @@ const TerritorialApp = {
   _isDebug:            false,
   _glowInterval:       null,
   _toastTimer:         null,
+  _searchTimer:        null,
+  // Bounding box del área de territorios (Coacalco)
+  _AREA_BBOX: { minLon: -99.115, maxLon: -99.00, minLat: 19.57, maxLat: 19.71 },
   territoryBounds:     {},   // { 't1': LngLatBounds }
   territoryTypes:      {},   // { 't1': 'casaencasa'|'carta'|'dificil' }
   allTerritoryNames:   [],   // unique names from GeoJSON
@@ -96,6 +120,9 @@ const TerritorialApp = {
   sessionInfo:              {},
   adminSelectCapId:         null,
   adminSelectedTerritories: new Set(),
+  adminAllowedTerritories:  null,
+  adminSessionTipo:         'casaencasa',
+  informeUnlocked:          false,
   extraTerritories:         [],   // territorios extra que el capitán eligió
 
   /* ── Entry point ─────────────────────────────────────────────────────────── */
@@ -116,6 +143,10 @@ const TerritorialApp = {
 
     // After map + data ready, hide loader
     this._hideLoader();
+    // Ocultar candado admin en modo capitán
+    if (this.token) {
+      document.getElementById('admin-login-btn')?.setAttribute('style', 'display:none');
+    }
     // Top card y search solo en modo capitán (con token en URL)
     if (this.token) {
       this._showTopCard();
@@ -619,9 +650,38 @@ const TerritorialApp = {
       this.toggleAdminTerritory(name);
       return;
     }
-    // Territorio no asignado en modo capitán → ofrecer agregarlo
+    // Territorio no asignado en modo capitán → ofrecer agregarlo si está en la zona
     if (this.token && !this.assignedTerritories.includes(name)) {
+      const lugar = this.sessionInfo.lugar || '';
+      const zoneList = LOCATION_TERRITORIES[lugar] || [];
+      if (zoneList.length && !zoneList.includes(name)) {
+        this.showToast('Territorio fuera de tu zona', 'error');
+        return;
+      }
       this._showExtraPanel(name);
+      return;
+    }
+    // Vista general sin sesión de informe: solo zoom + glow blanco temporal, sin sheet
+    if (!this.token && !this.informeUnlocked) {
+      // Deselect previous
+      if (this.selectedTerritory && this.selectedTerritory !== name) {
+        this.map.setFeatureState({ source: 'territories', id: this.selectedTerritory }, { selected: false });
+      }
+      this.selectedTerritory = name;
+      this.map.setFeatureState({ source: 'territories', id: name }, { selected: true });
+
+      const bounds = this.territoryBounds[name];
+      if (bounds && !bounds.isEmpty()) {
+        this.map.fitBounds(bounds, {
+          padding: { top: 120, bottom: 120, left: 40, right: 40 },
+          duration: 800, linear: false, essential: true
+        });
+      }
+      // Quitar glow después de la animación
+      setTimeout(() => {
+        this.map.setFeatureState({ source: 'territories', id: name }, { selected: false });
+        this.selectedTerritory = null;
+      }, 1400);
       return;
     }
 
@@ -842,13 +902,30 @@ const TerritorialApp = {
   /* ── Modo agregar territorio extra ───────────────────────────────────────── */
   startAddExtraMode() {
     this.addingExtraMode = true;
+    const lugar = this.sessionInfo.lugar || '';
+    const zoneList = LOCATION_TERRITORIES[lugar] || [];
     for (const name of this.allTerritoryNames) {
       if (this.assignedTerritories.includes(name)) {
         // Mis territorios → gris (ya los tengo)
         this.map.setFeatureState({ source: 'territories', id: name }, { addable: true });
-      } else {
-        // Disponibles → colores normales
+      } else if (!zoneList.length || zoneList.includes(name)) {
+        // En la zona del capitán → colores normales (disponible)
         this.map.setFeatureState({ source: 'territories', id: name }, { dim: false });
+      }
+      // Fuera de la zona → permanece dimmed (no se toca)
+    }
+    // Zoom a la zona del capitán si hay territorios en ella
+    if (zoneList.length) {
+      const combined = zoneList.reduce((acc, n) => {
+        const b = this.territoryBounds[n];
+        if (!b || b.isEmpty()) return acc;
+        return acc ? acc.extend(b) : b;
+      }, null);
+      if (combined) {
+        this.map.fitBounds(combined, {
+          padding: { top: 80, bottom: 200, left: 40, right: 40 },
+          duration: 800, linear: false, essential: true
+        });
       }
     }
     document.getElementById('add-extra-banner')?.classList.add('show');
@@ -1123,16 +1200,8 @@ const TerritorialApp = {
   },
 
   _setTypeFilter(type) {
-    // En modo selección admin: mostrar todos los polígonos sin filtrar por tipo
-    if (this.adminSelectCapId) {
-      ['territory-fill', 'territory-glow', 'territory-labels'].forEach(id => {
-        if (this.map.getLayer(id)) this.map.setFilter(id, null);
-      });
-      ['territory-line', 'territory-line-carta', 'territory-line-mixto'].forEach(id => {
-        if (this.map.getLayer(id)) this.map.setLayoutProperty(id, 'visibility', 'visible');
-      });
-      return;
-    }
+    // En modo selección admin: el showList filter ya está aplicado, no sobreescribir
+    if (this.adminSelectCapId) return;
 
     const casaencasaFill = '#388e3c';
     const cartaFills     = ['#d32f2f', '#f57c00'];
@@ -1160,25 +1229,17 @@ const TerritorialApp = {
 
     if (!this.map || !this.map.getLayer('territory-fill')) return;
 
-    // Clear previous searched state + stop pulse
+    // Cancelar geocoding pendiente
+    if (this._searchTimer) { clearTimeout(this._searchTimer); this._searchTimer = null; }
+
     this._clearSearchedState();
 
-    if (!q) {
-      this._fitToAssigned();
-      return;
-    }
+    if (!q) { this._fitToAssigned(); return; }
 
-    // Find first match
-    const match = this.allTerritoryNames.find(n => n.includes(q));
-
-    // Set searched feature state on match
+    // Buscar territorio por número (inmediato)
+    const match = this.allTerritoryNames.find(n => n.includes(q) || n === 't' + q);
     if (match) {
-      this.map.setFeatureState(
-        { source: 'territories', id: match },
-        { searched: true }
-      );
-
-      // Pulsing glow animation
+      this.map.setFeatureState({ source: 'territories', id: match }, { searched: true });
       let t = 0;
       this._glowInterval = setInterval(() => {
         t += 0.08;
@@ -1187,15 +1248,39 @@ const TerritorialApp = {
           this.map.setPaintProperty('territory-glow', 'line-opacity', opacity);
         }
       }, 40);
-
-      // Fly to territory
       if (this.territoryBounds[match]) {
         this.map.fitBounds(this.territoryBounds[match], {
           padding: { top: 160, bottom: 250, left: 60, right: 60 },
           duration: 800, linear: false, essential: true, maxZoom: 17
         });
       }
+      return;
     }
+
+    // No es territorio → geocoding con debounce de 600ms
+    this._searchTimer = setTimeout(() => this._geocodeSearch(query), 600);
+  },
+
+  async _geocodeSearch(query) {
+    try {
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query + ' Coacalco')}&limit=3&bbox=-99.11,19.57,-99.00,19.70`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      // Filtrar solo resultados dentro del área
+      const bb = this._AREA_BBOX;
+      const feat = data?.features?.find(f => {
+        const [lon, lat] = f.geometry.coordinates;
+        return lon >= bb.minLon && lon <= bb.maxLon && lat >= bb.minLat && lat <= bb.maxLat;
+      });
+      if (feat) {
+        const [lon, lat] = feat.geometry.coordinates;
+        const label = feat.properties.name || feat.properties.street || query;
+        this.map.flyTo({ center: [lon, lat], zoom: 17, duration: 900, essential: true });
+        this.showToast(`📍 ${label}`, 'info');
+      } else {
+        this.showToast('No se encontró en esta zona', 'error');
+      }
+    } catch(e) { this.showToast('No se encontró en esta zona', 'error'); }
   },
 
   _clearSearchedState() {
@@ -1253,6 +1338,21 @@ const TerritorialApp = {
 
   /* ── Admin territory selection mode ─────────────────────────────────────── */
   _initAdminSelectMode() {
+    // Cargar tipo de sesión
+    try {
+      const tipo = localStorage.getItem('admin_session_tipo');
+      if (tipo) { this.adminSessionTipo = tipo; localStorage.removeItem('admin_session_tipo'); }
+    } catch(e) {}
+
+    // Cargar territorios permitidos para este lugar de encuentro
+    try {
+      const stored = localStorage.getItem('admin_allowed_territories');
+      if (stored) {
+        this.adminAllowedTerritories = new Set(JSON.parse(stored).map(t => t.toLowerCase()));
+        localStorage.removeItem('admin_allowed_territories');
+      }
+    } catch(e) {}
+
     // Cargar selección previa de este capitán desde localStorage
     try {
       const stored = localStorage.getItem('admin_capitan_territories');
@@ -1283,14 +1383,63 @@ const TerritorialApp = {
       banner.style.display = 'flex';
     }
 
+    // Filtrar adminSelectedTerritories a solo los permitidos (evita chips de sesiones anteriores)
+    if (this.adminAllowedTerritories) {
+      this.adminSelectedTerritories = new Set(
+        [...this.adminSelectedTerritories].filter(t => this.adminAllowedTerritories.has(t))
+      );
+    }
+
     // Aplicar highlights pre-seleccionados
     for (const name of this.adminSelectedTerritories) {
       this.map.setFeatureState({ source: 'territories', id: name }, { selected: true });
     }
+
+    // Filtrar capas para mostrar SOLO los territorios del lugar + tipo correcto
+    {
+      const tipoOk = (name) => this._getPrimaryType(name) === this.adminSessionTipo;
+      const showList = this.allTerritoryNames.filter(n => {
+        const inAllowed = !this.adminAllowedTerritories || this.adminAllowedTerritories.has(n);
+        return inAllowed && tipoOk(n);
+      });
+
+      // Filtro MapLibre: solo mostrar territorios en showList
+      const showFilter = ['in', ['get', 'name'], ['literal', showList]];
+      ['territory-fill', 'territory-glow', 'territory-labels', 'territory-line'].forEach(id => {
+        if (this.map.getLayer(id)) this.map.setFilter(id, showFilter);
+      });
+      // Capas de carta postal: ocultar en sesión casaencasa, filtrar en sesión carta
+      const cartaVis = this.adminSessionTipo === 'carta' ? 'visible' : 'none';
+      ['territory-line-carta', 'territory-line-mixto'].forEach(id => {
+        if (this.map.getLayer(id)) {
+          this.map.setLayoutProperty(id, 'visibility', cartaVis);
+          if (this.adminSessionTipo === 'carta') this.map.setFilter(id, showFilter);
+        }
+      });
+
+      this._adminShowList = new Set(showList);
+
+      // Zoom al área del lugar de encuentro
+      if (showList.length > 0) {
+        const combined = showList.reduce((acc, name) => {
+          const b = this.territoryBounds[name];
+          if (!b || b.isEmpty()) return acc;
+          return acc ? acc.extend(b) : b;
+        }, null);
+        if (combined) {
+          this.map.fitBounds(combined, {
+            padding: { top: 80, bottom: 180, left: 40, right: 40 },
+            duration: 900, linear: false, essential: true
+          });
+        }
+      }
+    }
+
     this._updateAdminSelectCount();
   },
 
   toggleAdminTerritory(name) {
+    if (this._adminShowList && !this._adminShowList.has(name)) return;
     if (this.adminSelectedTerritories.has(name)) {
       this.adminSelectedTerritories.delete(name);
       this.map.setFeatureState({ source: 'territories', id: name }, { selected: false });
@@ -1372,10 +1521,13 @@ const TerritorialApp = {
   },
 
   _unlockInformeBar() {
+    this.informeUnlocked = true;
     const locked   = document.getElementById('informe-locked');
     const unlocked = document.getElementById('informe-unlocked');
     if (locked)   locked.style.display   = 'none';
     if (unlocked) unlocked.style.display = '';
+    const legendStatus = document.getElementById('legend-status-section');
+    if (legendStatus) legendStatus.style.display = '';
     this._updateInformeBar();
   },
 

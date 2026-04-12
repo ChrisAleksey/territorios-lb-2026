@@ -1465,7 +1465,7 @@
   <div class="search-bar" id="search-bar">
     <span class="search-icon">🔍</span>
     <input type="text" id="search-input" placeholder="Buscar territorio (ej. t30)…"
-           oninput="TerritorialApp.filterBySearch(this.value)">
+           oninput="TerritorialApp.filterBySearch(this.value)" autocomplete="off">
     <button class="search-clear" id="search-clear" onclick="TerritorialApp.clearSearch()" style="display:none">✕</button>
   </div>
 
@@ -1502,14 +1502,16 @@
       </div>
     </div>
 
-    <hr class="legend-divider">
-    <div class="legend-item">
-      <div class="legend-swatch legend-completo"></div>
-      <span>Completado</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-swatch legend-parcial"></div>
-      <span>Parcial</span>
+    <div id="legend-status-section" style="display:none">
+      <hr class="legend-divider">
+      <div class="legend-item">
+        <div class="legend-swatch legend-completo"></div>
+        <span>Completado</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch legend-parcial"></div>
+        <span>Parcial</span>
+      </div>
     </div>
   </div>
 
@@ -1758,11 +1760,19 @@
       _mode:      'admin', // 'admin' | 'informe'
 
       open() {
+        if (sessionStorage.getItem('admin_auth')) {
+          window.location.href = 'admin.html';
+          return;
+        }
         this._mode = 'admin';
         this._openModal();
       },
 
       openForInforme() {
+        if (sessionStorage.getItem('admin_auth')) {
+          TerritorialApp._unlockInformeBar();
+          return;
+        }
         this._mode = 'informe';
         this._openModal();
       },
@@ -1790,9 +1800,11 @@
         if (this.ALLOWED.some(word => name.includes(word))) {
           if (this._mode === 'informe') {
             this.isLoggedIn = true;
+            sessionStorage.setItem('admin_auth', '1');
             this.close();
             TerritorialApp._unlockInformeBar();
           } else {
+            sessionStorage.setItem('admin_auth', '1');
             window.location.href = 'admin.html';
           }
         } else {
