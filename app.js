@@ -1,8 +1,5 @@
 'use strict';
 
-/* ─── Constants ────────────────────────────────────────────────────────────── */
-const BACKEND_URL = 'PLACEHOLDER_APPS_SCRIPT_URL';
-
 const MAP_CENTER = [-99.092817, 19.611175]; // MapLibre: [lng, lat]
 const MAP_ZOOM   = 14;
 
@@ -105,6 +102,8 @@ const TerritorialApp = {
   addingExtraMode:     false, // modo "agregar territorio extra"
   submitted:           false, // informe enviado al backend
   submitTime:          null,  // hora del último envío
+  _sessionFecha:       null,  // fecha ISO de la sesión activa (para Firebase)
+  _useMock:            false, // true cuando no hay sesión en Firebase
   _isDebug:            false,
   _glowInterval:       null,
   _toastTimer:         null,
@@ -167,21 +166,45 @@ const TerritorialApp = {
     }
   },
 
-  /* ── Backend / mock ──────────────────────────────────────────────────────── */
+  /* ── Backend / Firebase ──────────────────────────────────────────────────── */
   async loadFromBackend() {
-    if (BACKEND_URL === 'PLACEHOLDER_APPS_SCRIPT_URL') {
-      this._applySessionData(MOCK_DATA);
-      return;
-    }
+    const fecha = FB.todayMX();
+    this._sessionFecha = fecha;
 
     try {
-      const res = await fetch(`${BACKEND_URL}?token=${encodeURIComponent(this.token)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      this._applySessionData(data);
+      const sesion = await FB.getSesion(this.token, fecha);
+      if (!sesion) {
+        console.warn('[TerritorialApp] Sin sesión en Firebase para hoy, usando mock data.');
+        this._useMock = true;
+        this._applySessionData(MOCK_DATA);
+        return;
+      }
+
+      // Aplanar estados: { t40: { estado, notas } } → { t40: 'completo' } + notas separadas
+      const estados = {};
+      const notas   = {};
+      for (const [t, e] of Object.entries(sesion.estados || {})) {
+        estados[t] = e.estado || 'pendiente';
+        if (e.notas) notas[t] = e.notas;
+      }
+
+      this._applySessionData({
+        capitan:     sesion.capitan     || '',
+        grupo:       sesion.grupos      || '',
+        fecha:       FB.formatFechaLarga(fecha),
+        hora:        sesion.hora        || '',
+        lugar:       sesion.lugar       || '',
+        tipo:        sesion.tipo        || 'casaencasa',
+        territorios: sesion.territorios || [],
+        estados
+      });
+
+      // Restaurar notas
+      this.territoryNotes = notas;
+
     } catch (err) {
-      console.warn('[TerritorialApp] Backend unavailable, using mock data.', err.message);
+      console.warn('[TerritorialApp] Firebase error, usando mock data.', err.message);
+      this._useMock = true;
       this._applySessionData(MOCK_DATA);
     }
   },
@@ -803,23 +826,12 @@ const TerritorialApp = {
     this.updateProgress();
     this._updateInformeBar();
 
-    // POST to backend
-    if (BACKEND_URL !== 'PLACEHOLDER_APPS_SCRIPT_URL') {
+    // Guardar en Firebase
+    if (!this._useMock) {
       try {
-        const body = JSON.stringify({
-          token:     this.token,
-          territorio: name,
-          estado:    status,
-          notas:     notes
-        });
-        const res = await fetch(BACKEND_URL, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await FB.updateEstado(this.token, this._sessionFecha, name, status, notes);
       } catch (err) {
-        console.error('[TerritorialApp] Error saving status', err);
+        console.error('[TerritorialApp] Error guardando en Firebase', err);
         this.showToast('Error al guardar', 'error');
         saveBtn.disabled    = false;
         saveBtn.textContent = 'Reintentar';
@@ -1080,21 +1092,25 @@ const TerritorialApp = {
     };
 
     try {
-      if (BACKEND_URL === 'PLACEHOLDER_APPS_SCRIPT_URL') {
-        if (!this._isDebug) {
-          this.showToast('Backend no configurado aún', 'error');
-          if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
-          return;
-        }
-        // Mock: simular delay de red
-        await new Promise(r => setTimeout(r, 1500));
+      if (!this._useMock) {
+        // Guardar en historial los territorios completo o parcial
+        const entries = srcTerritories
+          .filter(n => ['completo', 'parcial'].includes(this.territoryStatus[n]))
+          .map(n => ({
+            territorio:       n,
+            lugar:            this.sessionInfo.lugar || '',
+            estado:           this.territoryStatus[n],
+            notas:            this.territoryNotes[n] || '',
+            capitan:          this.sessionInfo.capitan || '',
+            capitanToken:     this.token,
+            fechaPredicacion: this._sessionFecha,
+            fechaCompletado:  this._sessionFecha,
+            fechaArchivado:   FB.todayMX()
+          }));
+        if (entries.length) await FB.addHistorial(entries);
       } else {
-        const res = await fetch(BACKEND_URL, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ action: 'submitInforme', ...payload })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        // Mock: simular delay
+        await new Promise(r => setTimeout(r, 800));
       }
 
       this.submitted  = true;

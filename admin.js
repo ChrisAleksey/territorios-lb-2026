@@ -326,12 +326,43 @@ _(Toca el link para ver tus territorios asignados)_`;
         this.generating = false;
         this.showGenerated = true;
 
+        // Guardar sesiones en Firebase
+        this._guardarSesionesFirebase(this.sessionDate, horaStr);
+
         // Scroll to results
         this.$nextTick(() => {
           const el = document.querySelector('.wa-section');
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }, 320);
+    },
+
+    /* ════════════════════════════════════════════
+       FIREBASE
+    ════════════════════════════════════════════ */
+    async _guardarSesionesFirebase(fecha, horaStr) {
+      try {
+        const promises = this.asignaciones
+          .filter(asg => asg.capitanId && asg.grupos.length && asg.lugar.trim())
+          .map(asg => {
+            const cap = this.capitanes.find(c => c.id === asg.capitanId);
+            if (!cap) return null;
+            return FB.saveSesion(cap.token, fecha, {
+              tipo:        this.sessionTipo,
+              hora:        horaStr,
+              lugar:       asg.lugar.trim(),
+              grupos:      asg.grupos.join(', '),
+              territorios: (this.territoriosPorCapitan[asg.capitanId] || []),
+              capitan:     cap.nombre,
+              estados:     {}
+            });
+          })
+          .filter(Boolean);
+        await Promise.all(promises);
+        console.log('[Admin] Sesiones guardadas en Firebase:', promises.length);
+      } catch (err) {
+        console.error('[Admin] Error guardando sesiones en Firebase:', err.message);
+      }
     },
 
     /* ════════════════════════════════════════════
