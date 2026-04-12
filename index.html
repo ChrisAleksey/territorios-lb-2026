@@ -244,81 +244,12 @@
       text-align: center;
     }
 
-    .top-card-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 10px 0;
-    }
-
     .top-card-footer {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 8px;
-    }
-
-    .progress-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    /* Progress ring */
-    .progress-ring-wrap {
-      position: relative;
-      width: 40px;
-      height: 40px;
-      flex-shrink: 0;
-    }
-
-    .progress-ring-svg {
-      width: 40px;
-      height: 40px;
-      transform: rotate(-90deg);
-    }
-
-    .progress-ring-bg {
-      fill: none;
-      stroke: rgba(255,255,255,0.08);
-      stroke-width: 3;
-    }
-
-    .progress-ring-fill {
-      fill: none;
-      stroke: var(--success);
-      stroke-width: 3;
-      stroke-linecap: round;
-      stroke-dasharray: 100;
-      stroke-dashoffset: 100;
-      transition: stroke-dashoffset 1.2s var(--spring) 0.3s;
-    }
-
-    .progress-ring-label {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .progress-text {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
-
-    .progress-count {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .progress-label {
-      font-size: 11px;
-      color: var(--text2);
+      margin-top: 10px;
     }
 
     .meeting-btn {
@@ -1537,30 +1468,11 @@
         <span x-data x-text="$store.app.sessionInfo.hora || '…'">…</span>
       </div>
     </div>
-    <div class="top-card-divider"></div>
     <div class="top-card-footer">
-      <div class="progress-info">
-        <!-- SVG progress ring -->
-        <div class="progress-ring-wrap">
-          <svg class="progress-ring-svg" viewBox="0 0 40 40">
-            <circle class="progress-ring-bg" cx="20" cy="20" r="15.9"/>
-            <circle class="progress-ring-fill" id="progress-ring-fill" cx="20" cy="20" r="15.9"
-              stroke-dasharray="100"
-              stroke-dashoffset="100"/>
-          </svg>
-          <div class="progress-ring-label" id="progress-ring-pct">0%</div>
-        </div>
-        <div class="progress-text">
-          <span class="progress-count" id="progress-count">0 / 0</span>
-          <span class="progress-label">completados</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="meeting-btn add-territory-btn" id="add-extra-btn"
-                onclick="TerritorialApp.startAddExtraMode()">
-          ＋ Territorio extra
-        </button>
-      </div>
+      <button class="meeting-btn add-territory-btn" id="add-extra-btn"
+              onclick="TerritorialApp.startAddExtraMode()">
+        ＋ Territorio extra
+      </button>
     </div>
   </div>
 
