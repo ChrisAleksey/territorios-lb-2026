@@ -217,20 +217,14 @@ const TerritorialApp = {
   },
 
   _syncAlpineStore() {
-    // Alpine store may not be ready on first call; guard with timeout
+    // Alpine (defer) ejecuta antes de DOMContentLoaded, así que ya está listo
     const sync = () => {
-      if (window.Alpine && Alpine.store) {
+      if (window.Alpine && Alpine.store && Alpine.store('app')) {
         Alpine.store('app').sessionInfo = { ...this.sessionInfo };
       }
     };
-    if (document.readyState === 'complete') {
-      // Try immediately, then retry once Alpine initialises
-      sync();
-      requestAnimationFrame(sync);
-    } else {
-      document.addEventListener('alpine:initialized', sync, { once: true });
-      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(sync), { once: true });
-    }
+    sync();
+    requestAnimationFrame(sync);
   },
 
   /* ── Map init ────────────────────────────────────────────────────────────── */
