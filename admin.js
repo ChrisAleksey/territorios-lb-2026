@@ -340,6 +340,20 @@ _(Toca el link para ver tus territorios asignados)_`;
     /* ════════════════════════════════════════════
        FIREBASE
     ════════════════════════════════════════════ */
+    async seedCapitanes() {
+      if (!confirm(`¿Escribir ${CAPITANES.length} capitanes a Firebase? Esto sobreescribe los existentes.`)) return;
+      try {
+        await FB.seedCapitanes(CAPITANES.map(c => ({
+          nombre: c.nombre,
+          token:  c.token,
+          tel:    c.tel || '',
+          activo: true
+        })));
+        alert(`✅ ${CAPITANES.length} capitanes guardados en Firebase.`);
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      }
+    },
     async _guardarSesionesFirebase(fecha, horaStr) {
       try {
         const promises = this.asignaciones
