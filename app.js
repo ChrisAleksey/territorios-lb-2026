@@ -160,8 +160,8 @@ const TerritorialApp = {
       document.getElementById('top-card')?.setAttribute('style', 'display:none');
       document.getElementById('admin-login-btn')?.setAttribute('style', 'display:none');
       this._initAdminSelectMode();
-    } else {
-      // Modo vista general: ocultar elementos de sesión
+    } else if (!this.token) {
+      // Modo vista general sin token: ocultar top-card (solo visible en modo capitán)
       const topCard  = document.getElementById('top-card');
       if (topCard) topCard.style.display = 'none';
     }
