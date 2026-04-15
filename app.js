@@ -985,21 +985,24 @@ const TerritorialApp = {
       }
       // Fuera de la zona → permanece dimmed (no se toca)
     }
-    // Zoom al bounding box de todos los territorios de la zona (asignados + disponibles)
-    const zoomNames = zoneList.length ? zoneList : this.assignedTerritories;
-    const combined = zoomNames.reduce((acc, n) => {
+    // Zoom: partir del bounding box de los territorios asignados y expandirlo ~800m
+    // (no usar zoneList porque territorios grandes como t1 distorsionan el centro)
+    const assignedBounds = this.assignedTerritories.reduce((acc, n) => {
       const b = this.territoryBounds[n];
       if (!b || b.isEmpty()) return acc;
       return acc ? acc.extend(b) : b;
     }, null);
-    if (combined) {
-      // Forzar zoom mínimo 15 para que los polígonos sean visibles aunque haya territorios grandes
-      this.map.setMinZoom(15);
-      this.map.fitBounds(combined, {
+    if (assignedBounds) {
+      const PAD = 0.008; // ~800m en grados
+      const expanded = new maplibregl.LngLatBounds(
+        [assignedBounds.getSouthWest().lng - PAD, assignedBounds.getSouthWest().lat - PAD],
+        [assignedBounds.getNorthEast().lng + PAD, assignedBounds.getNorthEast().lat + PAD]
+      );
+      this.map.setMinZoom(0);
+      this.map.fitBounds(expanded, {
         padding: { top: 80, bottom: 200, left: 40, right: 40 },
         duration: 800, linear: false, essential: true
       });
-      // Restaurar minZoom a 0 al terminar la animación
       this.map.once('moveend', () => this.map.setMinZoom(0));
     }
     document.getElementById('add-extra-banner')?.classList.add('show');
