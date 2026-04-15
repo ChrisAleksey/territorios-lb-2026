@@ -444,8 +444,8 @@
                     </div>
                   </td>
                   <td data-label="Lugar" x-text="e.lugar"></td>
-                  <td data-label="Predicación" x-text="formatDate(e.fechaPredicacion)"></td>
-                  <td data-label="Archivado" x-text="formatDate(e.fechaArchivado)"></td>
+                  <td data-label="Predicación" x-text="formatDateShort(e.fechaPredicacion)" :title="formatDate(e.fechaPredicacion)" style="cursor:default"></td>
+                  <td data-label="Archivado" x-text="formatDateShort(e.fechaArchivado)" :title="formatDate(e.fechaArchivado)" style="cursor:default"></td>
                   <td data-label="Notas" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                     <span x-text="e.notas||'—'"></span>
                     <button class="btn-action" style="flex-shrink:0;background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);" @click="deleteHistorialEntry(e)">Eliminar</button>

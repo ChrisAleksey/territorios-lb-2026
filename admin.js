@@ -822,6 +822,12 @@ _(Toca el link para ver tus territorios asignados)_`;
       return `${dias[date.getDay()]} ${d} de ${meses[m - 1]} ${y}`;
     },
 
+    formatDateShort(dateStr) {
+      if (!dateStr) return '';
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+    },
+
     formatDateDisplay() {
       return this.formatDate(this.sessionDate);
     },
