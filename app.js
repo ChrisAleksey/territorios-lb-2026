@@ -993,13 +993,13 @@ const TerritorialApp = {
       return acc ? acc.extend(b) : b;
     }, null);
     if (combined) {
-      // setMinZoom puede bloquear el zoom-out necesario; lo reseteamos temporalmente
-      this.map.setMinZoom(0);
+      // Forzar zoom mínimo 15 para que los polígonos sean visibles aunque haya territorios grandes
+      this.map.setMinZoom(15);
       this.map.fitBounds(combined, {
         padding: { top: 80, bottom: 200, left: 40, right: 40 },
         duration: 800, linear: false, essential: true
       });
-      // Restaurar minZoom al terminar la animación
+      // Restaurar minZoom a 0 al terminar la animación
       this.map.once('moveend', () => this.map.setMinZoom(0));
     }
     document.getElementById('add-extra-banner')?.classList.add('show');
