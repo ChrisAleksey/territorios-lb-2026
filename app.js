@@ -508,6 +508,23 @@ const TerritorialApp = {
       }
     });
 
+    /* ---- 0b. Recent glow (azul — trabajado recientemente) ---- */
+    this.map.addLayer({
+      id:     'territory-recent-glow',
+      type:   'line',
+      source: 'territories',
+      paint:  {
+        'line-color': '#3b82f6',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 20, 13, 14, 15, 9, 18, 5],
+        'line-opacity': [
+          'case',
+          ['boolean', ['feature-state', 'recentlyWorked'], false], 0.65,
+          0
+        ],
+        'line-blur': 6
+      }
+    });
+
     /* ---- 1. Fill layer ---- */
     this.map.addLayer({
       id:     'territory-fill',
@@ -1796,10 +1813,18 @@ const TerritorialApp = {
         if (!latest[t] || fecha > latest[t]) latest[t] = fecha;
       }
       this.territoryLastWorked = latest;
+      this._applyRecentWorkedStates();
 
     } catch (err) {
       console.warn('[TerritorialApp] loadHistorialResumen:', err.message);
     }
+  },
+
+  _applyRecentWorkedStates() {
+    if (!this.map?.getSource('territories')) return;
+    Object.keys(this.territoryLastWorked).forEach(t => {
+      this.map.setFeatureState({ source: 'territories', id: t }, { recentlyWorked: true });
+    });
   },
 
   _diasDesde(isoDate) {
@@ -1842,7 +1867,10 @@ const TerritorialApp = {
       await FB.addCicloReset(lugar, fecha);
       this._cicloResets[lugar] = fecha;
       const territorios = LOCATION_TERRITORIES[lugar] || [];
-      territorios.forEach(t => { delete this.territoryLastWorked[t]; });
+      territorios.forEach(t => {
+        delete this.territoryLastWorked[t];
+        this.map?.setFeatureState({ source: 'territories', id: t }, { recentlyWorked: false });
+      });
       this.showToast(`¡Ciclo completo: ${lugar}! Territorios reiniciados 🔄`, 'success');
     } catch (err) {
       console.error('[AutoReset] Error:', err);
