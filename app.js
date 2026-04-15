@@ -1357,10 +1357,18 @@ const TerritorialApp = {
         }
       }, 40);
       if (this.territoryBounds[match]) {
-        this.map.fitBounds(this.territoryBounds[match], {
-          padding: { top: 160, bottom: 250, left: 60, right: 60 },
-          duration: 800, linear: false, essential: true, maxZoom: 17
-        });
+        const b = this.territoryBounds[match];
+        const w = b.getNorthEast().lng - b.getSouthWest().lng;
+        const h = b.getNorthEast().lat - b.getSouthWest().lat;
+        if (w > 0.005 || h > 0.005) {
+          // Bounds demasiado grandes (territorio mixto disperso) → centro con zoom fijo
+          this.map.flyTo({ center: b.getCenter(), zoom: 17, duration: 800, essential: true });
+        } else {
+          this.map.fitBounds(b, {
+            padding: { top: 160, bottom: 250, left: 60, right: 60 },
+            duration: 800, linear: false, essential: true, maxZoom: 17
+          });
+        }
       }
       return;
     }
