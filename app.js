@@ -993,7 +993,7 @@ const TerritorialApp = {
       return acc ? acc.extend(b) : b;
     }, null);
     if (assignedBounds) {
-      const PAD = 0.008; // ~800m en grados
+      const PAD = 0.003; // ~300m en grados
       const expanded = new maplibregl.LngLatBounds(
         [assignedBounds.getSouthWest().lng - PAD, assignedBounds.getSouthWest().lat - PAD],
         [assignedBounds.getNorthEast().lng + PAD, assignedBounds.getNorthEast().lat + PAD]
