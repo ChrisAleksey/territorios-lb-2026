@@ -238,7 +238,7 @@ function adminApp() {
 
     async deleteHistorialEntry(entry) {
       if (!entry._id) return;
-      if (!confirm(`¿Eliminar ${entry.territorio?.toUpperCase()} — ${entry.fechaPredicacion}?`)) return;
+      if (!confirm(`¿Eliminar ${entry.territorio?.toUpperCase()} — ${this.formatDate(entry.fechaPredicacion)}?`)) return;
       try {
         await FB.deleteHistorial(entry._id);
         this.historialEntries = this.historialEntries.filter(e => e._id !== entry._id);
