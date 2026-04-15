@@ -120,14 +120,19 @@ function adminApp() {
     /* ── Historial ── */
     historialEntries: [],
     historialLoading: false,
-    historialFiltroCapitan: '',
-    historialFiltroTerritorio: '',
+    historialSearch: '',
 
     get historialFiltered() {
+      const q = this.historialSearch.trim().toLowerCase();
+      if (!q) return this.historialEntries;
       return this.historialEntries.filter(e => {
-        if (this.historialFiltroCapitan && !e.capitan.toLowerCase().includes(this.historialFiltroCapitan.toLowerCase())) return false;
-        if (this.historialFiltroTerritorio && !e.territorio?.includes(this.historialFiltroTerritorio.toLowerCase())) return false;
-        return true;
+        return (e.territorio        || '').toLowerCase().includes(q)
+            || (e.capitan           || '').toLowerCase().includes(q)
+            || (e.lugar             || '').toLowerCase().includes(q)
+            || (e.estado            || '').toLowerCase().includes(q)
+            || (e.notas             || '').toLowerCase().includes(q)
+            || this.formatDateShort(e.fechaPredicacion || '').includes(q)
+            || this.formatDateShort(e.fechaArchivado   || '').includes(q);
       });
     },
 
