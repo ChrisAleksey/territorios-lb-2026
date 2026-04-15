@@ -787,6 +787,16 @@
     body:has(.bottom-sheet.open) .informe-bar,
     body:has(.finish-sheet.open) .informe-bar { display: none !important; }
 
+    /* Ocultar type-toggle y legend cuando hay sheet abierto */
+    body:has(.bottom-sheet.open) .type-toggle,
+    body:has(.bottom-sheet.open) .legend-card,
+    body:has(.finish-sheet.open) .type-toggle,
+    body:has(.finish-sheet.open) .legend-card {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
     /* Push flotantes cuando informe bar visible */
     body:has(.informe-bar.visible) .type-toggle {
       bottom: calc(84px + env(safe-area-inset-bottom));
@@ -1575,6 +1585,7 @@
           <div class="status-dot pendiente" id="sheet-status-dot"></div>
           <span class="status-text-label" id="sheet-status-label">Pendiente</span>
         </div>
+        <div id="sheet-last-worked" style="display:none;font-size:11px;color:var(--text2);margin-top:3px;"></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:8px;">
         <span class="sheet-badge" id="sheet-badge"></span>
@@ -1731,6 +1742,16 @@
         <option style="background:var(--card-solid);">Hno. René Villegas Cano</option>
         <option style="background:var(--card-solid);">Hno. Sergio Armando Hernandez</option>
       </select>
+    </div>
+
+    <!-- Campos extra solo en vista general (admin) -->
+    <div id="informe-extra-fields" style="display:none">
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;">
+          Fecha de predicación
+        </label>
+        <input type="date" id="informe-fecha" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;font-family:inherit;font-size:14px;color:var(--text);outline:none;color-scheme:dark;">
+      </div>
     </div>
 
     <div class="finish-sheet-actions">

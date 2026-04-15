@@ -413,7 +413,7 @@
       </div>
 
       <!-- Tabla -->
-      <div x-show="!historialLoading" class="card" style="padding:0;overflow-x:auto;">
+      <div x-show="!historialLoading" class="card" style="padding:0;overflow-x:auto;margin-top:12px;">
           <table class="data-table historial-table">
             <thead>
               <tr>
@@ -423,32 +423,54 @@
                 <th>Lugar</th>
                 <th>Predicación</th>
                 <th>Archivado</th>
-                <th>Notas</th>
+                <th style="width:1%;white-space:nowrap">Notas</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="(e, i) in historialFiltered" :key="i">
                 <tr>
                   <td data-label="Territorio">
-                    <span class="token-pill" x-text="e.territorio?.toUpperCase()"></span>
+                    <template x-if="e.estado !== 'ciclo_reset'">
+                      <a :href="'/?goto=' + (e.territorio||'').toLowerCase()" target="_blank" style="text-decoration:none;">
+                        <span class="token-pill" x-text="e.territorio?.toUpperCase()" style="cursor:pointer"></span>
+                      </a>
+                    </template>
+                    <template x-if="e.estado === 'ciclo_reset'">
+                      <span style="font-size:11px;color:var(--text2);font-style:italic" x-text="e.lugar || e.territorio"></span>
+                    </template>
                   </td>
                   <td data-label="Estado">
-                    <span class="token-pill" :style="e.estado==='completo' ? 'background:rgba(76,175,80,.15);color:#4caf50' : 'background:rgba(255,152,0,.15);color:#ff9800'"
-                          x-text="e.estado==='completo' ? '✅ Completo' : '🟡 Parcial'"></span>
+                    <span class="token-pill"
+                      :style="e.estado==='completo'    ? 'background:rgba(76,175,80,.15);color:#4caf50'
+                            : e.estado==='ciclo_reset'  ? 'background:rgba(100,181,246,.1);color:#64b5f6'
+                            :                             'background:rgba(255,152,0,.15);color:#ff9800'"
+                      x-text="e.estado==='completo'   ? '✅ Completo'
+                            : e.estado==='ciclo_reset' ? '🔄 Reset ciclo'
+                            :                           '🟡 Parcial'"></span>
                   </td>
                   <td data-label="Capitán">
                     <div class="cap-name-cell">
                       <div class="cap-avatar" x-text="e.capitan?.replace(/^(Hno\.|Hna\.)\s*/i,'').charAt(0)"></div>
-                      <span x-text="e.capitan?.replace(/^(Hno\.|Hna\.)\s*/i,'')"></span>
+                      <span x-text="e.capitan"></span>
                     </div>
                   </td>
                   <td data-label="Lugar" x-text="e.lugar"></td>
-                  <td data-label="Predicación" x-text="formatDateShort(e.fechaPredicacion)" :title="formatDate(e.fechaPredicacion)" style="cursor:default"></td>
-                  <td data-label="Archivado" x-text="formatDateShort(e.fechaArchivado)" :title="formatDate(e.fechaArchivado)" style="cursor:default"></td>
+                  <td data-label="Predicación" style="cursor:default">
+                    <div class="date-toggle">
+                      <span class="date-short" x-text="formatDateShort(e.fechaPredicacion)"></span>
+                      <span class="date-full" x-text="formatDate(e.fechaPredicacion)"></span>
+                    </div>
+                  </td>
+                  <td data-label="Archivado" style="cursor:default">
+                    <div class="date-toggle">
+                      <span class="date-short" x-text="formatDateShort(e.fechaArchivado)"></span>
+                      <span class="date-full" x-text="formatDate(e.fechaArchivado)"></span>
+                    </div>
+                  </td>
                   <td data-label="Notas">
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;">
                       <span x-text="e.notas||'—'"></span>
-                      <button class="btn-action" style="flex-shrink:0;background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);" @click="deleteHistorialEntry(e)">Eliminar</button>
+                      <button class="btn-action" style="flex-shrink:0;margin-left:auto;background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);" @click="deleteHistorialEntry(e)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
                     </div>
                   </td>
                 </tr>

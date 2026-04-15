@@ -791,6 +791,7 @@ input[type="time"] { color-scheme: dark; }
   color: #818cf8;
   padding: 3px 10px;
   border-radius: 999px;
+  text-align: center;
 }
 
 .link-preview {
@@ -1094,7 +1095,13 @@ input[type="time"] { color-scheme: dark; }
     flex-shrink: 0;
     padding-top: 2px;
   }
+  .historial-table td > *:last-child,
+  .historial-table td > span { text-align: right; }
   .historial-table .token-pill { max-width: none; }
+  /* En móvil no hay hover — mostrar fecha corta, sin grid trick */
+  .historial-table .date-toggle { display: inline; }
+  .historial-table .date-toggle .date-full { display: none; }
+  .historial-table .date-toggle .date-short { opacity: 1; }
 }
 
 @media (max-width: 480px) {
@@ -1130,3 +1137,30 @@ input[type="time"] { color-scheme: dark; }
 }
 .admin-toast--success { border-color: var(--success); color: var(--success); }
 .admin-toast--error   { border-color: #ef4444; color: #ef4444; }
+
+/* Date toggle: short → full on hover */
+.date-toggle {
+  position: relative;
+  display: inline-block;
+}
+.date-toggle .date-short {
+  display: inline-block;
+  white-space: nowrap;
+  transition: opacity 0.25s;
+}
+.date-toggle .date-full {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  background: var(--bg2, #1c1a24);
+  padding: 1px 4px;
+  border-radius: 3px;
+  z-index: 5;
+}
+.date-toggle:hover .date-short { opacity: 0; }
+.date-toggle:hover .date-full  { opacity: 1; }

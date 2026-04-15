@@ -233,7 +233,11 @@ function adminApp() {
       this.historialLoading = true;
       try {
         const entries = await FB.listHistorial();
-        entries.sort((a, b) => (b.fechaPredicacion || '').localeCompare(a.fechaPredicacion || ''));
+        entries.sort((a, b) => {
+          const da = b.fechaPredicacion || b.fechaArchivado || '';
+          const db = a.fechaPredicacion || a.fechaArchivado || '';
+          return da.localeCompare(db);
+        });
         this.historialEntries = entries;
       } catch (err) {
         console.error('[Admin] Error cargando historial:', err.message);

@@ -171,5 +171,19 @@ const FB = {
   async deleteHistorial(id) {
     const res = await fetch(`${this.BASE}/historial/${id}?key=${this.API_KEY}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Firestore DELETE historial/${id} → ${res.status}`);
+  },
+
+  async addCicloReset(lugar, fecha) {
+    return this._post('historial', this._objToFields({
+      territorio:       lugar,
+      lugar:            lugar,
+      estado:           'ciclo_reset',
+      notas:            'Ciclo completo — auto-reset',
+      capitan:          'Sistema',
+      capitanToken:     '',
+      fechaPredicacion: fecha,
+      fechaCompletado:  fecha,
+      fechaArchivado:   fecha
+    }));
   }
 };

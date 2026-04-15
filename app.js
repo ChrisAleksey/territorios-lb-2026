@@ -120,6 +120,12 @@ const _norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCas
 const _LOCATION_KEYS = {};
 Object.keys(LOCATION_TERRITORIES).forEach(k => { _LOCATION_KEYS[_norm(k)] = k; });
 
+// Mapa inverso: territorio → lugar de encuentro
+const TERRITORY_LOCATION = {};
+Object.entries(LOCATION_TERRITORIES).forEach(([lugar, territories]) => {
+  territories.forEach(t => { TERRITORY_LOCATION[t] = lugar; });
+});
+
 // Lookup tolerante a diferencias de acentos/mayúsculas
 function _getZoneList(lugar) {
   if (!lugar) return [];
@@ -153,9 +159,12 @@ const TerritorialApp = {
   // Bounding box del área de territorios (Coacalco)
   _AREA_BBOX: { minLon: -99.115, maxLon: -99.00, minLat: 19.57, maxLat: 19.71 },
   territoryBounds:     {},   // { 't1': LngLatBounds }
-  territoryCentroids:  {},   // { 't1': [lng, lat] } — centroide real de todos los polígonos
-  territoryTypes:      {},   // { 't1': 'casaencasa'|'carta'|'dificil' }
+  territoryCentroids:      {},   // { 't1': [lng, lat] } — centroide real de todos los polígonos
+  territoryTypes:          {},   // { 't1': Set<'casaencasa'|'carta'> }
+  territoryPrimaryTypes:   {},   // { 't1': 'casaencasa'|'carta' } — tipo del polígono más grande
   allTerritoryNames:   [],   // unique names from GeoJSON
+  territoryLastWorked: {},   // { 't1': '2026-03-15' } — fecha ISO último completo en ciclo actual
+  _cicloResets:        {},   // { 'Fam. Hernández Mora': '2026-01-15' } — inicio del ciclo actual
   currentType:         'casaencasa', // 'casaencasa' | 'carta'
   selectedTerritory:        null,
   pendingStatus:            null, // status selected but not yet saved
@@ -182,6 +191,9 @@ const TerritorialApp = {
     }
     this.initMap();
     await this.loadGeoJSON();
+
+    // Fire-and-forget: cargar resumen historial (último trabajo + ciclos auto-reset)
+    this.loadHistorialResumen();
 
     // After map + data ready, hide loader
     this._hideLoader();
@@ -383,6 +395,10 @@ const TerritorialApp = {
           this._fitToAssigned();
           this._setMapBounds();
 
+          // Soporte para ?goto=t63 (desde admin)
+          const gotoParam = new URLSearchParams(window.location.search).get('goto');
+          if (gotoParam) this.filterBySearch(gotoParam.toLowerCase());
+
           resolve();
         } catch (err) {
           console.error('[TerritorialApp] Failed to load GeoJSON', err);
@@ -440,24 +456,25 @@ const TerritorialApp = {
         if (!largestPoly[name] || area > largestPoly[name].area) {
           const sumLng = ring.reduce((s, c) => s + c[0], 0);
           const sumLat = ring.reduce((s, c) => s + c[1], 0);
-          largestPoly[name] = { area, centroid: [sumLng / ring.length, sumLat / ring.length] };
+          largestPoly[name] = { area, centroid: [sumLng / ring.length, sumLat / ring.length], type: TYPE_MAP[fillColor] || 'casaencasa' };
         }
       }
     }
 
-    this.territoryBounds    = boundsMap;
-    this.territoryTypes     = typeMap;
-    this.allTerritoryNames  = Array.from(nameSet);
-    this.territoryCentroids = Object.fromEntries(
+    this.territoryBounds        = boundsMap;
+    this.territoryTypes         = typeMap;
+    this.allTerritoryNames      = Array.from(nameSet);
+    this.territoryCentroids     = Object.fromEntries(
       Object.entries(largestPoly).map(([n, { centroid }]) => [n, centroid])
+    );
+    this.territoryPrimaryTypes  = Object.fromEntries(
+      Object.entries(largestPoly).map(([n, { type }]) => [n, type])
     );
   },
 
   /* Convierte el Set de tipos de un territorio a un string display */
   _getPrimaryType(name) {
-    const s = this.territoryTypes[name];
-    if (!s) return 'casaencasa';
-    return s.has('carta') ? 'carta' : 'casaencasa';
+    return this.currentType || 'casaencasa';
   },
 
   _extractCoords(geometry) {
@@ -611,14 +628,14 @@ const TerritorialApp = {
       layout: {
         'text-field':            ['upcase', ['get', 'name']],
         'text-font':             ['Arial Bold', 'Arial', 'sans-serif'],
-        'text-size':             ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 9, 15, 12, 17, 15],
+        'text-size':             ['interpolate', ['linear'], ['zoom'], 12, 0, 13, 11, 15, 14, 17, 17],
         'text-allow-overlap':    false,
         'text-ignore-placement': false,
       },
       paint: {
         'text-color':       '#ffffff',
-        'text-halo-color':  'rgba(0,0,0,0.85)',
-        'text-halo-width':  2,
+        'text-halo-color':  'rgba(0,0,0,0.9)',
+        'text-halo-width':  2.5,
         'text-opacity': [
           'case',
           ['boolean', ['feature-state', 'dim'], false], 0,
@@ -635,8 +652,9 @@ const TerritorialApp = {
       this.map.getCanvas().style.cursor = 'pointer';
       if (!tooltip || !e.features.length) return;
       const name = (e.features[0].properties.name || '').toUpperCase();
-      const type = this._getPrimaryType(e.features[0].properties.name);
-      const typeLabel = { casaencasa: '🟢', carta: '🔴', dificil: '🟠' }[type] || '';
+      const types = this.territoryTypes[e.features[0].properties.name];
+      const realType = types?.has('carta') && !types?.has('casaencasa') ? 'carta' : 'casaencasa';
+      const typeLabel = realType === 'carta' ? '🔴' : '🟢';
       tooltip.textContent = `${typeLabel} ${name}`;
       tooltip.style.left = (e.point.x + 14) + 'px';
       tooltip.style.top  = (e.point.y - 32) + 'px';
@@ -761,9 +779,8 @@ const TerritorialApp = {
       this._showExtraPanel(name);
       return;
     }
-    // Vista general sin sesión de informe: solo zoom + glow blanco temporal, sin sheet
+    // Vista general sin sesión de informe: zoom + sheet solo con header (sin panel de acciones)
     if (!this.token && !this.informeUnlocked) {
-      // Deselect previous
       if (this.selectedTerritory && this.selectedTerritory !== name) {
         this.map.setFeatureState({ source: 'territories', id: this.selectedTerritory }, { selected: false });
       }
@@ -777,11 +794,15 @@ const TerritorialApp = {
           duration: 800, linear: false, essential: true
         });
       }
-      // Quitar glow después de la animación
-      setTimeout(() => {
-        this.map.setFeatureState({ source: 'territories', id: name }, { selected: false });
-        this.selectedTerritory = null;
-      }, 1400);
+
+      // Abrir sheet solo con header
+      document.getElementById('sheet-name').textContent = name.toUpperCase();
+      const badge = document.getElementById('sheet-badge');
+      badge.textContent = TYPE_LABELS[this.currentType] || this.currentType;
+      badge.className   = `sheet-badge ${this.currentType}`;
+      const normalPanel = document.getElementById('normal-panel');
+      if (normalPanel) normalPanel.style.display = 'none';
+      document.getElementById('bottom-sheet')?.classList.add('open');
       return;
     }
 
@@ -839,6 +860,19 @@ const TerritorialApp = {
 
     // Notes
     document.getElementById('sheet-notes').value = notes;
+
+    // Último trabajo
+    const lastWorkedEl = document.getElementById('sheet-last-worked');
+    if (lastWorkedEl) {
+      const date  = this.territoryLastWorked[name];
+      const label = date ? this._diasDesde(date) : null;
+      if (label) {
+        lastWorkedEl.textContent = `Último trabajo: ${label}`;
+        lastWorkedEl.style.display = '';
+      } else {
+        lastWorkedEl.style.display = 'none';
+      }
+    }
 
     // Re-enable save button
     const saveBtn = document.getElementById('save-btn');
@@ -909,8 +943,8 @@ const TerritorialApp = {
     this.updateProgress();
     this._updateInformeBar();
 
-    // Guardar en Firebase
-    if (!this._useMock) {
+    // Guardar en Firebase solo si hay token (vista capitán); en vista general se guarda en memoria hasta submitInforme
+    if (!this._useMock && this.token) {
       try {
         await FB.updateEstado(this.token, this._sessionFecha, name, status, notes);
       } catch (err) {
@@ -926,6 +960,10 @@ const TerritorialApp = {
     this.showToast(statusLabels[status] || 'Guardado', 'success');
 
     this.closeSheet();
+
+    // Auto-reset check: si completo, verificar si todos los territorios del lugar se completaron
+    if (status === 'completo') this._checkAutoReset(name);
+
     this.selectedTerritory = null;
     this.pendingStatus     = null;
   },
@@ -1049,6 +1087,8 @@ const TerritorialApp = {
 
   /* ── Open / close bottom sheet ───────────────────────────────────────────── */
   openSheet() {
+    const np = document.getElementById('normal-panel');
+    if (np) np.style.display = '';
     document.getElementById('bottom-sheet')?.classList.add('open');
     document.getElementById('sheet-backdrop')?.classList.add('active');
   },
@@ -1181,8 +1221,8 @@ const TerritorialApp = {
     const sel = document.getElementById('finish-capitan-select');
     const pickerVal = sel?.value?.trim() || '';
     const confirmedCapitan = pickerVal || this.sessionInfo.capitan || '';
-    if (this.token && !confirmedCapitan) {
-      this.showToast('No hay capitán asignado para esta sesión', 'error');
+    if (!confirmedCapitan) {
+      this.showToast('Selecciona un capitán', 'error');
       return;
     }
     const confirmedToken = CAPITAN_TOKENS[confirmedCapitan] || this.token;
@@ -1194,6 +1234,11 @@ const TerritorialApp = {
     const srcTerritories = this.token
       ? this.assignedTerritories
       : this.allTerritoryNames.filter(n => this.territoryStatus[n]);
+
+    // En vista general leer fecha del campo del sheet; lugar es automático por territorio
+    const informeFecha = !this.token
+      ? (document.getElementById('informe-fecha')?.value || FB.todayMX())
+      : (this._sessionFecha || FB.todayMX());
 
     const payload = {
       token:       this.token,
@@ -1214,13 +1259,13 @@ const TerritorialApp = {
           .filter(n => ['completo', 'parcial'].includes(this.territoryStatus[n]))
           .map(n => ({
             territorio:       n,
-            lugar:            this.sessionInfo.lugar || '',
+            lugar:            this.token ? (this.sessionInfo.lugar || '') : (TERRITORY_LOCATION[n] || ''),
             estado:           this.territoryStatus[n],
             notas:            this.territoryNotes[n] || '',
             capitan:          confirmedCapitan || this.sessionInfo.capitan || '',
             capitanToken:     confirmedToken,
-            fechaPredicacion: this._sessionFecha,
-            fechaCompletado:  this._sessionFecha,
+            fechaPredicacion: informeFecha,
+            fechaCompletado:  informeFecha,
             fechaArchivado:   FB.todayMX()
           }));
         if (entries.length) await FB.addHistorial(entries);
@@ -1707,8 +1752,101 @@ const TerritorialApp = {
     const btn = document.getElementById('finish-submit-btn');
     if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
 
+    // Vista general: mostrar picker de capitán + campos extra (lugar y fecha)
+    const dispEl = document.getElementById('finish-capitan-display');
+    const selEl  = document.getElementById('finish-capitan-select');
+    if (dispEl) dispEl.style.display = 'none';
+    if (selEl)  { selEl.style.display = 'block'; selEl.value = ''; }
+
+    const extraFields = document.getElementById('informe-extra-fields');
+    if (extraFields) extraFields.style.display = '';
+    const fechaInput = document.getElementById('informe-fecha');
+    if (fechaInput) fechaInput.value = this._sessionFecha || FB.todayMX();
+
     document.getElementById('finish-sheet')?.classList.add('open');
     document.getElementById('finish-backdrop')?.classList.add('active');
+  },
+
+  /* ── Historial resumen (último trabajo + ciclos) ─────────────────────────── */
+  async loadHistorialResumen() {
+    try {
+      const entries = await FB.listHistorial();
+
+      // Primera pasada: capturar resets de ciclo
+      const resets = {};
+      for (const e of entries) {
+        if (e.estado !== 'ciclo_reset') continue;
+        const lugar = e.lugar || e.territorio;
+        const fecha = e.fechaPredicacion || '';
+        if (!fecha) continue;
+        if (!resets[lugar] || fecha > resets[lugar]) resets[lugar] = fecha;
+      }
+      this._cicloResets = resets;
+
+      // Segunda pasada: último completo por territorio (solo dentro del ciclo actual)
+      const latest = {};
+      for (const e of entries) {
+        if (e.estado !== 'completo') continue;
+        const t     = e.territorio;
+        const fecha = e.fechaPredicacion || e.fechaArchivado || '';
+        if (!fecha) continue;
+        const lugar       = TERRITORY_LOCATION[t] || '';
+        const ultimoReset = resets[lugar] || '1900-01-01';
+        if (fecha <= ultimoReset) continue; // anterior al ciclo actual
+        if (!latest[t] || fecha > latest[t]) latest[t] = fecha;
+      }
+      this.territoryLastWorked = latest;
+
+    } catch (err) {
+      console.warn('[TerritorialApp] loadHistorialResumen:', err.message);
+    }
+  },
+
+  _diasDesde(isoDate) {
+    if (!isoDate) return null;
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const then = new Date(y, m - 1, d, 12);
+    const diff  = Math.floor((Date.now() - then) / 86400000);
+    if (diff === 0) return 'Hoy';
+    if (diff === 1) return 'Ayer';
+    if (diff < 7)   return `Hace ${diff} días`;
+    if (diff < 14)  return 'Hace 1 semana';
+    if (diff < 30)  return `Hace ${Math.floor(diff / 7)} semanas`;
+    if (diff < 60)  return 'Hace 1 mes';
+    return `Hace ${Math.floor(diff / 30)} meses`;
+  },
+
+  _getCompletadosEnCiclo(lugar) {
+    const territorios = LOCATION_TERRITORIES[lugar] || [];
+    const ultimoReset = this._cicloResets[lugar] || '1900-01-01';
+    const hoy = FB.todayMX();
+    return new Set(territorios.filter(t =>
+      (this.territoryLastWorked[t] && this.territoryLastWorked[t] > ultimoReset)
+      || (this.territoryStatus[t] === 'completo' && hoy > ultimoReset)
+    ));
+  },
+
+  async _checkAutoReset(territorio) {
+    const lugar = TERRITORY_LOCATION[territorio];
+    if (!lugar) return;
+    const todos       = LOCATION_TERRITORIES[lugar] || [];
+    if (!todos.length) return;
+    const completados = this._getCompletadosEnCiclo(lugar);
+    if (!todos.every(t => completados.has(t))) return;
+    await this._doAutoReset(lugar);
+  },
+
+  async _doAutoReset(lugar) {
+    const fecha = FB.todayMX();
+    try {
+      await FB.addCicloReset(lugar, fecha);
+      this._cicloResets[lugar] = fecha;
+      const territorios = LOCATION_TERRITORIES[lugar] || [];
+      territorios.forEach(t => { delete this.territoryLastWorked[t]; });
+      this.showToast(`¡Ciclo completo: ${lugar}! Territorios reiniciados 🔄`, 'success');
+    } catch (err) {
+      console.error('[AutoReset] Error:', err);
+    }
   }
 };
 
