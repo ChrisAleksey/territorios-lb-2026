@@ -1403,7 +1403,7 @@ const TerritorialApp = {
       ? ['==', ['get', 'fill'], casaencasaFill]
       : ['in', ['get', 'fill'], ['literal', cartaFills]];
 
-    ['territory-fill', 'territory-glow', 'territory-labels'].forEach(id => {
+    ['territory-fill', 'territory-glow', 'territory-recent-glow', 'territory-labels'].forEach(id => {
       if (this.map.getLayer(id)) this.map.setFilter(id, fillFilter);
     });
 
@@ -1608,7 +1608,7 @@ const TerritorialApp = {
 
       // Filtro MapLibre: solo mostrar territorios en showList
       const showFilter = ['in', ['get', 'name'], ['literal', showList]];
-      ['territory-fill', 'territory-glow', 'territory-labels', 'territory-line'].forEach(id => {
+      ['territory-fill', 'territory-glow', 'territory-recent-glow', 'territory-labels', 'territory-line'].forEach(id => {
         if (this.map.getLayer(id)) this.map.setFilter(id, showFilter);
       });
       // Capas de carta postal: ocultar en sesión casaencasa, filtrar en sesión carta
