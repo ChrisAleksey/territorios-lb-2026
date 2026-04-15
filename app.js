@@ -985,19 +985,22 @@ const TerritorialApp = {
       }
       // Fuera de la zona → permanece dimmed (no se toca)
     }
-    // Zoom al bounding box de los territorios disponibles (zona menos los ya asignados)
-    const available = (zoneList.length ? zoneList : this.allTerritoryNames)
-      .filter(n => !this.assignedTerritories.includes(n));
-    const combined = available.reduce((acc, n) => {
+    // Zoom al bounding box de todos los territorios de la zona (asignados + disponibles)
+    const zoomNames = zoneList.length ? zoneList : this.assignedTerritories;
+    const combined = zoomNames.reduce((acc, n) => {
       const b = this.territoryBounds[n];
       if (!b || b.isEmpty()) return acc;
       return acc ? acc.extend(b) : b;
     }, null);
     if (combined) {
+      // setMinZoom puede bloquear el zoom-out necesario; lo reseteamos temporalmente
+      this.map.setMinZoom(0);
       this.map.fitBounds(combined, {
         padding: { top: 80, bottom: 200, left: 40, right: 40 },
         duration: 800, linear: false, essential: true
       });
+      // Restaurar minZoom al terminar la animación
+      this.map.once('moveend', () => this.map.setMinZoom(0));
     }
     document.getElementById('add-extra-banner')?.classList.add('show');
     document.getElementById('top-card')?.classList.remove('visible');
