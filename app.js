@@ -985,7 +985,20 @@ const TerritorialApp = {
       }
       // Fuera de la zona → permanece dimmed (no se toca)
     }
-    // No hacer zoom — el mapa ya está posicionado en el área del capitán
+    // Zoom al bounding box de los territorios disponibles (zona menos los ya asignados)
+    const available = (zoneList.length ? zoneList : this.allTerritoryNames)
+      .filter(n => !this.assignedTerritories.includes(n));
+    const combined = available.reduce((acc, n) => {
+      const b = this.territoryBounds[n];
+      if (!b || b.isEmpty()) return acc;
+      return acc ? acc.extend(b) : b;
+    }, null);
+    if (combined) {
+      this.map.fitBounds(combined, {
+        padding: { top: 80, bottom: 200, left: 40, right: 40 },
+        duration: 800, linear: false, essential: true
+      });
+    }
     document.getElementById('add-extra-banner')?.classList.add('show');
     document.getElementById('top-card')?.classList.remove('visible');
   },
