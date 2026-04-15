@@ -397,7 +397,7 @@ const TerritorialApp = {
     const boundsMap    = {};
     const typeMap      = {};
     const nameSet      = new Set();
-    const centroidSum  = {}; // { name: { sumLng, sumLat, count } }
+    const largestPoly  = {}; // { name: { area, centroid } } — polígono más grande por territorio
 
     for (const feature of geojson.features) {
       const name = (feature.properties.name || '').toLowerCase();
@@ -421,15 +421,27 @@ const TerritorialApp = {
         feature.properties.territoryColor = hslToHex(hue, 92, 52);
       }
 
-      // Bounds + centroide
+      // Bounds
       const coords = this._extractCoords(feature.geometry);
       if (!boundsMap[name]) boundsMap[name] = new maplibregl.LngLatBounds();
-      if (!centroidSum[name]) centroidSum[name] = { sumLng: 0, sumLat: 0, count: 0 };
-      for (const [lng, lat] of coords) {
-        boundsMap[name].extend([lng, lat]);
-        centroidSum[name].sumLng += lng;
-        centroidSum[name].sumLat += lat;
-        centroidSum[name].count++;
+      for (const [lng, lat] of coords) boundsMap[name].extend([lng, lat]);
+
+      // Centroide del polígono más grande (shoelace area) — evita el vacío entre polígonos mixtos
+      const ring = feature.geometry.type === 'Polygon'
+        ? feature.geometry.coordinates[0]
+        : feature.geometry.coordinates[0]?.[0];
+      if (ring?.length) {
+        let area = 0;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          area += ring[j][0] * ring[i][1];
+          area -= ring[i][0] * ring[j][1];
+        }
+        area = Math.abs(area) / 2;
+        if (!largestPoly[name] || area > largestPoly[name].area) {
+          const sumLng = ring.reduce((s, c) => s + c[0], 0);
+          const sumLat = ring.reduce((s, c) => s + c[1], 0);
+          largestPoly[name] = { area, centroid: [sumLng / ring.length, sumLat / ring.length] };
+        }
       }
     }
 
@@ -437,9 +449,7 @@ const TerritorialApp = {
     this.territoryTypes     = typeMap;
     this.allTerritoryNames  = Array.from(nameSet);
     this.territoryCentroids = Object.fromEntries(
-      Object.entries(centroidSum).map(([n, { sumLng, sumLat, count }]) =>
-        [n, [sumLng / count, sumLat / count]]
-      )
+      Object.entries(largestPoly).map(([n, { centroid }]) => [n, centroid])
     );
   },
 
