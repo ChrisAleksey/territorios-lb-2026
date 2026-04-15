@@ -1343,8 +1343,9 @@ const TerritorialApp = {
 
     if (!q) { this._fitToAssigned(); return; }
 
-    // Buscar territorio por número (inmediato)
-    const match = this.allTerritoryNames.find(n => n.includes(q) || n === 't' + q);
+    // Buscar territorio por número — primero exacto, luego substring
+    const match = this.allTerritoryNames.find(n => n === 't' + q || n === q)
+               || this.allTerritoryNames.find(n => n.includes(q));
     if (match) {
       this.map.setFeatureState({ source: 'territories', id: match }, { searched: true });
       let t = 0;
