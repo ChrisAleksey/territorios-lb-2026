@@ -994,7 +994,7 @@ const TerritorialApp = {
       const w = b.getNorthEast().lng - b.getSouthWest().lng;
       const h = b.getNorthEast().lat - b.getSouthWest().lat;
       if (w > MAX_DEG || h > MAX_DEG) return acc; // ignorar outliers grandes
-      return acc ? acc.extend(b) : b.clone();
+      return acc ? acc.extend(b) : new maplibregl.LngLatBounds(b.getSouthWest(), b.getNorthEast());
     }, null);
     if (zoneBounds) {
       this.map.setMinZoom(0);
