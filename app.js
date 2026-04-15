@@ -985,21 +985,20 @@ const TerritorialApp = {
       }
       // Fuera de la zona → permanece dimmed (no se toca)
     }
-    // Zoom: partir del bounding box de los territorios asignados y expandirlo ~800m
-    // (no usar zoneList porque territorios grandes como t1 distorsionan el centro)
-    const assignedBounds = this.assignedTerritories.reduce((acc, n) => {
+    // Zoom: bounding box de los territorios de la zona, excluyendo outliers con bounds > 500m
+    const MAX_DEG = 0.005; // ~500m — umbral para filtrar territorios anormalmente grandes
+    const source = zoneList.length ? zoneList : this.assignedTerritories;
+    const zoneBounds = source.reduce((acc, n) => {
       const b = this.territoryBounds[n];
       if (!b || b.isEmpty()) return acc;
-      return acc ? acc.extend(b) : b;
+      const w = b.getNorthEast().lng - b.getSouthWest().lng;
+      const h = b.getNorthEast().lat - b.getSouthWest().lat;
+      if (w > MAX_DEG || h > MAX_DEG) return acc; // ignorar outliers grandes
+      return acc ? acc.extend(b) : b.clone();
     }, null);
-    if (assignedBounds) {
-      const PAD = 0.003; // ~300m en grados
-      const expanded = new maplibregl.LngLatBounds(
-        [assignedBounds.getSouthWest().lng - PAD, assignedBounds.getSouthWest().lat - PAD],
-        [assignedBounds.getNorthEast().lng + PAD, assignedBounds.getNorthEast().lat + PAD]
-      );
+    if (zoneBounds) {
       this.map.setMinZoom(0);
-      this.map.fitBounds(expanded, {
+      this.map.fitBounds(zoneBounds, {
         padding: { top: 80, bottom: 200, left: 40, right: 40 },
         duration: 800, linear: false, essential: true
       });
