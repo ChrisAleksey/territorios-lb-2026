@@ -153,6 +153,7 @@ const TerritorialApp = {
   // Bounding box del área de territorios (Coacalco)
   _AREA_BBOX: { minLon: -99.115, maxLon: -99.00, minLat: 19.57, maxLat: 19.71 },
   territoryBounds:     {},   // { 't1': LngLatBounds }
+  territoryCentroids:  {},   // { 't1': [lng, lat] } — centroide real de todos los polígonos
   territoryTypes:      {},   // { 't1': 'casaencasa'|'carta'|'dificil' }
   allTerritoryNames:   [],   // unique names from GeoJSON
   currentType:         'casaencasa', // 'casaencasa' | 'carta'
@@ -393,9 +394,10 @@ const TerritorialApp = {
   },
 
   _precomputeTerritoryMeta(geojson) {
-    const boundsMap = {};
-    const typeMap   = {};
-    const nameSet   = new Set();
+    const boundsMap    = {};
+    const typeMap      = {};
+    const nameSet      = new Set();
+    const centroidSum  = {}; // { name: { sumLng, sumLat, count } }
 
     for (const feature of geojson.features) {
       const name = (feature.properties.name || '').toLowerCase();
@@ -419,19 +421,26 @@ const TerritorialApp = {
         feature.properties.territoryColor = hslToHex(hue, 92, 52);
       }
 
-      // Bounds
+      // Bounds + centroide
       const coords = this._extractCoords(feature.geometry);
-      if (!boundsMap[name]) {
-        boundsMap[name] = new maplibregl.LngLatBounds();
-      }
+      if (!boundsMap[name]) boundsMap[name] = new maplibregl.LngLatBounds();
+      if (!centroidSum[name]) centroidSum[name] = { sumLng: 0, sumLat: 0, count: 0 };
       for (const [lng, lat] of coords) {
         boundsMap[name].extend([lng, lat]);
+        centroidSum[name].sumLng += lng;
+        centroidSum[name].sumLat += lat;
+        centroidSum[name].count++;
       }
     }
 
     this.territoryBounds    = boundsMap;
     this.territoryTypes     = typeMap;
     this.allTerritoryNames  = Array.from(nameSet);
+    this.territoryCentroids = Object.fromEntries(
+      Object.entries(centroidSum).map(([n, { sumLng, sumLat, count }]) =>
+        [n, [sumLng / count, sumLat / count]]
+      )
+    );
   },
 
   /* Convierte el Set de tipos de un territorio a un string display */
@@ -1361,8 +1370,9 @@ const TerritorialApp = {
         const w = b.getNorthEast().lng - b.getSouthWest().lng;
         const h = b.getNorthEast().lat - b.getSouthWest().lat;
         if (w > 0.005 || h > 0.005) {
-          // Bounds demasiado grandes (territorio mixto disperso) → centro con zoom fijo
-          this.map.flyTo({ center: b.getCenter(), zoom: 17, duration: 800, essential: true });
+          // Bounds demasiado grandes (territorio mixto disperso) → centroide real con zoom fijo
+          const c = this.territoryCentroids[match] || b.getCenter();
+          this.map.flyTo({ center: c, zoom: 17, duration: 800, essential: true });
         } else {
           this.map.fitBounds(b, {
             padding: { top: 160, bottom: 250, left: 60, right: 60 },
