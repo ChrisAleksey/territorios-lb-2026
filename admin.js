@@ -126,7 +126,7 @@ function adminApp() {
     get historialFiltered() {
       return this.historialEntries.filter(e => {
         if (this.historialFiltroCapitan && !e.capitan.toLowerCase().includes(this.historialFiltroCapitan.toLowerCase())) return false;
-        if (this.historialFiltroTerritorio && e.territorio !== `t${this.historialFiltroTerritorio}`) return false;
+        if (this.historialFiltroTerritorio && !e.territorio?.includes(this.historialFiltroTerritorio.toLowerCase())) return false;
         return true;
       });
     },
