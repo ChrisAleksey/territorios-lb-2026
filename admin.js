@@ -123,17 +123,18 @@ function adminApp() {
     historialSearch: '',
 
     get historialFiltered() {
-      const q = this.historialSearch.trim().toLowerCase();
+      const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const q = norm(this.historialSearch);
       if (!q) return this.historialEntries;
-      return this.historialEntries.filter(e => {
-        return (e.territorio        || '').toLowerCase().includes(q)
-            || (e.capitan           || '').toLowerCase().includes(q)
-            || (e.lugar             || '').toLowerCase().includes(q)
-            || (e.estado            || '').toLowerCase().includes(q)
-            || (e.notas             || '').toLowerCase().includes(q)
-            || this.formatDateShort(e.fechaPredicacion || '').includes(q)
-            || this.formatDateShort(e.fechaArchivado   || '').includes(q);
-      });
+      return this.historialEntries.filter(e =>
+           norm(e.territorio).includes(q)
+        || norm(e.capitan).includes(q)
+        || norm(e.lugar).includes(q)
+        || norm(e.estado).includes(q)
+        || norm(e.notas).includes(q)
+        || this.formatDateShort(e.fechaPredicacion || '').includes(q)
+        || this.formatDateShort(e.fechaArchivado   || '').includes(q)
+      );
     },
 
     /* ── Capitanes section ── */
