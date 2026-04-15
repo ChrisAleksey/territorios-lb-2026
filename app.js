@@ -1730,6 +1730,7 @@ const TerritorialApp = {
     if (unlocked) unlocked.style.display = '';
     const legendStatus = document.getElementById('legend-status-section');
     if (legendStatus) legendStatus.style.display = '';
+    this._applyRecentWorkedStates();
     this._updateInformeBar();
   },
 
@@ -1822,8 +1823,9 @@ const TerritorialApp = {
 
   _applyRecentWorkedStates() {
     if (!this.map?.getSource('territories')) return;
+    const active = !!(this.token || this.informeUnlocked || this.adminSelectCapId);
     Object.keys(this.territoryLastWorked).forEach(t => {
-      this.map.setFeatureState({ source: 'territories', id: t }, { recentlyWorked: true });
+      this.map.setFeatureState({ source: 'territories', id: t }, { recentlyWorked: active });
     });
   },
 
