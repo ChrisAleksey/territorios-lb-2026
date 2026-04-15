@@ -355,7 +355,12 @@ const TerritorialApp = {
         [e.point.x - pad, e.point.y - pad],
         [e.point.x + pad, e.point.y + pad]
       ];
-      const allFeatures = this.map.queryRenderedFeatures(bbox, { layers: ['territory-fill'] });
+      let allFeatures = this.map.queryRenderedFeatures(bbox, { layers: ['territory-fill'] });
+      // Si el click cayó en el glow (fuera del fill), buscar también en la capa glow
+      if (!allFeatures.length) {
+        const glowFeatures = this.map.queryRenderedFeatures(bbox, { layers: ['territory-recent-glow'] });
+        if (glowFeatures.length) allFeatures = glowFeatures;
+      }
       if (!allFeatures.length) { this.closeSheet(); return; }
 
       // Con token: solo asignados son tocables, salvo en modo agregar extra
