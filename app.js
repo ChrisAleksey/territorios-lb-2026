@@ -49,8 +49,36 @@ const TYPE_LABELS = {
 };
 
 /* ─── Mock data (no backend / fallback) ────────────────────────────────────── */
+/* ─── Capitanes: nombre → token (para confirmación en informe) ─────────────── */
+const CAPITAN_TOKENS = {
+  'Hno. Abraham Maldonado':        'abraham-mal001',
+  'Hno. Alejandro Vazquez Maciel': 'alejandro-vaz002',
+  'Hno. Aleksey Cruz':             'aleksey-cru003',
+  'Hno. Amadiz Lozano':            'amadiz-loz004',
+  'Hno. Arturo Aparicio':          'arturo-apa005',
+  'Hno. Christian Cruz Grajales':  'christian-cru006',
+  'Hno. Emanuel Evangelista':      'emanuel-eva007',
+  'Hno. Fernando Frausto Trujillo':'fernando-fra008',
+  'Hno. Francisco Javier Garcia':  'francisco-gar009',
+  'Hno. Ivan García':              'ivan-gar010',
+  'Hno. Joel Espinosa Hernandez':  'joel-esp011',
+  'Hno. Jorge Diez Frausto':       'jorge-fra012',
+  'Hno. Jorge Diez Reyes':         'jorge-rey013',
+  'Hno. Jose Alberto Davila':      'jose-dav014',
+  'Hno. Jose Luis Najera':         'jose-naj015',
+  'Hno. José Carlos Matadamas':    'jose-mat016',
+  'Hno. Juan Carlos Valero':       'juan-val017',
+  'Hno. Luis Fernando Ruiz':       'luis-rui018',
+  'Hno. Luis Roberto Aparicio':    'luis-apa019',
+  'Hno. Nestor Yedan Montoya':     'nestor-mon020',
+  'Hno. Omar Vazquez Maciel':      'omar-vaz021',
+  'Hno. Orlando Najera':           'orlando-naj022',
+  'Hno. René Villegas Cano':       'rene-vil023',
+  'Hno. Sergio Armando Hernandez': 'sergio-her024',
+};
+
 const MOCK_DATA = {
-  capitan:     'Aleksey Cruz',
+  capitan:     'Hno. Aleksey Cruz',
   grupo:       '2, 4',
   fecha:       'Sábado 12 de Abril 2026',
   hora:        '9:30 am',
@@ -87,6 +115,19 @@ const LOCATION_TERRITORIES = {
   'Fam. Aparicio López':              _tRange(90, 106),
 };
 
+// Índice normalizado (sin acentos, minúsculas) → clave original
+const _norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const _LOCATION_KEYS = {};
+Object.keys(LOCATION_TERRITORIES).forEach(k => { _LOCATION_KEYS[_norm(k)] = k; });
+
+// Lookup tolerante a diferencias de acentos/mayúsculas
+function _getZoneList(lugar) {
+  if (!lugar) return [];
+  return LOCATION_TERRITORIES[lugar]
+    || LOCATION_TERRITORIES[_LOCATION_KEYS[_norm(lugar)]]
+    || [];
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    TerritorialApp
 ══════════════════════════════════════════════════════════════════════════════ */
@@ -100,6 +141,7 @@ const TerritorialApp = {
   territoryStatus:     {},   // { 't1': 'completo', … }
   territoryNotes:      {},   // { 't1': 'note text', … }
   addingExtraMode:     false, // modo "agregar territorio extra"
+  _skipNextMapClick:   false, // evitar click fantasma en móvil al activar/cancelar modo extra
   submitted:           false, // informe enviado al backend
   submitTime:          null,  // hora del último envío
   _sessionFecha:       null,  // fecha ISO de la sesión activa (para Firebase)
@@ -174,9 +216,8 @@ const TerritorialApp = {
     try {
       const sesion = await FB.getSesion(this.token, fecha);
       if (!sesion) {
-        console.warn('[TerritorialApp] Sin sesión en Firebase para hoy, usando mock data.');
-        this._useMock = true;
-        this._applySessionData(MOCK_DATA);
+        this.showToast('No hay sesión activa para hoy', 'error');
+        console.warn('[TerritorialApp] Sin sesión en Firebase para hoy.');
         return;
       }
 
@@ -203,9 +244,8 @@ const TerritorialApp = {
       this.territoryNotes = notas;
 
     } catch (err) {
-      console.warn('[TerritorialApp] Firebase error, usando mock data.', err.message);
-      this._useMock = true;
-      this._applySessionData(MOCK_DATA);
+      console.error('[TerritorialApp] Firebase error:', err.message);
+      this.showToast('Error al cargar la sesión', 'error');
     }
   },
 
@@ -219,9 +259,10 @@ const TerritorialApp = {
     };
     this.assignedTerritories = (data.territorios || []).map(t => t.toLowerCase());
 
-    // Cargar extras guardados localmente para este token
+    // Cargar extras guardados localmente para este token+fecha (no persisten entre sesiones)
     try {
-      const savedExtras = localStorage.getItem(`extras_${this.token}`);
+      const extrasKey = `extras_${this.token}_${this._sessionFecha}`;
+      const savedExtras = localStorage.getItem(extrasKey);
       if (savedExtras) {
         const extras = JSON.parse(savedExtras);
         extras.forEach(t => {
@@ -262,6 +303,26 @@ const TerritorialApp = {
       attributionControl: false
     });
 
+    // Ubicación en tiempo real — puntito azul
+    const geolocate = new maplibregl.GeolocateControl({
+      positionOptions:    { enableHighAccuracy: true },
+      trackUserLocation:  true,
+      showUserLocation:   true,
+      showAccuracyCircle: false,
+    });
+    this.map.addControl(geolocate, 'top-right');
+
+    // Al activar: quitar restricciones para permitir pan/zoom a la ubicación real
+    geolocate.on('trackuserlocationstart', () => {
+      this.map.setMaxBounds(null);
+      this.map.setMinZoom(0);
+    });
+    // Al desactivar: restaurar restricciones
+    geolocate.on('trackuserlocationend', () => {
+      this._setMapBounds();
+      this.map.setMinZoom(0);
+    });
+
     // Recalcular canvas en resize (orientación, etc.)
     const resizeMap = () => requestAnimationFrame(() => {
       document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
@@ -273,6 +334,9 @@ const TerritorialApp = {
 
     // Click con tolerancia táctil: bbox ±20px alrededor del toque
     this.map.on('click', (e) => {
+      // Ignorar click fantasma que dispara al activar/cancelar modo extra en móvil
+      if (this._skipNextMapClick) { this._skipNextMapClick = false; return; }
+
       const pad = 20;
       const bbox = [
         [e.point.x - pad, e.point.y - pad],
@@ -670,7 +734,7 @@ const TerritorialApp = {
     // Territorio no asignado en modo capitán → ofrecer agregarlo si está en la zona
     if (this.token && !this.assignedTerritories.includes(name)) {
       const lugar = this.sessionInfo.lugar || '';
-      const zoneList = LOCATION_TERRITORIES[lugar] || [];
+      const zoneList = _getZoneList(lugar);
       if (zoneList.length && !zoneList.includes(name)) {
         this.showToast('Territorio fuera de tu zona', 'error');
         return;
@@ -887,9 +951,9 @@ const TerritorialApp = {
     this.assignedTerritories.push(name);
     this.extraTerritories.push(name);
 
-    // Persistir extras localmente
+    // Persistir extras localmente (clave incluye fecha para no mezclar sesiones)
     try {
-      localStorage.setItem(`extras_${this.token}`, JSON.stringify(this.extraTerritories));
+      localStorage.setItem(`extras_${this.token}_${this._sessionFecha}`, JSON.stringify(this.extraTerritories));
     } catch(e) {}
 
     // Quitar dim y actualizar mapa
@@ -908,8 +972,9 @@ const TerritorialApp = {
   /* ── Modo agregar territorio extra ───────────────────────────────────────── */
   startAddExtraMode() {
     this.addingExtraMode = true;
+    this._skipNextMapClick = true; // ignorar click fantasma del botón en móvil
     const lugar = this.sessionInfo.lugar || '';
-    const zoneList = LOCATION_TERRITORIES[lugar] || [];
+    const zoneList = _getZoneList(lugar);
     for (const name of this.allTerritoryNames) {
       if (this.assignedTerritories.includes(name)) {
         // Mis territorios → gris (ya los tengo)
@@ -920,20 +985,7 @@ const TerritorialApp = {
       }
       // Fuera de la zona → permanece dimmed (no se toca)
     }
-    // Zoom a la zona del capitán si hay territorios en ella
-    if (zoneList.length) {
-      const combined = zoneList.reduce((acc, n) => {
-        const b = this.territoryBounds[n];
-        if (!b || b.isEmpty()) return acc;
-        return acc ? acc.extend(b) : b;
-      }, null);
-      if (combined) {
-        this.map.fitBounds(combined, {
-          padding: { top: 80, bottom: 200, left: 40, right: 40 },
-          duration: 800, linear: false, essential: true
-        });
-      }
-    }
+    // No hacer zoom — el mapa ya está posicionado en el área del capitán
     document.getElementById('add-extra-banner')?.classList.add('show');
     document.getElementById('top-card')?.classList.remove('visible');
   },
@@ -946,6 +998,7 @@ const TerritorialApp = {
   _exitAddExtraMode() {
     if (!this.addingExtraMode) return;
     this.addingExtraMode = false;
+    this._skipNextMapClick = true; // ignorar click fantasma del botón Cancelar en móvil
     for (const name of this.allTerritoryNames) {
       if (this.assignedTerritories.includes(name)) {
         this.map.setFeatureState({ source: 'territories', id: name }, { addable: false });
@@ -1061,6 +1114,15 @@ const TerritorialApp = {
     const btn = document.getElementById('finish-submit-btn');
     if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
 
+    // Mostrar capitán asignado y resetear picker
+    const capName = this.sessionInfo.capitan || '—';
+    const nameEl  = document.getElementById('finish-capitan-name');
+    const selEl   = document.getElementById('finish-capitan-select');
+    const dispEl  = document.getElementById('finish-capitan-display');
+    if (nameEl)  nameEl.textContent = capName;
+    if (selEl)   { selEl.style.display = 'none'; selEl.value = ''; }
+    if (dispEl)  dispEl.style.display = 'flex';
+
     document.getElementById('finish-sheet')?.classList.add('open');
     document.getElementById('finish-backdrop')?.classList.add('active');
   },
@@ -1070,7 +1132,24 @@ const TerritorialApp = {
     document.getElementById('finish-backdrop')?.classList.remove('active');
   },
 
+  _showCapitanPicker() {
+    const selEl  = document.getElementById('finish-capitan-select');
+    const dispEl = document.getElementById('finish-capitan-display');
+    if (dispEl) dispEl.style.display = 'none';
+    if (selEl)  { selEl.style.display = 'block'; selEl.focus(); }
+  },
+
   async submitInforme() {
+    // Usar capitán del picker si se cambió, si no usar el de la sesión
+    const sel = document.getElementById('finish-capitan-select');
+    const pickerVal = sel?.value?.trim() || '';
+    const confirmedCapitan = pickerVal || this.sessionInfo.capitan || '';
+    if (this.token && !confirmedCapitan) {
+      this.showToast('No hay capitán asignado para esta sesión', 'error');
+      return;
+    }
+    const confirmedToken = CAPITAN_TOKENS[confirmedCapitan] || this.token;
+
     const btn = document.getElementById('finish-submit-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
 
@@ -1101,8 +1180,8 @@ const TerritorialApp = {
             lugar:            this.sessionInfo.lugar || '',
             estado:           this.territoryStatus[n],
             notas:            this.territoryNotes[n] || '',
-            capitan:          this.sessionInfo.capitan || '',
-            capitanToken:     this.token,
+            capitan:          confirmedCapitan || this.sessionInfo.capitan || '',
+            capitanToken:     confirmedToken,
             fechaPredicacion: this._sessionFecha,
             fechaCompletado:  this._sessionFecha,
             fechaArchivado:   FB.todayMX()

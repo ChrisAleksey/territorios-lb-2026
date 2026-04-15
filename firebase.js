@@ -120,6 +120,12 @@ const FB = {
     return this._patch(`sesiones/${id}`, fields);
   },
 
+  async updateSesionTerritories(token, fecha, territories) {
+    const id     = this._sesionId(token, fecha);
+    const fields = { territorios: this._toFS(territories) };
+    return this._patch(`sesiones/${id}`, fields, ['territorios']);
+  },
+
   async updateEstado(token, fecha, territorio, estado, notas) {
     // Actualiza solo el campo estados.{territorio} sin tocar el resto
     const id        = this._sesionId(token, fecha);
@@ -141,5 +147,29 @@ const FB = {
     // entries: [{ territorio, lugar, estado, notas, capitan, capitanToken, fechaPredicacion, fechaCompletado, fechaArchivado }]
     const promises = entries.map(e => this._post('historial', this._objToFields(e)));
     return Promise.all(promises);
+  },
+
+  async listHistorial() {
+    let all = [], pageToken = null;
+    do {
+      let url = `${this.BASE}/historial?key=${this.API_KEY}&pageSize=300`;
+      if (pageToken) url += `&pageToken=${pageToken}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Firestore GET historial → ${res.status}`);
+      const data = await res.json();
+      (data.documents || []).forEach(doc => {
+        const obj = this._docToObj(doc);
+        // Extraer ID del path: .../documents/historial/{id}
+        if (obj && doc.name) obj._id = doc.name.split('/').pop();
+        all.push(obj);
+      });
+      pageToken = data.nextPageToken || null;
+    } while (pageToken);
+    return all;
+  },
+
+  async deleteHistorial(id) {
+    const res = await fetch(`${this.BASE}/historial/${id}?key=${this.API_KEY}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Firestore DELETE historial/${id} → ${res.status}`);
   }
 };

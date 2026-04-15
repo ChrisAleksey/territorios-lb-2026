@@ -168,6 +168,41 @@
     .maplibregl-ctrl-logo,
     .maplibregl-ctrl-attrib { display: none !important; }
 
+    /* ─── GeolocateControl — match app style ───────────────────── */
+    .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      margin: 0;
+    }
+
+    .maplibregl-ctrl-geolocate {
+      width: 40px !important;
+      height: 40px !important;
+      background: var(--card) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--r-sm) !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s var(--bounce) !important;
+    }
+    .maplibregl-ctrl-geolocate:hover {
+      background: var(--accent-dim) !important;
+      border-color: var(--accent) !important;
+    }
+    .maplibregl-ctrl-geolocate:active { transform: scale(0.92) !important; }
+
+    /* Ícono blanco */
+    .maplibregl-ctrl-geolocate .maplibregl-ctrl-icon {
+      filter: invert(1) brightness(0.85) !important;
+    }
+    /* Ícono morado cuando está activo/siguiendo */
+    .maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon,
+    .maplibregl-ctrl-geolocate-active-error .maplibregl-ctrl-icon {
+      filter: invert(52%) sepia(30%) saturate(800%) hue-rotate(220deg) brightness(1.1) !important;
+    }
+
     /* ─── Top Card ──────────────────────────────────────────────── */
     .top-card {
       position: fixed;
@@ -976,6 +1011,11 @@
       right: 6px;
     }
 
+    .maplibregl-ctrl-top-right {
+      top: calc(72px + env(safe-area-inset-top));
+      right: 16px;
+    }
+
     .maplibregl-ctrl-attrib { display: none !important; }
 
     /* ── Hover tooltip ── */
@@ -1651,6 +1691,46 @@
 
     <div class="finish-submitted-info" id="finish-submitted-info" style="display:none">
       ✅ Informe enviado · <span id="finish-submit-time"></span>
+    </div>
+
+    <!-- Confirmación de capitán -->
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;">
+        Capitán de hoy
+      </label>
+      <!-- Vista por defecto: nombre del capitán asignado + botón cambiar -->
+      <div id="finish-capitan-display" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;">
+        <span id="finish-capitan-name" style="font-size:14px;font-weight:600;color:var(--text);">—</span>
+        <button type="button" onclick="TerritorialApp._showCapitanPicker()" style="font-size:12px;color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-family:inherit;">Cambiar</button>
+      </div>
+      <!-- Picker oculto (solo si hubo sustitución) -->
+      <select id="finish-capitan-select" style="display:none;width:100%;margin-top:8px;background:rgba(255,255,255,0.05);border:1px solid var(--accent);border-radius:var(--r-sm);padding:11px 14px;font-family:inherit;font-size:14px;color:var(--text);outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;">
+        <option value="" style="background:var(--card-solid);">— Selecciona un capitán —</option>
+        <option style="background:var(--card-solid);">Hno. Abraham Maldonado</option>
+        <option style="background:var(--card-solid);">Hno. Alejandro Vazquez Maciel</option>
+        <option style="background:var(--card-solid);">Hno. Aleksey Cruz</option>
+        <option style="background:var(--card-solid);">Hno. Amadiz Lozano</option>
+        <option style="background:var(--card-solid);">Hno. Arturo Aparicio</option>
+        <option style="background:var(--card-solid);">Hno. Christian Cruz Grajales</option>
+        <option style="background:var(--card-solid);">Hno. Emanuel Evangelista</option>
+        <option style="background:var(--card-solid);">Hno. Fernando Frausto Trujillo</option>
+        <option style="background:var(--card-solid);">Hno. Francisco Javier Garcia</option>
+        <option style="background:var(--card-solid);">Hno. Ivan García</option>
+        <option style="background:var(--card-solid);">Hno. Joel Espinosa Hernandez</option>
+        <option style="background:var(--card-solid);">Hno. Jorge Diez Frausto</option>
+        <option style="background:var(--card-solid);">Hno. Jorge Diez Reyes</option>
+        <option style="background:var(--card-solid);">Hno. Jose Alberto Davila</option>
+        <option style="background:var(--card-solid);">Hno. Jose Luis Najera</option>
+        <option style="background:var(--card-solid);">Hno. José Carlos Matadamas</option>
+        <option style="background:var(--card-solid);">Hno. Juan Carlos Valero</option>
+        <option style="background:var(--card-solid);">Hno. Luis Fernando Ruiz</option>
+        <option style="background:var(--card-solid);">Hno. Luis Roberto Aparicio</option>
+        <option style="background:var(--card-solid);">Hno. Nestor Yedan Montoya</option>
+        <option style="background:var(--card-solid);">Hno. Omar Vazquez Maciel</option>
+        <option style="background:var(--card-solid);">Hno. Orlando Najera</option>
+        <option style="background:var(--card-solid);">Hno. René Villegas Cano</option>
+        <option style="background:var(--card-solid);">Hno. Sergio Armando Hernandez</option>
+      </select>
     </div>
 
     <div class="finish-sheet-actions">
