@@ -356,11 +356,6 @@ const TerritorialApp = {
         [e.point.x + pad, e.point.y + pad]
       ];
       let allFeatures = this.map.queryRenderedFeatures(bbox, { layers: ['territory-fill'] });
-      // Si el click cayó en el glow (fuera del fill), buscar también en la capa glow
-      if (!allFeatures.length) {
-        const glowFeatures = this.map.queryRenderedFeatures(bbox, { layers: ['territory-recent-glow'] });
-        if (glowFeatures.length) allFeatures = glowFeatures;
-      }
       if (!allFeatures.length) { this.closeSheet(); return; }
 
       // Con token: solo asignados son tocables, salvo en modo agregar extra
@@ -622,24 +617,6 @@ const TerritorialApp = {
         'line-width':     lineWidth,
         'line-opacity':   lineOpacity,
         'line-dasharray': [4, 3]
-      }
-    });
-
-    /* ---- 2d. Recent glow (azul — encima de borders de estado, solo casaencasa) ---- */
-    this.map.addLayer({
-      id:     'territory-recent-glow',
-      type:   'line',
-      source: 'territories',
-      filter: ['==', ['get', 'fill'], '#388e3c'],
-      paint:  {
-        'line-color': '#3b82f6',
-        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 20, 13, 14, 15, 9, 18, 5],
-        'line-opacity': [
-          'case',
-          ['boolean', ['feature-state', 'recentlyWorked'], false], 0.65,
-          0
-        ],
-        'line-blur': 6
       }
     });
 
@@ -1609,7 +1586,7 @@ const TerritorialApp = {
 
       // Filtro MapLibre: solo mostrar territorios en showList
       const showFilter = ['in', ['get', 'name'], ['literal', showList]];
-      ['territory-fill', 'territory-glow', 'territory-recent-glow', 'territory-labels', 'territory-line'].forEach(id => {
+      ['territory-fill', 'territory-glow', 'territory-labels', 'territory-line'].forEach(id => {
         if (this.map.getLayer(id)) this.map.setFilter(id, showFilter);
       });
       // Capas de carta postal: ocultar en sesión casaencasa, filtrar en sesión carta
@@ -1736,7 +1713,6 @@ const TerritorialApp = {
     if (unlocked) unlocked.style.display = '';
     const legendStatus = document.getElementById('legend-status-section');
     if (legendStatus) legendStatus.style.display = '';
-    this._applyRecentWorkedStates();
     this._updateInformeBar();
   },
 
@@ -1820,19 +1796,10 @@ const TerritorialApp = {
         if (!latest[t] || fecha > latest[t]) latest[t] = fecha;
       }
       this.territoryLastWorked = latest;
-      this._applyRecentWorkedStates();
 
     } catch (err) {
       console.warn('[TerritorialApp] loadHistorialResumen:', err.message);
     }
-  },
-
-  _applyRecentWorkedStates() {
-    if (!this.map?.getSource('territories')) return;
-    const active = !!(this.token || this.informeUnlocked || this.adminSelectCapId);
-    Object.keys(this.territoryLastWorked).forEach(t => {
-      this.map.setFeatureState({ source: 'territories', id: t }, { recentlyWorked: active });
-    });
   },
 
   _diasDesde(isoDate) {
@@ -1877,7 +1844,6 @@ const TerritorialApp = {
       const territorios = LOCATION_TERRITORIES[lugar] || [];
       territorios.forEach(t => {
         delete this.territoryLastWorked[t];
-        this.map?.setFeatureState({ source: 'territories', id: t }, { recentlyWorked: false });
       });
       this.showToast(`¡Ciclo completo: ${lugar}! Territorios reiniciados 🔄`, 'success');
     } catch (err) {
