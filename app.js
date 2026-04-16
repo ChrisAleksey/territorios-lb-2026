@@ -1641,11 +1641,47 @@ const TerritorialApp = {
     const el = document.getElementById('admin-all-list');
     if (!el) return;
 
-    const sorted = Array.from(this._adminShowList || this.allTerritoryNames).sort((a, b) => {
+    const num = t => parseInt(t.replace('t', '')) || 0;
+
+    // Lista ordenada numéricamente (para calcular el siguiente)
+    const byNum = Array.from(this._adminShowList || this.allTerritoryNames)
+      .sort((a, b) => num(a) - num(b));
+
+    // Más recientemente trabajado → su índice numérico
+    const lastWorked = byNum.reduce((best, t) => {
+      const d = this.territoryLastWorked[t];
+      if (!d) return best;
+      return (!best || d > this.territoryLastWorked[best]) ? t : best;
+    }, null);
+
+    // Siguiente consecutivo en la lista (wrapping)
+    let nextTerritory = null;
+    if (lastWorked) {
+      const idx = byNum.indexOf(lastWorked);
+      nextTerritory = byNum[(idx + 1) % byNum.length];
+    } else if (byNum.length) {
+      nextTerritory = byNum[0];
+    }
+
+    // Sugerencia arriba
+    const suggestEl = document.getElementById('admin-next-suggestion');
+    if (suggestEl && nextTerritory) {
+      suggestEl.querySelector('.admin-next-name').textContent = nextTerritory.toUpperCase();
+      suggestEl.style.display = 'flex';
+      suggestEl.onclick = () => {
+        this.toggleAdminTerritory(nextTerritory);
+        // Scroll al ítem en la lista
+        const item = el.querySelector(`[data-t="${nextTerritory}"]`);
+        if (item) item.scrollIntoView({ block: 'nearest' });
+      };
+    }
+
+    // Lista ordenada por más reciente primero
+    const sorted = [...byNum].sort((a, b) => {
       const da = this.territoryLastWorked[a] || '0000-00-00';
       const db = this.territoryLastWorked[b] || '0000-00-00';
-      if (db !== da) return db > da ? 1 : -1; // más reciente primero
-      return (parseInt(a.replace('t', '')) || 0) - (parseInt(b.replace('t', '')) || 0);
+      if (db !== da) return db > da ? 1 : -1;
+      return num(a) - num(b);
     });
 
     el.innerHTML = '';
