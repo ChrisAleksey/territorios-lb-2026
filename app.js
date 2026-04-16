@@ -268,7 +268,8 @@ const TerritorialApp = {
       grupo:   data.grupo,
       fecha:   data.fecha,
       hora:    data.hora,
-      lugar:   data.lugar
+      lugar:   data.lugar,
+      tipo:    data.tipo || 'casaencasa'
     };
     this.assignedTerritories = (data.territorios || []).map(t => t.toLowerCase());
 
