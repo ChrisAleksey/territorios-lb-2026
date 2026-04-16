@@ -1616,7 +1616,7 @@ const TerritorialApp = {
       }
     }
 
-    this._updateAdminSelectCount();
+    this._renderAdminTerritoryList();
   },
 
   toggleAdminTerritory(name) {
@@ -1628,42 +1628,54 @@ const TerritorialApp = {
       this.adminSelectedTerritories.add(name);
       this.map.setFeatureState({ source: 'territories', id: name }, { selected: true });
     }
-    this._updateAdminSelectCount();
+    // Actualizar solo el ítem afectado en la lista
+    const item = document.querySelector(`#admin-all-list [data-t="${name}"]`);
+    if (item) item.classList.toggle('selected', this.adminSelectedTerritories.has(name));
+    // Actualizar contador
+    const n  = this.adminSelectedTerritories.size;
+    const el = document.getElementById('admin-select-count');
+    if (el) el.textContent = n === 1 ? '1 territorio' : `${n} territorios`;
+  },
+
+  _renderAdminTerritoryList() {
+    const el = document.getElementById('admin-all-list');
+    if (!el) return;
+
+    const sorted = Array.from(this._adminShowList || this.allTerritoryNames).sort((a, b) =>
+      (parseInt(a.replace('t', '')) || 0) - (parseInt(b.replace('t', '')) || 0)
+    );
+
+    el.innerHTML = '';
+    for (const name of sorted) {
+      const item = document.createElement('div');
+      item.className = 'admin-all-item' + (this.adminSelectedTerritories.has(name) ? ' selected' : '');
+      item.dataset.t = name;
+
+      const check = document.createElement('span');
+      check.className = 'admin-all-item-check';
+      check.textContent = '✓';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'admin-all-item-name';
+      nameEl.textContent = name.toUpperCase();
+
+      const dateEl = document.createElement('span');
+      dateEl.className = 'admin-all-item-date';
+      const date = this.territoryLastWorked[name];
+      dateEl.textContent = date ? this._diasDesde(date) : 'Sin historial';
+
+      item.appendChild(check);
+      item.appendChild(nameEl);
+      item.appendChild(dateEl);
+      item.addEventListener('click', () => this.toggleAdminTerritory(name));
+      el.appendChild(item);
+    }
   },
 
   _updateAdminSelectCount() {
     const n  = this.adminSelectedTerritories.size;
     const el = document.getElementById('admin-select-count');
     if (el) el.textContent = n === 1 ? '1 territorio' : `${n} territorios`;
-
-    // Actualizar chips
-    const chips = document.getElementById('admin-select-chips');
-    if (!chips) return;
-    chips.innerHTML = '';
-
-    if (n === 0) {
-      chips.innerHTML = '<span class="admin-chips-empty">Toca un territorio en el mapa para seleccionarlo</span>';
-      return;
-    }
-
-    // Ordenar: t1, t2, … t10, t11…
-    const sorted = Array.from(this.adminSelectedTerritories).sort((a, b) => {
-      const na = parseInt(a.replace('t', '')) || 0;
-      const nb = parseInt(b.replace('t', '')) || 0;
-      return na - nb;
-    });
-
-    for (const name of sorted) {
-      const chip = document.createElement('span');
-      chip.className = 'admin-chip';
-      chip.textContent = name.toUpperCase();
-      const x = document.createElement('span');
-      x.className = 'admin-chip-x';
-      x.textContent = '✕';
-      chip.appendChild(x);
-      chip.addEventListener('click', () => this.toggleAdminTerritory(name));
-      chips.appendChild(chip);
-    }
   },
 
   confirmAdminSelection() {
@@ -1796,6 +1808,9 @@ const TerritorialApp = {
         if (!latest[t] || fecha > latest[t]) latest[t] = fecha;
       }
       this.territoryLastWorked = latest;
+
+      // Si estamos en admin-select, actualizar la lista con las fechas reales
+      if (this.adminSelectCapId) this._renderAdminTerritoryList();
 
     } catch (err) {
       console.warn('[TerritorialApp] loadHistorialResumen:', err.message);
