@@ -1719,6 +1719,7 @@ const TerritorialApp = {
     }, null);
 
     // Siguiente: primer territorio SIN historial después del último trabajado
+    // Si todos tienen historial (ciclo completo), tomar el trabajado hace más tiempo
     let nextTerritory = null;
     if (lastWorked) {
       const idx = byNum.indexOf(lastWorked);
@@ -1726,8 +1727,13 @@ const TerritorialApp = {
         const candidate = byNum[(idx + i) % byNum.length];
         if (!this.territoryLastWorked[candidate]) { nextTerritory = candidate; break; }
       }
-      // Si todos tienen historial, tomar el siguiente consecutivo
-      if (!nextTerritory) nextTerritory = byNum[(idx + 1) % byNum.length];
+      // Ciclo completo: el más antiguo
+      if (!nextTerritory) {
+        nextTerritory = byNum.reduce((oldest, t) => {
+          const d = this.territoryLastWorked[t] || '9999-99-99';
+          return (!oldest || d < this.territoryLastWorked[oldest]) ? t : oldest;
+        }, null);
+      }
     } else if (byNum.length) {
       nextTerritory = byNum[0];
     }
