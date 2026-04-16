@@ -419,6 +419,7 @@
               <tr>
                 <th>Territorio</th>
                 <th>Estado</th>
+                <th class="hide-mobile">Tipo</th>
                 <th>Capitán</th>
                 <th>Lugar</th>
                 <th>Predicación</th>
@@ -447,6 +448,17 @@
                       x-text="e.estado==='completo'   ? '✅ Completo'
                             : e.estado==='ciclo_reset' ? '🔄 Reset ciclo'
                             :                           '🟡 Parcial'"></span>
+                  </td>
+                  <td data-label="Tipo" class="hide-mobile">
+                    <template x-if="e.tipo === 'casaencasa'">
+                      <span class="token-pill" style="background:rgba(56,142,60,.15);color:#66bb6a">🏠 Casa en casa</span>
+                    </template>
+                    <template x-if="e.tipo === 'carta'">
+                      <span class="token-pill" style="background:rgba(211,47,47,.12);color:#ef5350">✉️ Carta postal</span>
+                    </template>
+                    <template x-if="!e.tipo">
+                      <span style="color:var(--text2);font-size:11px">—</span>
+                    </template>
                   </td>
                   <td data-label="Capitán">
                     <div class="cap-name-cell">
