@@ -1584,11 +1584,18 @@ const TerritorialApp = {
         return inAllowed && tipoOk(n);
       });
 
-      // Filtro MapLibre: solo mostrar territorios en showList
-      const showFilter = ['in', ['get', 'name'], ['literal', showList]];
-      ['territory-fill', 'territory-glow', 'territory-labels', 'territory-line'].forEach(id => {
+      // Filtro MapLibre: solo mostrar territorios en showList + polígonos del tipo correcto
+      // Para mixtos (t63 etc.) se filtra también por fill color para excluir el polígono carta
+      const nameFilter  = ['in', ['get', 'name'], ['literal', showList]];
+      const fillFilter  = this.adminSessionTipo === 'casaencasa'
+        ? ['==', ['get', 'fill'], '#388e3c']
+        : ['any', ['==', ['get', 'fill'], '#d32f2f'], ['==', ['get', 'fill'], '#f57c00']];
+      const showFilter  = ['all', nameFilter, fillFilter];
+      ['territory-fill', 'territory-glow', 'territory-line'].forEach(id => {
         if (this.map.getLayer(id)) this.map.setFilter(id, showFilter);
       });
+      // Labels: solo por nombre (no importa el fill del polígono que lleva la label)
+      if (this.map.getLayer('territory-labels')) this.map.setFilter('territory-labels', nameFilter);
       // Capas de carta postal: ocultar en sesión casaencasa, filtrar en sesión carta
       const cartaVis = this.adminSessionTipo === 'carta' ? 'visible' : 'none';
       ['territory-line-carta', 'territory-line-mixto'].forEach(id => {
