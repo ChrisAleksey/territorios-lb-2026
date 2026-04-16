@@ -1264,6 +1264,7 @@ const TerritorialApp = {
             notas:            this.territoryNotes[n] || '',
             capitan:          confirmedCapitan || this.sessionInfo.capitan || '',
             capitanToken:     confirmedToken,
+            tipo:             this.sessionInfo.tipo || this.territoryPrimaryTypes[n] || 'casaencasa',
             fechaPredicacion: informeFecha,
             fechaCompletado:  informeFecha,
             fechaArchivado:   FB.todayMX()
