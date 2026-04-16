@@ -1643,8 +1643,9 @@ const TerritorialApp = {
 
     const num = t => parseInt(t.replace('t', '')) || 0;
 
-    // Lista ordenada numéricamente (para calcular el siguiente)
+    // Lista ordenada numéricamente (para calcular el siguiente) — solo casaencasa
     const byNum = Array.from(this._adminShowList || this.allTerritoryNames)
+      .filter(t => this.territoryPrimaryTypes[t] === 'casaencasa')
       .sort((a, b) => num(a) - num(b));
 
     // Más recientemente trabajado → su índice numérico
