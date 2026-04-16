@@ -1562,6 +1562,7 @@ const TerritorialApp = {
     if (banner) {
       document.getElementById('admin-select-cap-name').textContent = capNombre;
       banner.style.display = 'flex';
+      requestAnimationFrame(() => this._initAdminBarDrag(banner));
     }
 
     // Filtrar adminSelectedTerritories a solo los permitidos (evita chips de sesiones anteriores)
@@ -1642,6 +1643,61 @@ const TerritorialApp = {
     const n  = this.adminSelectedTerritories.size;
     const el = document.getElementById('admin-select-count');
     if (el) el.textContent = n === 1 ? '1 territorio' : `${n} territorios`;
+  },
+
+  _initAdminBarDrag(panel) {
+    const handle = document.getElementById('admin-bar-handle');
+    if (!handle) return;
+
+    const EASE = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
+    const closedY = () => Math.max(0, panel.offsetHeight - 68); // muestra handle + header
+    let startY = 0, startTranslate = 0, isDragging = false;
+
+    const getCurrentY = () => {
+      const m = new DOMMatrix(getComputedStyle(panel).transform);
+      return m.m42 || 0;
+    };
+    const snapTo = (open) => {
+      panel.style.transition = EASE;
+      panel.style.transform = open ? 'translateY(0)' : `translateY(${closedY()}px)`;
+    };
+
+    // Empezar colapsado, luego abrir con animación
+    panel.style.transition = 'none';
+    panel.style.transform = `translateY(${closedY()}px)`;
+    requestAnimationFrame(() => requestAnimationFrame(() => snapTo(true)));
+
+    // Drag
+    handle.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      startY = e.clientY;
+      startTranslate = getCurrentY();
+      panel.style.transition = 'none';
+      handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const y = Math.max(0, Math.min(startTranslate + (e.clientY - startY), closedY()));
+      panel.style.transform = `translateY(${y}px)`;
+    });
+    const onEnd = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      const dy = e.clientY - startY;
+      const cur = getCurrentY();
+      // Cerrar si arrastró >40px abajo o está en más del 35% del recorrido
+      snapTo(dy > 40 || cur > closedY() * 0.35 ? false : true);
+    };
+    handle.addEventListener('pointerup', onEnd);
+    handle.addEventListener('pointercancel', onEnd);
+
+    // Tap en la zona colapsada también abre
+    handle.addEventListener('click', (e) => {
+      if (Math.abs(e.clientY - startY) < 5) {
+        const cur = getCurrentY();
+        snapTo(cur > 10);
+      }
+    });
   },
 
   _renderAdminTerritoryList() {
