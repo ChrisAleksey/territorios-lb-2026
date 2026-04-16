@@ -1718,11 +1718,16 @@ const TerritorialApp = {
       return (!best || d > this.territoryLastWorked[best]) ? t : best;
     }, null);
 
-    // Siguiente consecutivo en la lista (wrapping)
+    // Siguiente: primer territorio SIN historial después del último trabajado
     let nextTerritory = null;
     if (lastWorked) {
       const idx = byNum.indexOf(lastWorked);
-      nextTerritory = byNum[(idx + 1) % byNum.length];
+      for (let i = 1; i <= byNum.length; i++) {
+        const candidate = byNum[(idx + i) % byNum.length];
+        if (!this.territoryLastWorked[candidate]) { nextTerritory = candidate; break; }
+      }
+      // Si todos tienen historial, tomar el siguiente consecutivo
+      if (!nextTerritory) nextTerritory = byNum[(idx + 1) % byNum.length];
     } else if (byNum.length) {
       nextTerritory = byNum[0];
     }
