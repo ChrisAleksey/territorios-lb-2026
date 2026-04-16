@@ -1641,9 +1641,12 @@ const TerritorialApp = {
     const el = document.getElementById('admin-all-list');
     if (!el) return;
 
-    const sorted = Array.from(this._adminShowList || this.allTerritoryNames).sort((a, b) =>
-      (parseInt(a.replace('t', '')) || 0) - (parseInt(b.replace('t', '')) || 0)
-    );
+    const sorted = Array.from(this._adminShowList || this.allTerritoryNames).sort((a, b) => {
+      const da = this.territoryLastWorked[a] || '0000-00-00';
+      const db = this.territoryLastWorked[b] || '0000-00-00';
+      if (db !== da) return db > da ? 1 : -1; // más reciente primero
+      return (parseInt(a.replace('t', '')) || 0) - (parseInt(b.replace('t', '')) || 0);
+    });
 
     el.innerHTML = '';
     for (const name of sorted) {
