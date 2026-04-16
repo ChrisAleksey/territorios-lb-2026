@@ -1578,7 +1578,7 @@ const TerritorialApp = {
 
     // Filtrar capas para mostrar SOLO los territorios del lugar + tipo correcto
     {
-      const tipoOk = (name) => this._getPrimaryType(name) === this.adminSessionTipo;
+      const tipoOk = (name) => this.territoryPrimaryTypes[name] === this.adminSessionTipo;
       const showList = this.allTerritoryNames.filter(n => {
         const inAllowed = !this.adminAllowedTerritories || this.adminAllowedTerritories.has(n);
         return inAllowed && tipoOk(n);
