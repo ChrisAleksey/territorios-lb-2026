@@ -1403,7 +1403,7 @@ const TerritorialApp = {
       ? ['==', ['get', 'fill'], casaencasaFill]
       : ['in', ['get', 'fill'], ['literal', cartaFills]];
 
-    ['territory-fill', 'territory-glow', 'territory-recent-glow', 'territory-labels'].forEach(id => {
+    ['territory-fill', 'territory-glow', 'territory-labels'].forEach(id => {
       if (this.map.getLayer(id)) this.map.setFilter(id, fillFilter);
     });
 
