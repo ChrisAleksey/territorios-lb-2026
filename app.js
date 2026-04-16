@@ -513,24 +513,6 @@ const TerritorialApp = {
       }
     });
 
-    /* ---- 0b. Recent glow (azul — trabajado recientemente, solo casaencasa) ---- */
-    this.map.addLayer({
-      id:     'territory-recent-glow',
-      type:   'line',
-      source: 'territories',
-      filter: ['==', ['get', 'fill'], '#388e3c'],
-      paint:  {
-        'line-color': '#3b82f6',
-        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 20, 13, 14, 15, 9, 18, 5],
-        'line-opacity': [
-          'case',
-          ['boolean', ['feature-state', 'recentlyWorked'], false], 0.65,
-          0
-        ],
-        'line-blur': 6
-      }
-    });
-
     /* ---- 1. Fill layer ---- */
     this.map.addLayer({
       id:     'territory-fill',
@@ -640,6 +622,24 @@ const TerritorialApp = {
         'line-width':     lineWidth,
         'line-opacity':   lineOpacity,
         'line-dasharray': [4, 3]
+      }
+    });
+
+    /* ---- 2d. Recent glow (azul — encima de borders de estado, solo casaencasa) ---- */
+    this.map.addLayer({
+      id:     'territory-recent-glow',
+      type:   'line',
+      source: 'territories',
+      filter: ['==', ['get', 'fill'], '#388e3c'],
+      paint:  {
+        'line-color': '#3b82f6',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 20, 13, 14, 15, 9, 18, 5],
+        'line-opacity': [
+          'case',
+          ['boolean', ['feature-state', 'recentlyWorked'], false], 0.65,
+          0
+        ],
+        'line-blur': 6
       }
     });
 
