@@ -1475,8 +1475,8 @@
       50%      { box-shadow: var(--shadow-accent), 0 0 0 7px rgba(139,92,246,0); }
     }
     @keyframes tutorial-card-glow {
-      0%,100% { box-shadow: 0 0 0 2px rgba(139,92,246,0.5), 0 12px 40px rgba(0,0,0,0.8); }
-      50%      { box-shadow: 0 0 0 4px rgba(139,92,246,0.25), 0 12px 40px rgba(0,0,0,0.8); }
+      0%,100% { box-shadow: 0 0 0 3px rgba(139,92,246,0.9), 0 0 22px 4px rgba(139,92,246,0.35), 0 16px 40px rgba(0,0,0,0.6); }
+      50%      { box-shadow: 0 0 0 5px rgba(139,92,246,0.6), 0 0 32px 8px rgba(139,92,246,0.20), 0 16px 40px rgba(0,0,0,0.6); }
     }
     .tutorial-card {
       position: fixed; z-index: 1002;
@@ -1485,7 +1485,7 @@
       border-radius: var(--r-lg);
       padding: 18px 20px;
       max-width: 300px; width: calc(100vw - 40px);
-      animation: fadeIn 0.35s var(--spring) forwards, tutorial-card-glow 2s ease-in-out 0.4s infinite;
+      animation: fadeIn 0.35s var(--spring) forwards, tutorial-spotlight-pulse 1.8s ease-in-out 0.4s infinite;
     }
     .tutorial-card.pos-center   { top:50%;  left:50%; transform:translate(-50%,-50%); }
     .tutorial-card.pos-below-top { top:148px; left:50%; transform:translateX(-50%); }
