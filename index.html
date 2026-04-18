@@ -1461,7 +1461,7 @@
     #tutorial-bg.hidden { opacity: 0; }
 
     .tutorial-overlay {
-      position: fixed; inset: 0; z-index: 1001;
+      position: fixed; inset: 0; z-index: 1002;
       pointer-events: none;
       opacity: 0; transition: opacity 0.3s;
     }
@@ -1475,7 +1475,7 @@
     }
     .tutorial-target {
       position: relative !important;
-      z-index: 1002 !important;
+      z-index: 1001 !important;   /* encima de tutorial-bg (1000), debajo del overlay (1002) */
       pointer-events: none;
       animation: tutorial-ring-pulse 1.8s ease-in-out infinite !important;
     }
