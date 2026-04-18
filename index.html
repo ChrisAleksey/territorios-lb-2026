@@ -1446,6 +1446,76 @@
       transition: background 0.15s, color 0.15s;
     }
     .login-cancel:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    /* ── Tutorial interactivo ─────────────────────────────────────────────── */
+    .tutorial-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .tutorial-overlay.active { pointer-events: auto; }
+    .tutorial-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    /* Spotlight: el elemento resaltado "rompe" el oscuro con box-shadow */
+    .tutorial-target {
+      position: relative !important;
+      z-index: 1001 !important;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.72) !important;
+      pointer-events: none;
+    }
+
+    /* Card tooltip del tutorial */
+    .tutorial-card {
+      position: fixed; z-index: 1002;
+      background: var(--card);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 18px 20px;
+      max-width: 300px; width: calc(100vw - 40px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+      animation: fadeIn 0.35s var(--spring) forwards;
+    }
+    .tutorial-card.pos-center   { top:50%;  left:50%; transform:translate(-50%,-50%); }
+    .tutorial-card.pos-below-top { top:148px; left:50%; transform:translateX(-50%); }
+    .tutorial-card.pos-center-map { top:50%; left:50%; transform:translate(-50%,-50%); }
+    .tutorial-card.pos-above-bottom { bottom:78px; left:50%; transform:translateX(-50%); }
+
+    .tutorial-step-badge {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+    }
+    .tutorial-text {
+      font-size: 14px; font-weight: 500; color: var(--text);
+      line-height: 1.55; margin: 0 0 16px; white-space: pre-line;
+    }
+    .tutorial-actions { display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+    .tutorial-skip-btn {
+      background: transparent; border: none;
+      color: var(--text3); font-size: 13px; font-weight: 500;
+      padding: 8px 10px; cursor: pointer; font-family: inherit;
+    }
+    .tutorial-skip-btn:hover { color: var(--text2); }
+    .tutorial-next-btn {
+      background: var(--gradient-accent); border: none; color: #fff;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      padding: 9px 18px; border-radius: var(--r-sm); cursor: pointer;
+      box-shadow: var(--shadow-accent);
+      transition: transform 0.12s var(--bounce), box-shadow 0.15s;
+    }
+    .tutorial-next-btn:active { transform: scale(0.96); }
+
+    /* Botón '?' para relanzar tutorial desde top-card */
+    .tutorial-replay-btn {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent-dim); border: 1px solid var(--border);
+      color: var(--accent); font-size: 11px; font-weight: 700;
+      cursor: pointer; line-height: 1; font-family: inherit;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .tutorial-replay-btn:hover { background: var(--accent-glow); }
   </style>
 </head>
 <body>
@@ -1475,12 +1545,12 @@
         class="login-input"
         id="login-name-input"
         type="password"
-        placeholder="Contraseña de administrador…"
+        placeholder="••••••••"
         autocomplete="current-password"
         onkeydown="if(event.key==='Enter') AdminLogin.submit()"
       >
       <div class="login-error" id="login-error">Contraseña incorrecta.</div>
-      <button class="login-submit" id="login-submit-btn" onclick="AdminLogin.submit()">Entrar</button>
+      <button class="login-submit" onclick="AdminLogin.submit()">Entrar</button>
       <button class="login-cancel" onclick="AdminLogin.close()">Cancelar</button>
     </div>
   </div>
@@ -1552,6 +1622,7 @@
       <span class="top-card-title" x-data x-text="$store.app.sessionInfo.capitan || '…'">…</span>
       <div style="display:flex;align-items:center;gap:6px">
         <span class="top-card-group" x-data x-text="'Grupo ' + ($store.app.sessionInfo.grupo || '…')">Grupo …</span>
+        <button class="tutorial-replay-btn" id="tutorial-replay-btn" onclick="event.stopPropagation();TutorialSystem.replay()" title="Ver tutorial">?</button>
         <button class="top-card-toggle" onclick="event.stopPropagation();document.getElementById('top-card').classList.toggle('collapsed')">▾</button>
       </div>
     </div>
@@ -1825,8 +1896,28 @@
   <!-- Admin login logic -->
   <script>
     const AdminLogin = {
+      // SHA-256 de la contraseña. Para cambiarla: node -e "crypto.subtle..." o
+      // https://emn178.github.io/online-tools/sha256.html
+      _HASH:      '44537ca9aa9862f9160a6612ebb8b00dfeca7e57b45a88c3fd260de6ffdd5bba',
+      _MAX_TRIES: 5,
+      _LOCKOUT_MS: 15 * 60 * 1000, // 15 minutos
       isLoggedIn: false,
-      _mode:      'admin', // 'admin' | 'informe'
+      _mode:      'admin',
+
+      _isLocked() {
+        const until = parseInt(sessionStorage.getItem('admin_lock_until') || '0', 10);
+        return Date.now() < until;
+      },
+
+      _recordFail() {
+        const tries = parseInt(sessionStorage.getItem('admin_tries') || '0', 10) + 1;
+        sessionStorage.setItem('admin_tries', tries);
+        if (tries >= this._MAX_TRIES) {
+          sessionStorage.setItem('admin_lock_until', Date.now() + this._LOCKOUT_MS);
+          sessionStorage.removeItem('admin_tries');
+        }
+        return tries;
+      },
 
       open() {
         if (sessionStorage.getItem('admin_auth')) {
@@ -1850,12 +1941,17 @@
         const overlay = document.getElementById('login-overlay');
         const input   = document.getElementById('login-name-input');
         const err     = document.getElementById('login-error');
-        const btn     = document.getElementById('login-submit-btn');
         input.value = '';
         input.classList.remove('error');
         err.classList.remove('show');
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
+        if (this._isLocked()) {
+          err.textContent = 'Demasiados intentos. Espera 15 minutos.';
+          err.classList.add('show');
+          input.disabled = true;
+        } else {
+          err.textContent = 'Contraseña incorrecta.';
+          input.disabled = false;
+        }
         overlay.classList.add('open');
         setTimeout(() => input.focus(), 200);
       },
@@ -1865,40 +1961,41 @@
       },
 
       async submit() {
+        if (this._isLocked()) return;
         const input = document.getElementById('login-name-input');
         const err   = document.getElementById('login-error');
-        const btn   = document.getElementById('login-submit-btn');
-        const pass  = input.value.trim();
-        if (!pass) return;
+        const pwd   = input.value;
+        if (!pwd) return;
 
-        btn.disabled = true;
-        btn.textContent = 'Verificando…';
-        input.classList.remove('error');
-        err.classList.remove('show');
+        // SHA-256 via Web Crypto API (nativa en todos los navegadores modernos)
+        const buf     = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+        const hashHex = Array.from(new Uint8Array(buf))
+                             .map(b => b.toString(16).padStart(2, '0')).join('');
 
-        try {
-          const ok = await FB.checkAdminAuth(pass);
-          if (ok) {
-            sessionStorage.setItem('admin_auth', '1');
-            if (this._mode === 'informe') {
-              this.isLoggedIn = true;
-              this.close();
-              TerritorialApp._unlockInformeBar();
-            } else {
-              window.location.href = 'admin.html';
-            }
+        if (hashHex === this._HASH) {
+          sessionStorage.removeItem('admin_tries');
+          sessionStorage.removeItem('admin_lock_until');
+          sessionStorage.setItem('admin_auth', '1');
+          if (this._mode === 'informe') {
+            this.isLoggedIn = true;
+            this.close();
+            TerritorialApp._unlockInformeBar();
           } else {
-            input.classList.add('error');
-            err.classList.add('show');
-            btn.disabled = false;
-            btn.textContent = 'Entrar';
-            input.focus();
+            window.location.href = 'admin.html';
           }
-        } catch {
-          err.textContent = 'Error de conexión. Intenta de nuevo.';
+        } else {
+          const tries = this._recordFail();
+          input.classList.add('error');
+          if (this._isLocked()) {
+            err.textContent = 'Demasiados intentos. Espera 15 minutos.';
+            input.disabled = true;
+          } else {
+            const left = this._MAX_TRIES - tries;
+            err.textContent = `Contraseña incorrecta. ${left} intento${left !== 1 ? 's' : ''} restante${left !== 1 ? 's' : ''}.`;
+          }
           err.classList.add('show');
-          btn.disabled = false;
-          btn.textContent = 'Entrar';
+          input.value = '';
+          input.focus();
         }
       }
     };
@@ -1913,6 +2010,18 @@
       if (e.target === this) AdminLogin.close();
     });
   </script>
+
+  <!-- ─── Tutorial interactivo (primera apertura del capitán) ─── -->
+  <div id="tutorial-overlay" class="tutorial-overlay" aria-hidden="true">
+    <div id="tutorial-card" class="tutorial-card pos-center">
+      <div id="tutorial-step-badge" class="tutorial-step-badge">1 / 4</div>
+      <p id="tutorial-text" class="tutorial-text"></p>
+      <div class="tutorial-actions">
+        <button id="tutorial-skip" class="tutorial-skip-btn">Saltar</button>
+        <button id="tutorial-next" class="tutorial-next-btn">Siguiente →</button>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>

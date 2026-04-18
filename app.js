@@ -135,6 +135,121 @@ function _getZoneList(lugar) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   TutorialSystem  —  Tutorial interactivo de primera apertura
+══════════════════════════════════════════════════════════════════════════════ */
+const TutorialSystem = {
+  _step: 0,
+  _prevTarget: null,
+  _listenersAttached: false,
+
+  _STEPS: [
+    {
+      target: null,
+      pos: 'pos-center',
+      text: '👋 Bienvenido a tu mapa de territorios.\nAquí verás solo los que tienes asignados para hoy.',
+    },
+    {
+      target: 'top-card',
+      pos: 'pos-below-top',
+      text: '📋 Aquí ves el resumen de tu sesión: fecha, hora y punto de encuentro.',
+    },
+    {
+      target: 'map',
+      pos: 'pos-center-map',
+      text: '🗺️ Toca cualquier territorio coloreado para ver sus detalles y marcar tu avance.',
+    },
+    {
+      target: 'finish-bar',
+      pos: 'pos-above-bottom',
+      text: '✅ Cuando termines, toca Finalizar para enviar tu informe de sesión.',
+      nextLabel: '¡Entendido!',
+    },
+  ],
+
+  maybeStart() {
+    const token = TerritorialApp.token;
+    if (!token) return;
+    if (localStorage.getItem(`tutorial_v1_${token}`) === 'done') return;
+    setTimeout(() => this.start(), 900);
+  },
+
+  start() {
+    this._step = 0;
+    const overlay = document.getElementById('tutorial-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    // Adjuntar listeners solo la primera vez
+    if (!this._listenersAttached) {
+      document.getElementById('tutorial-next')?.addEventListener('click', () => this.next());
+      document.getElementById('tutorial-skip')?.addEventListener('click', () => this.finish());
+      this._listenersAttached = true;
+    }
+    this._render();
+  },
+
+  _render() {
+    const step  = this._STEPS[this._step];
+    const card  = document.getElementById('tutorial-card');
+    const badge = document.getElementById('tutorial-step-badge');
+    const text  = document.getElementById('tutorial-text');
+    const next  = document.getElementById('tutorial-next');
+    if (!card) return;
+
+    // Quitar spotlight anterior
+    if (this._prevTarget) {
+      document.getElementById(this._prevTarget)?.classList.remove('tutorial-target');
+    }
+    // Aplicar spotlight nuevo
+    if (step.target) {
+      document.getElementById(step.target)?.classList.add('tutorial-target');
+    }
+    this._prevTarget = step.target || null;
+
+    badge.textContent = `${this._step + 1} / ${this._STEPS.length}`;
+    text.textContent  = step.text;
+    next.textContent  = step.nextLabel || 'Siguiente →';
+    card.className    = `tutorial-card ${step.pos}`;
+  },
+
+  next() {
+    if (this._step < this._STEPS.length - 1) {
+      this._step++;
+      this._render();
+    } else {
+      this.finish();
+    }
+  },
+
+  finish() {
+    if (this._prevTarget) {
+      document.getElementById(this._prevTarget)?.classList.remove('tutorial-target');
+      this._prevTarget = null;
+    }
+    const overlay = document.getElementById('tutorial-overlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+      setTimeout(() => { overlay.classList.remove('active'); }, 350);
+    }
+    const token = TerritorialApp.token;
+    if (token) localStorage.setItem(`tutorial_v1_${token}`, 'done');
+  },
+
+  replay() {
+    const token = TerritorialApp.token;
+    if (!token) return;
+    localStorage.removeItem(`tutorial_v1_${token}`);
+    // Re-insertar overlay si fue eliminado (compat con código anterior)
+    const overlay = document.getElementById('tutorial-overlay');
+    if (!overlay) return;
+    this.start();
+  },
+};
+
+/* ══════════════════════════════════════════════════════════════════════════════
    TerritorialApp
 ══════════════════════════════════════════════════════════════════════════════ */
 const TerritorialApp = {
@@ -278,7 +393,11 @@ const TerritorialApp = {
       const extrasKey = `extras_${this.token}_${this._sessionFecha}`;
       const savedExtras = localStorage.getItem(extrasKey);
       if (savedExtras) {
-        const extras = JSON.parse(savedExtras);
+        const raw = JSON.parse(savedExtras);
+        // Sanear: solo nombres válidos de territorio (t + dígitos + letra opcional)
+        const extras = Array.isArray(raw)
+          ? raw.filter(t => typeof t === 'string' && /^t\d{1,3}[a-z]?$/i.test(t)).slice(0, 50)
+          : [];
         extras.forEach(t => {
           if (!this.assignedTerritories.includes(t)) this.assignedTerritories.push(t);
         });
@@ -1524,14 +1643,21 @@ const TerritorialApp = {
     // Cargar tipo de sesión
     try {
       const tipo = localStorage.getItem('admin_session_tipo');
-      if (tipo) { this.adminSessionTipo = tipo; localStorage.removeItem('admin_session_tipo'); }
+      if (tipo && ['casaencasa', 'carta'].includes(tipo)) {
+        this.adminSessionTipo = tipo;
+      }
+      localStorage.removeItem('admin_session_tipo');
     } catch(e) {}
 
     // Cargar territorios permitidos para este lugar de encuentro
     try {
       const stored = localStorage.getItem('admin_allowed_territories');
       if (stored) {
-        this.adminAllowedTerritories = new Set(JSON.parse(stored).map(t => t.toLowerCase()));
+        const raw = JSON.parse(stored);
+        const valid = Array.isArray(raw)
+          ? raw.filter(t => typeof t === 'string' && /^t\d{1,3}[a-z]?$/i.test(t))
+          : [];
+        this.adminAllowedTerritories = new Set(valid.map(t => t.toLowerCase()));
         localStorage.removeItem('admin_allowed_territories');
       }
     } catch(e) {}
@@ -1541,7 +1667,10 @@ const TerritorialApp = {
       const stored = localStorage.getItem('admin_capitan_territories');
       if (stored) {
         const all = JSON.parse(stored);
-        const existing = (all[this.adminSelectCapId] || []).map(t => t.toLowerCase());
+        const raw = Array.isArray(all[this.adminSelectCapId]) ? all[this.adminSelectCapId] : [];
+        const existing = raw
+          .filter(t => typeof t === 'string' && /^t\d{1,3}[a-z]?$/i.test(t))
+          .map(t => t.toLowerCase());
         this.adminSelectedTerritories = new Set(existing);
       }
     } catch(e) {}
@@ -1550,7 +1679,13 @@ const TerritorialApp = {
     let capNombre = this.adminSelectCapId;
     try {
       const info = localStorage.getItem('admin_select_info');
-      if (info) capNombre = JSON.parse(info).nombre;
+      if (info) {
+        const parsed = JSON.parse(info);
+        // Cap nombre a 120 chars; textContent ya previene XSS
+        if (typeof parsed.nombre === 'string' && parsed.nombre.length > 0) {
+          capNombre = parsed.nombre.slice(0, 120);
+        }
+      }
     } catch(e) {}
 
     // Ocultar controles que interfieren visualmente
@@ -1824,6 +1959,9 @@ const TerritorialApp = {
       document.getElementById('finish-bar')?.classList.add('visible');
       this.updateProgress();
     }, 400);
+
+    // Lanzar tutorial si es la primera vez
+    TutorialSystem.maybeStart();
   },
 
   /* ── Informe bar (vista general, admin) ──────────────────────────────────── */
@@ -1911,11 +2049,6 @@ const TerritorialApp = {
       }
       this._cicloResets = resets;
 
-      // Fecha de corte cuando no hay reset: 90 días atrás (evita contar historial viejo)
-      const d90 = new Date();
-      d90.setDate(d90.getDate() - 90);
-      const cutoffDefault = d90.toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
-
       // Segunda pasada: último completo por territorio (solo dentro del ciclo actual)
       const latest = {};
       for (const e of entries) {
@@ -1924,7 +2057,7 @@ const TerritorialApp = {
         const fecha = e.fechaPredicacion || e.fechaArchivado || '';
         if (!fecha) continue;
         const lugar       = TERRITORY_LOCATION[t] || '';
-        const ultimoReset = resets[lugar] || cutoffDefault;
+        const ultimoReset = resets[lugar] || '1900-01-01';
         if (fecha <= ultimoReset) continue; // anterior al ciclo actual
         if (!latest[t] || fecha > latest[t]) latest[t] = fecha;
       }
@@ -1954,12 +2087,7 @@ const TerritorialApp = {
 
   _getCompletadosEnCiclo(lugar) {
     const territorios = LOCATION_TERRITORIES[lugar] || [];
-    let ultimoReset = this._cicloResets[lugar];
-    if (!ultimoReset) {
-      const d = new Date();
-      d.setDate(d.getDate() - 90);
-      ultimoReset = d.toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
-    }
+    const ultimoReset = this._cicloResets[lugar] || '1900-01-01';
     const hoy = FB.todayMX();
     return new Set(territorios.filter(t =>
       (this.territoryLastWorked[t] && this.territoryLastWorked[t] > ultimoReset)
