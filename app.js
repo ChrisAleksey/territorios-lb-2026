@@ -169,6 +169,7 @@ const TutorialSystem = {
   maybeStart() {
     const token = TerritorialApp.token;
     if (!token) return;
+    if (TerritorialApp.adminSelectCapId) return;  // No mostrar en modo selector-admin
     if (localStorage.getItem(`tutorial_v1_${token}`) === 'done') return;
     setTimeout(() => this.start(), 900);
   },
