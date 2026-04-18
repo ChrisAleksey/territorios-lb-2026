@@ -1914,28 +1914,13 @@
   <!-- Admin login logic -->
   <script>
     const AdminLogin = {
-      // SHA-256 de la contraseña. Para cambiarla: node -e "crypto.subtle..." o
-      // https://emn178.github.io/online-tools/sha256.html
-      _HASH:      '44537ca9aa9862f9160a6612ebb8b00dfeca7e57b45a88c3fd260de6ffdd5bba',
-      _MAX_TRIES: 5,
-      _LOCKOUT_MS: 15 * 60 * 1000, // 15 minutos
+      // SHA-256 de las contraseñas válidas (aleksey, rene)
+      _HASHES: new Set([
+        '3027418b987e5c09dcff6ee4329e751487e0d20c438dc706e3f402d09ee0314a', // aleksey
+        '63c5d687c64d48947a75bf25daa7a128d0c9a8fe1205c7ae3728224015ee7c0e', // rene
+      ]),
       isLoggedIn: false,
       _mode:      'admin',
-
-      _isLocked() {
-        const until = parseInt(sessionStorage.getItem('admin_lock_until') || '0', 10);
-        return Date.now() < until;
-      },
-
-      _recordFail() {
-        const tries = parseInt(sessionStorage.getItem('admin_tries') || '0', 10) + 1;
-        sessionStorage.setItem('admin_tries', tries);
-        if (tries >= this._MAX_TRIES) {
-          sessionStorage.setItem('admin_lock_until', Date.now() + this._LOCKOUT_MS);
-          sessionStorage.removeItem('admin_tries');
-        }
-        return tries;
-      },
 
       open() {
         if (sessionStorage.getItem('admin_auth')) {
@@ -1962,14 +1947,8 @@
         input.value = '';
         input.classList.remove('error');
         err.classList.remove('show');
-        if (this._isLocked()) {
-          err.textContent = 'Demasiados intentos. Espera 15 minutos.';
-          err.classList.add('show');
-          input.disabled = true;
-        } else {
-          err.textContent = 'Contraseña incorrecta.';
-          input.disabled = false;
-        }
+        err.textContent = 'Contraseña incorrecta.';
+        input.disabled = false;
         overlay.classList.add('open');
         setTimeout(() => input.focus(), 200);
       },
@@ -1979,7 +1958,6 @@
       },
 
       async submit() {
-        if (this._isLocked()) return;
         const input = document.getElementById('login-name-input');
         const err   = document.getElementById('login-error');
         const pwd   = input.value;
@@ -1990,9 +1968,7 @@
         const hashHex = Array.from(new Uint8Array(buf))
                              .map(b => b.toString(16).padStart(2, '0')).join('');
 
-        if (hashHex === this._HASH) {
-          sessionStorage.removeItem('admin_tries');
-          sessionStorage.removeItem('admin_lock_until');
+        if (this._HASHES.has(hashHex)) {
           sessionStorage.setItem('admin_auth', '1');
           if (this._mode === 'informe') {
             this.isLoggedIn = true;
@@ -2002,15 +1978,7 @@
             window.location.href = 'admin.html';
           }
         } else {
-          const tries = this._recordFail();
           input.classList.add('error');
-          if (this._isLocked()) {
-            err.textContent = 'Demasiados intentos. Espera 15 minutos.';
-            input.disabled = true;
-          } else {
-            const left = this._MAX_TRIES - tries;
-            err.textContent = `Contraseña incorrecta. ${left} intento${left !== 1 ? 's' : ''} restante${left !== 1 ? 's' : ''}.`;
-          }
           err.classList.add('show');
           input.value = '';
           input.focus();
