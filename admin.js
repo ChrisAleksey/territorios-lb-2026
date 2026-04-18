@@ -580,7 +580,7 @@ _(Toca el link para ver tus territorios asignados)_`;
        WHATSAPP
     ════════════════════════════════════════════ */
     getWhatsAppUrl(card) {
-      return `https://wa.me/${card.tel}?text=${encodeURIComponent(card.message)}`;
+      return `https://api.whatsapp.com/send?text=${encodeURIComponent(card.message)}`;
     },
 
     /* ════════════════════════════════════════════
