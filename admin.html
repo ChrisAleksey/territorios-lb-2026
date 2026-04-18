@@ -502,7 +502,7 @@
             </thead>
             <tbody>
               <template x-for="(e, i) in historialFiltered" :key="i">
-                <tr>
+                <tr :class="e.estado === 'ciclo_reset' ? 'historial-reset-row' : ''">
                   <td data-label="Territorio">
                     <template x-if="e.estado !== 'ciclo_reset'">
                       <a :href="'/?goto=' + (e.territorio||'').toLowerCase()" target="_blank" style="text-decoration:none;">
@@ -516,7 +516,7 @@
                   <td data-label="Estado">
                     <span class="token-pill"
                       :class="e.estado==='completo' ? 'status-completo' : e.estado==='ciclo_reset' ? 'status-reset' : 'status-parcial'"
-                      x-text="e.estado==='completo' ? '✅ Completo' : e.estado==='ciclo_reset' ? '🔄 Reset ciclo' : '🟡 Parcial'">
+                      x-text="e.estado==='completo' ? '✅ Completo' : e.estado==='ciclo_reset' ? '↺ Ciclo reiniciado' : '🟡 Parcial'">
                     </span>
                   </td>
                   <td data-label="Tipo" class="hide-mobile">
