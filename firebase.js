@@ -103,6 +103,16 @@ const FB = {
     return Promise.all(promises);
   },
 
+  async saveCapitan(cap) {
+    // Crea o sobreescribe el documento del capitán (keyed by token)
+    return this._patch(`capitanes/${cap.token}`, this._objToFields(cap));
+  },
+
+  async deleteCapitan(token) {
+    const res = await fetch(`${this.BASE}/capitanes/${token}?key=${this.API_KEY}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Firestore DELETE capitanes/${token} → ${res.status}`);
+  },
+
   async listCapitanes() {
     let all = [], pageToken = null;
     do {
