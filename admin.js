@@ -403,8 +403,8 @@ function adminApp() {
     },
 
     onCapitanChange(asg, newCapId, event) {
-      // Verificar duplicado — un capitán solo puede aparecer una vez
-      if (newCapId && this.asignaciones.some(a => a !== asg && a.capitanId === newCapId)) {
+      // Verificar duplicado — un capitán solo puede aparecer una vez (excepto sin-capitan)
+      if (newCapId && newCapId !== 'sin-capitan' && this.asignaciones.some(a => a !== asg && a.capitanId === newCapId)) {
         asg.error = true;
         event.target.value = asg.capitanId; // revertir select visualmente
         setTimeout(() => { asg.error = false; }, 700);
@@ -453,6 +453,19 @@ function adminApp() {
         this.generatedCards = this.asignaciones
           .filter(asg => asg.capitanId && asg.grupos.length && asg.lugar.trim())
           .map(asg => {
+            // Sin capitán — tarjeta de aviso sin mensaje ni WA
+            if (asg.capitanId === 'sin-capitan') {
+              return {
+                capitanId:  'sin-capitan-' + asg.grupos.join('-'),
+                nombre:     'Sin capitán asignado',
+                tel:        null,
+                token:      null,
+                grupos:     asg.grupos.join(', '),
+                message:    null,
+                sinCapitan: true,
+              };
+            }
+
             const cap = this.capitanes.find(c => c.id === asg.capitanId);
             if (!cap) return null;
 
@@ -475,6 +488,7 @@ _(Toca el link para ver tus territorios asignados)_`;
               token:     cap.token,
               grupos:    asg.grupos.join(', '),
               message,
+              sinCapitan: false,
             };
           })
           .filter(Boolean);
@@ -499,7 +513,7 @@ _(Toca el link para ver tus territorios asignados)_`;
     async _guardarSesionesFirebase(fecha, horaStr) {
       try {
         const rows = this.asignaciones
-          .filter(asg => asg.capitanId && asg.grupos.length && asg.lugar.trim());
+          .filter(asg => asg.capitanId && asg.capitanId !== 'sin-capitan' && asg.grupos.length && asg.lugar.trim());
         if (!rows.length) return;
 
         const promises = rows.map(asg => {
