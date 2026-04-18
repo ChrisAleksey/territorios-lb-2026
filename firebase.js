@@ -103,6 +103,23 @@ const FB = {
     return Promise.all(promises);
   },
 
+  async listCapitanes() {
+    let all = [], pageToken = null;
+    do {
+      let url = `${this.BASE}/capitanes?key=${this.API_KEY}&pageSize=300`;
+      if (pageToken) url += `&pageToken=${pageToken}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Firestore GET capitanes → ${res.status}`);
+      const data = await res.json();
+      (data.documents || []).forEach(doc => {
+        const obj = this._docToObj(doc);
+        if (obj) all.push(obj);
+      });
+      pageToken = data.nextPageToken || null;
+    } while (pageToken);
+    return all;
+  },
+
   /* ── Sesiones ──────────────────────────────────────────────────────────── */
   _sesionId(token, fecha) {
     return `${fecha}_${token}`;
