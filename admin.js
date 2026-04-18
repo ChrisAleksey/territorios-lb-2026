@@ -69,7 +69,7 @@ function adminApp() {
     sessionTipo: 'casaencasa',
     sessionDate: '',
     sessionTime: '09:30',
-    asignaciones: [{ capitanId: '', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false }],
+    asignaciones: [{ capitanId: 'sin-capitan', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false }],
     allGrupos: KNOWN_GRUPOS,
 
     /* ── Autocomplete ── */
@@ -208,7 +208,7 @@ function adminApp() {
           if (Array.isArray(raw)) {
             // Sanear cada asignación
             const asg = raw.slice(0, 20).map(a => ({
-              capitanId:   typeof a.capitanId === 'string' ? a.capitanId.slice(0, 64) : '',
+              capitanId:   typeof a.capitanId === 'string' ? a.capitanId.slice(0, 64) : 'sin-capitan',
               // grupos son números de grupo ('1'–'11', 'Congregación'), no nombres de territorio
               grupos:      Array.isArray(a.grupos)
                 ? a.grupos.filter(t => typeof t === 'string' && t.length > 0 && t.length <= 30)
@@ -380,7 +380,7 @@ function adminApp() {
        ASIGNACIONES
     ════════════════════════════════════════════ */
     addAsignacion() {
-      this.asignaciones.push({ capitanId: '', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false });
+      this.asignaciones.push({ capitanId: 'sin-capitan', grupos: [], lugar: '', error: false, errorGrupos: false, errorLugar: false });
     },
 
     toggleGrupo(asg, g) {
