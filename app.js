@@ -1443,13 +1443,20 @@ const TerritorialApp = {
     if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
 
     // Mostrar capitán asignado y resetear picker
-    const capName = this.sessionInfo.capitan || '—';
+    const capName   = this.sessionInfo.capitan || '';
+    const sinCapitan = !capName; // token sin-cap-* no tiene capitán asignado
     const nameEl  = document.getElementById('finish-capitan-name');
     const selEl   = document.getElementById('finish-capitan-select');
     const dispEl  = document.getElementById('finish-capitan-display');
-    if (nameEl)  nameEl.textContent = capName;
-    if (selEl)   { selEl.style.display = 'none'; selEl.value = ''; }
-    if (dispEl)  dispEl.style.display = 'flex';
+    if (nameEl)  nameEl.textContent = capName || 'Selecciona tu nombre';
+    if (sinCapitan) {
+      // Sin capitán: mostrar picker directamente para que se identifiquen
+      if (dispEl) dispEl.style.display = 'none';
+      if (selEl)  { selEl.style.display = 'block'; selEl.value = ''; setTimeout(() => selEl.focus(), 200); }
+    } else {
+      if (selEl)  { selEl.style.display = 'none'; selEl.value = ''; }
+      if (dispEl) dispEl.style.display = 'flex';
+    }
 
     document.getElementById('finish-sheet')?.classList.add('open');
     document.getElementById('finish-backdrop')?.classList.add('active');

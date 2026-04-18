@@ -453,15 +453,27 @@ function adminApp() {
         this.generatedCards = this.asignaciones
           .filter(asg => asg.capitanId && asg.grupos.length && asg.lugar.trim())
           .map(asg => {
-            // Sin capitán — tarjeta de aviso sin mensaje ni WA
+            // Sin capitán — generar token y link para que ellos seleccionen su nombre
             if (asg.capitanId === 'sin-capitan') {
+              const sinToken = 'sin-cap-' + [...asg.grupos].sort().join('-');
+              const mapLink  = `${baseUrl}/?t=${sinToken}`;
+              const message  =
+`🗓️ *Fecha:* ${fechaStr}
+⏰ *Hora:* ${horaStr}
+📍 *Punto de encuentro:* ${asg.lugar.trim()}
+👥 *Grupos:* ${asg.grupos.join(', ')}
+
+🗺️ *Tu mapa de territorios:*
+${mapLink}
+
+_(Al enviar el informe, selecciona tu nombre de capitán)_`;
               return {
-                capitanId:  'sin-capitan-' + asg.grupos.join('-'),
+                capitanId:  sinToken,
                 nombre:     'Sin capitán asignado',
                 tel:        null,
-                token:      null,
+                token:      sinToken,
                 grupos:     asg.grupos.join(', '),
-                message:    null,
+                message,
                 sinCapitan: true,
               };
             }
@@ -513,21 +525,30 @@ _(Toca el link para ver tus territorios asignados)_`;
     async _guardarSesionesFirebase(fecha, horaStr) {
       try {
         const rows = this.asignaciones
-          .filter(asg => asg.capitanId && asg.capitanId !== 'sin-capitan' && asg.grupos.length && asg.lugar.trim());
+          .filter(asg => asg.capitanId && asg.grupos.length && asg.lugar.trim());
         if (!rows.length) return;
 
         const promises = rows.map(asg => {
-            const cap = this.capitanes.find(c => c.id === asg.capitanId);
-            if (!cap) return null;
-            const territorios = this.territoriosPorCapitan[asg.capitanId] || [];
-            console.log(`[Admin] Guardando sesión ${cap.nombre} | fecha=${fecha} | territorios=${JSON.stringify(territorios)}`);
-            return FB.saveSesion(cap.token, fecha, {
+            let token, nombre;
+            if (asg.capitanId === 'sin-capitan') {
+              token  = 'sin-cap-' + [...asg.grupos].sort().join('-');
+              nombre = '';
+            } else {
+              const cap = this.capitanes.find(c => c.id === asg.capitanId);
+              if (!cap) return null;
+              token  = cap.token;
+              nombre = cap.nombre;
+            }
+            const capKey     = asg.capitanId === 'sin-capitan' ? token : asg.capitanId;
+            const territorios = this.territoriosPorCapitan[capKey] || [];
+            console.log(`[Admin] Guardando sesión ${nombre || token} | fecha=${fecha} | territorios=${JSON.stringify(territorios)}`);
+            return FB.saveSesion(token, fecha, {
               tipo:        this.sessionTipo,
               hora:        horaStr,
               lugar:       asg.lugar.trim(),
               grupos:      asg.grupos.join(', '),
               territorios,
-              capitan:     cap.nombre,
+              capitan:     nombre,
               estados:     {}
             });
           })
@@ -631,6 +652,14 @@ _(Toca el link para ver tus territorios asignados)_`;
       } catch(e) {}
       if (!cap?.id) return;   // guard: capitanes aún no cargados o no encontrado
       window.location.href = `./?admin_select=${cap.id}`;
+    },
+
+    // Devuelve la clave real para buscar territorios (sin-cap usa token derivado de grupos)
+    getCapKey(asg) {
+      if (asg.capitanId === 'sin-capitan') {
+        return 'sin-cap-' + [...asg.grupos].sort().join('-');
+      }
+      return asg.capitanId;
     },
 
     getCapitanTerritoryCount(capId) {
