@@ -66,10 +66,6 @@
         <span class="nav-icon">🗺️</span>
         <span class="nav-label">Ver Mapa</span>
       </a>
-      <div class="admin-badge">
-        <span class="badge-dot"></span>
-        <span>Admin</span>
-      </div>
     </div>
   </aside>
 
@@ -295,13 +291,12 @@
       <!-- Captains table -->
       <div class="card table-card">
         <div class="table-scroll">
-          <table class="data-table">
+          <table class="data-table capitanes-table">
             <thead>
               <tr>
                 <th>Nombre</th>
                 <th class="hide-mobile">Teléfono</th>
                 <th>Token</th>
-                <th class="hide-mobile">Link Personalizado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -314,20 +309,22 @@
                       <span x-text="cap.nombre"></span>
                     </div>
                   </td>
-                  <td class="hide-mobile text-mono" x-text="'+' + cap.tel"></td>
+                  <td class="hide-mobile text-mono" x-text="cap.tel ? '+' + cap.tel : '—'"></td>
                   <td>
                     <span class="token-pill" x-text="cap.token"></span>
                   </td>
-                  <td class="hide-mobile">
-                    <span class="link-preview" x-text="getCapitanLink(cap.token)"></span>
-                  </td>
                   <td>
                     <div class="action-buttons">
-                      <button class="btn-action copy"
-                              @click="copyLink(cap.token, cap.id)"
-                              x-text="copiedId === cap.id ? '✓ Copiado!' : 'Copiar link'">
+                      <button class="btn-action copy" @click="copyLink(cap.token, cap.id)" :title="copiedId === cap.id ? 'Copiado!' : 'Copiar link'">
+                        <svg x-show="copiedId !== cap.id" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <svg x-show="copiedId === cap.id" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </button>
-                      <button class="btn-action edit" @click="startEditCapitan(cap)">Editar</button>
+                      <button class="btn-action edit" @click="startEditCapitan(cap)" title="Editar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button class="btn-action delete" @click="deleteCapitan(cap)" title="Eliminar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -337,18 +334,6 @@
         </div>
       </div>
 
-      <!-- Seed Firebase (uso único) -->
-      <div style="margin-top:24px;text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn-ghost" style="font-size:11px;opacity:0.5;" @click="seedCapitanes()">
-          ↑ Subir capitanes a Firebase
-        </button>
-        <button class="btn-ghost" style="font-size:11px;opacity:0.5;" @click="seedHistorial()">
-          ↑ Subir historial a Firebase
-        </button>
-        <button class="btn-ghost" style="font-size:11px;opacity:0.5;" @click="setAdminPassword()">
-          Establecer contraseña admin
-        </button>
-      </div>
 
     </section>
 
@@ -359,34 +344,117 @@
              x-transition:enter-start="section-enter-start"
              x-transition:enter-end="section-enter-end">
 
-      <div class="section-header">
-        <h1 class="section-title">Dashboard</h1>
-        <p class="section-sub">Resumen del estado de los territorios.</p>
+      <div class="section-header-row">
+        <div>
+          <h1 class="section-title">Dashboard</h1>
+          <p class="section-sub">Progreso del ciclo actual de territorios.</p>
+        </div>
+        <button class="btn-ghost" @click="loadDashboard()">↺ Recargar</button>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(59,130,246,0.15); color: #3b82f6;">🗺️</div>
-          <div class="stat-value">106</div>
-          <div class="stat-label">Total Territorios</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(16,185,129,0.15); color: #10b981;">✅</div>
-          <div class="stat-value" x-text="dashboard.completados"></div>
-          <div class="stat-label">Completados Hoy</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(245,158,11,0.15); color: #f59e0b;">⏳</div>
-          <div class="stat-value" x-text="dashboard.enProgreso"></div>
-          <div class="stat-label">En Progreso</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background: rgba(239,68,68,0.15); color: #ef4444;">📋</div>
-          <div class="stat-value" x-text="dashboard.pendientes"></div>
-          <div class="stat-label">Pendientes</div>
-        </div>
+      <!-- Cargando -->
+      <div x-show="dashboard.loading" style="text-align:center;padding:40px;color:var(--text2);">
+        Calculando estadísticas…
       </div>
 
+      <template x-if="!dashboard.loading">
+        <div>
+
+          <!-- Stat cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(59,130,246,.15);color:#3b82f6;">🗺️</div>
+              <div class="stat-value" x-text="dashboard.totalTerr"></div>
+              <div class="stat-label">Total Territorios</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(16,185,129,.15);color:#10b981;">✅</div>
+              <div class="stat-value" x-text="dashboard.completados"></div>
+              <div class="stat-label">Completados</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(99,102,241,.15);color:#818cf8;">📊</div>
+              <div class="stat-value" x-text="dashboard.progreso + '%'"></div>
+              <div class="stat-label">Progreso</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(239,68,68,.15);color:#ef4444;">⏳</div>
+              <div class="stat-value" x-text="dashboard.pendientes"></div>
+              <div class="stat-label">Pendientes</div>
+            </div>
+          </div>
+
+          <!-- Progreso por tipo + Últimas actividades -->
+          <div class="dash-three-col">
+
+            <!-- Casa en casa -->
+            <div class="card dash-tipo-card">
+              <div class="dash-tipo-header tipo-casa">
+                <span class="dash-tipo-icon">🏠</span>
+                <span class="dash-tipo-label">Casa en casa</span>
+              </div>
+              <div class="dash-tipo-body">
+                <div class="dash-tipo-num" x-text="dashboard.casa.completados"></div>
+                <div class="dash-tipo-sub">
+                  de <strong x-text="dashboard.casa.total"></strong> territorios
+                </div>
+                <div class="dash-tipo-parcs" x-show="dashboard.casa.parciales > 0"
+                     x-text="'+ ' + dashboard.casa.parciales + ' visitados'"></div>
+              </div>
+              <div class="dash-tipo-bar-wrap">
+                <div class="group-progress-bar">
+                  <div class="group-progress-fill"
+                       :style="`width:${dashboard.casa.progreso}%;background:#66bb6a`"></div>
+                </div>
+                <span class="dash-tipo-pct" x-text="dashboard.casa.progreso + '%'"></span>
+              </div>
+            </div>
+
+            <!-- Carta postal -->
+            <div class="card dash-tipo-card">
+              <div class="dash-tipo-header tipo-carta">
+                <span class="dash-tipo-icon">✉️</span>
+                <span class="dash-tipo-label">Carta postal</span>
+              </div>
+              <div class="dash-tipo-body">
+                <div class="dash-tipo-num" x-text="dashboard.carta.completados"></div>
+                <div class="dash-tipo-sub">
+                  de <strong x-text="dashboard.carta.total"></strong> territorios
+                </div>
+                <div class="dash-tipo-parcs" x-show="dashboard.carta.parciales > 0"
+                     x-text="'+ ' + dashboard.carta.parciales + ' visitados'"></div>
+              </div>
+              <div class="dash-tipo-bar-wrap">
+                <div class="group-progress-bar">
+                  <div class="group-progress-fill"
+                       :style="`width:${dashboard.carta.progreso}%;background:#ef5350`"></div>
+                </div>
+                <span class="dash-tipo-pct" x-text="dashboard.carta.progreso + '%'"></span>
+              </div>
+            </div>
+
+            <!-- Últimas actividades -->
+            <div class="card table-card">
+              <div class="dash-card-title">🕐 Últimas actividades</div>
+              <div x-show="!dashboard.recientes.length"
+                   style="padding:28px;text-align:center;color:var(--text3);font-size:13px;">
+                Sin actividad reciente
+              </div>
+              <template x-for="e in dashboard.recientes" :key="e._id">
+                <div class="dash-recent-row">
+                  <span class="dash-recent-terr" x-text="(e.territorio||'?').toUpperCase()"></span>
+                  <span class="pill dash-recent-pill"
+                        :class="e.estado === 'completo' ? 'status-completo' : 'status-parcial'"
+                        x-text="e.estado === 'completo' ? 'Completo' : 'Parcial'"></span>
+                  <span class="dash-recent-cap" x-text="e.capitan || '—'"></span>
+                  <span class="dash-recent-fecha" x-text="formatDateShort(e.fechaPredicacion)"></span>
+                </div>
+              </template>
+            </div>
+
+          </div>
+        </div>
+      </template>
 
     </section>
 
@@ -416,24 +484,25 @@
       </div>
 
       <!-- Tabla -->
-      <div x-show="!historialLoading" class="card" style="padding:0;overflow-x:auto;margin-top:12px;">
-          <table class="data-table historial-table" :class="historialEditingId ? 'editing' : ''">
+      <div x-show="!historialLoading" class="card table-card" style="margin-top:12px;">
+        <div class="table-scroll">
+          <table class="data-table historial-table">
             <thead>
               <tr>
                 <th>Territorio</th>
                 <th>Estado</th>
                 <th class="hide-mobile">Tipo</th>
                 <th>Capitán</th>
-                <th>Lugar</th>
+                <th class="hide-mobile">Lugar</th>
                 <th>Predicación</th>
-                <th>Archivado</th>
-                <th>Notas</th>
-                <th style="width:1%;white-space:nowrap">Acciones</th>
+                <th class="hide-tablet">Archivado</th>
+                <th class="hide-tablet">Notas</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="(e, i) in historialFiltered" :key="i">
-                <tr :class="e.estado === 'ciclo_reset' ? 'row-reset' : ''">
+                <tr>
                   <td data-label="Territorio">
                     <template x-if="e.estado !== 'ciclo_reset'">
                       <a :href="'/?goto=' + (e.territorio||'').toLowerCase()" target="_blank" style="text-decoration:none;">
@@ -441,90 +510,61 @@
                       </a>
                     </template>
                     <template x-if="e.estado === 'ciclo_reset'">
-                      <span style="font-size:11px;color:var(--text2);font-style:italic" x-text="e.lugar || e.territorio"></span>
+                      <span class="text-muted-sm" x-text="e.lugar || e.territorio"></span>
                     </template>
                   </td>
                   <td data-label="Estado">
-                    <span x-show="historialEditingId !== e._id" class="token-pill"
-                      :style="e.estado==='completo'    ? 'background:rgba(76,175,80,.15);color:#4caf50'
-                            : e.estado==='ciclo_reset'  ? 'background:rgba(100,181,246,.1);color:#64b5f6'
-                            :                             'background:rgba(255,152,0,.15);color:#ff9800'"
-                      x-text="e.estado==='completo'   ? 'Completo'
-                            : e.estado==='ciclo_reset' ? 'Reset ciclo'
-                            :                           'Parcial'"></span>
-                    <select x-show="historialEditingId === e._id" x-model="e.estado" @change="saveHistorialField(e, 'estado')" class="field-input" style="font-size:12px;padding:4px 6px;">
-                      <option value="completo">Completo</option>
-                      <option value="parcial">Parcial</option>
-                      <option value="ciclo_reset">Reset ciclo</option>
-                    </select>
+                    <span class="token-pill"
+                      :class="e.estado==='completo' ? 'status-completo' : e.estado==='ciclo_reset' ? 'status-reset' : 'status-parcial'"
+                      x-text="e.estado==='completo' ? '✅ Completo' : e.estado==='ciclo_reset' ? '🔄 Reset ciclo' : '🟡 Parcial'">
+                    </span>
                   </td>
                   <td data-label="Tipo" class="hide-mobile">
-                    <template x-if="historialEditingId !== e._id && e.tipo === 'casaencasa'">
-                      <span class="token-pill" style="background:rgba(56,142,60,.15);color:#66bb6a">Casa en casa</span>
+                    <template x-if="e.tipo === 'casaencasa'">
+                      <span class="token-pill tipo-casaencasa">🏠 Casa en casa</span>
                     </template>
-                    <template x-if="historialEditingId !== e._id && e.tipo === 'carta'">
-                      <span class="token-pill" style="background:rgba(211,47,47,.12);color:#ef5350">Carta postal</span>
+                    <template x-if="e.tipo === 'carta'">
+                      <span class="token-pill tipo-carta">✉️ Carta postal</span>
                     </template>
-                    <template x-if="historialEditingId !== e._id && !e.tipo">
-                      <span style="color:var(--text2);font-size:11px">—</span>
+                    <template x-if="!e.tipo">
+                      <span class="text-muted-sm">—</span>
                     </template>
-                    <select x-show="historialEditingId === e._id" x-model="e.tipo" @change="saveHistorialField(e, 'tipo')" class="field-input" style="font-size:12px;padding:4px 6px;">
-                      <option value="">—</option>
-                      <option value="casaencasa">Casa en casa</option>
-                      <option value="carta">Carta postal</option>
-                    </select>
                   </td>
                   <td data-label="Capitán">
-                    <div x-show="historialEditingId !== e._id" class="cap-name-cell">
+                    <div class="cap-name-cell">
                       <div class="cap-avatar" x-text="e.capitan?.replace(/^(Hno\.|Hna\.)\s*/i,'').charAt(0)"></div>
                       <span x-text="e.capitan"></span>
                     </div>
-                    <select x-show="historialEditingId === e._id" x-model="e.capitan" @change="saveHistorialField(e, 'capitan')" class="field-input" style="font-size:12px;padding:4px 6px;min-width:130px;">
-                      <template x-for="cap in capitanes" :key="cap.id">
-                        <option :value="cap.nombre" x-text="cap.nombre"></option>
-                      </template>
-                    </select>
                   </td>
-                  <td data-label="Lugar">
-                    <span x-show="historialEditingId !== e._id" x-text="e.lugar"></span>
-                    <select x-show="historialEditingId === e._id" x-model="e.lugar" @change="saveHistorialField(e, 'lugar')" class="field-input" style="font-size:12px;padding:4px 6px;min-width:120px;">
-                      <template x-for="loc in knownLocations" :key="loc">
-                        <option :value="loc" x-text="loc"></option>
-                      </template>
-                    </select>
-                  </td>
+                  <td data-label="Lugar" class="hide-mobile" x-text="e.lugar"></td>
                   <td data-label="Predicación">
-                    <div x-show="historialEditingId !== e._id" class="date-toggle">
+                    <div class="date-toggle">
                       <span class="date-short" x-text="formatDateShort(e.fechaPredicacion)"></span>
                       <span class="date-full" x-text="formatDate(e.fechaPredicacion)"></span>
                     </div>
-                    <input x-show="historialEditingId === e._id" type="date" x-model="e.fechaPredicacion" @change="saveHistorialField(e, 'fechaPredicacion')" class="field-input" style="font-size:12px;padding:4px 6px;">
                   </td>
-                  <td data-label="Archivado">
-                    <div x-show="historialEditingId !== e._id" class="date-toggle">
+                  <td data-label="Archivado" class="hide-tablet">
+                    <div class="date-toggle">
                       <span class="date-short" x-text="formatDateShort(e.fechaArchivado)"></span>
                       <span class="date-full" x-text="formatDate(e.fechaArchivado)"></span>
                     </div>
-                    <input x-show="historialEditingId === e._id" type="date" x-model="e.fechaArchivado" @change="saveHistorialField(e, 'fechaArchivado')" class="field-input" style="font-size:12px;padding:4px 6px;">
                   </td>
-                  <td data-label="Notas">
-                    <span x-show="historialEditingId !== e._id" x-text="e.notas||'—'"></span>
-                    <input x-show="historialEditingId === e._id" type="text" x-model="e.notas" @change="saveHistorialField(e, 'notas')" class="field-input" style="font-size:12px;padding:4px 6px;min-width:100px;">
-                  </td>
+                  <td data-label="Notas" class="hide-tablet" x-text="e.notas||'—'"></td>
                   <td data-label="Acciones">
                     <div class="action-buttons">
-                      <button x-show="historialEditingId !== e._id" class="btn-action edit" @click="historialEditingId = e._id">Editar</button>
-                      <button x-show="historialEditingId === e._id" class="btn-action copy" @click="historialEditingId = null">Listo</button>
-                      <button class="btn-action" style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);" @click="deleteHistorialEntry(e)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+                      <button class="btn-action delete" @click="deleteHistorialEntry(e)" title="Eliminar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
               </template>
               <tr x-show="historialFiltered.length === 0">
-                <td colspan="7" style="padding:32px;text-align:center;color:var(--text2);">Sin registros.</td>
+                <td colspan="9" style="padding:32px;text-align:center;color:var(--text2);">Sin registros.</td>
               </tr>
             </tbody>
           </table>
+        </div>
       </div>
 
     </section>
