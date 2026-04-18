@@ -1448,25 +1448,36 @@
     .login-cancel:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
     /* ── Tutorial interactivo ─────────────────────────────────────────────── */
-    .tutorial-overlay {
+    /* Fondo oscuro con agujeros SVG — permite dos spotlight simultáneos     */
+    #tutorial-bg {
       position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.75);
+      mask: url(#tutorial-mask);
+      -webkit-mask: url(#tutorial-mask);
       pointer-events: none;
-      opacity: 0;           /* invisible por defecto */
-      transition: opacity 0.3s;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    #tutorial-bg.active { opacity: 1; }
+    #tutorial-bg.hidden { opacity: 0; }
+
+    .tutorial-overlay {
+      position: fixed; inset: 0; z-index: 1001;
+      pointer-events: none;
+      opacity: 0; transition: opacity 0.3s;
     }
     .tutorial-overlay.active { pointer-events: auto; opacity: 1; }
     .tutorial-overlay.hidden { opacity: 0; pointer-events: none; }
 
-    /* Spotlight: el elemento resaltado "rompe" el oscuro con box-shadow */
-    @keyframes tutorial-spotlight-pulse {
-      0%,100% { box-shadow: 0 0 0 3px rgba(139,92,246,0.9), 0 0 22px 4px rgba(139,92,246,0.35), 0 0 0 9999px rgba(0,0,0,0.72); }
-      50%      { box-shadow: 0 0 0 5px rgba(139,92,246,0.6), 0 0 32px 8px rgba(139,92,246,0.20), 0 0 0 9999px rgba(0,0,0,0.72); }
+    /* Anillo pulsante compartido — elemento resaltado y card del tutorial */
+    @keyframes tutorial-ring-pulse {
+      0%,100% { box-shadow: 0 0 0 3px rgba(139,92,246,0.9), 0 0 22px 4px rgba(139,92,246,0.35); }
+      50%      { box-shadow: 0 0 0 5px rgba(139,92,246,0.6), 0 0 32px 8px rgba(139,92,246,0.20); }
     }
     .tutorial-target {
       position: relative !important;
-      z-index: 1001 !important;
+      z-index: 1002 !important;
       pointer-events: none;
-      animation: tutorial-spotlight-pulse 1.8s ease-in-out infinite !important;
+      animation: tutorial-ring-pulse 1.8s ease-in-out infinite !important;
     }
 
     /* Card tooltip del tutorial */
@@ -1474,18 +1485,14 @@
       0%,100% { box-shadow: var(--shadow-accent), 0 0 0 0 rgba(139,92,246,0.55); }
       50%      { box-shadow: var(--shadow-accent), 0 0 0 7px rgba(139,92,246,0); }
     }
-    @keyframes tutorial-card-glow {
-      0%,100% { box-shadow: 0 0 0 3px rgba(139,92,246,0.9), 0 0 22px 4px rgba(139,92,246,0.35), 0 16px 40px rgba(0,0,0,0.6); }
-      50%      { box-shadow: 0 0 0 5px rgba(139,92,246,0.6), 0 0 32px 8px rgba(139,92,246,0.20), 0 16px 40px rgba(0,0,0,0.6); }
-    }
     .tutorial-card {
-      position: fixed; z-index: 1002;
+      position: fixed; z-index: 1003;
       background: #1c1828;
       border: 2px solid var(--accent);
       border-radius: var(--r-lg);
       padding: 18px 20px;
       max-width: 300px; width: calc(100vw - 40px);
-      animation: fadeIn 0.35s var(--spring) forwards, tutorial-card-glow 1.8s ease-in-out 0.4s infinite;
+      animation: fadeIn 0.35s var(--spring) forwards, tutorial-ring-pulse 1.8s ease-in-out 0.4s infinite;
     }
     .tutorial-card.pos-center   { top:50%;  left:50%; transform:translate(-50%,-50%); }
     .tutorial-card.pos-below-top { top:148px; left:50%; transform:translateX(-50%); }
@@ -2023,6 +2030,21 @@
   </script>
 
   <!-- ─── Tutorial interactivo (primera apertura del capitán) ─── -->
+  <!-- Definición SVG del mask: agujeros dinámicos para el fondo oscuro -->
+  <svg id="tutorial-mask-svg" aria-hidden="true" focusable="false"
+       style="position:fixed;top:0;left:0;width:0;height:0;overflow:visible;pointer-events:none">
+    <defs>
+      <mask id="tutorial-mask">
+        <!-- Blanco = overlay visible (oscuro) · Negro = agujero (transparente) -->
+        <rect width="100000" height="100000" fill="white"/>
+        <rect id="tutorial-hole-target" fill="black" rx="12" ry="12" x="0" y="0" width="0" height="0"/>
+        <rect id="tutorial-hole-card"   fill="black" rx="16" ry="16" x="0" y="0" width="0" height="0"/>
+      </mask>
+    </defs>
+  </svg>
+  <!-- Fondo oscuro enmascarado (dos agujeros simultáneos) -->
+  <div id="tutorial-bg" aria-hidden="true"></div>
+  <!-- Contenedor del tutorial (bloqueador de clics + card) -->
   <div id="tutorial-overlay" class="tutorial-overlay" aria-hidden="true">
     <div id="tutorial-card" class="tutorial-card pos-center">
       <div id="tutorial-step-badge" class="tutorial-step-badge">1 / 4</div>

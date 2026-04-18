@@ -177,10 +177,12 @@ const TutorialSystem = {
   start() {
     this._step = 0;
     const overlay = document.getElementById('tutorial-overlay');
+    const bg      = document.getElementById('tutorial-bg');
     if (!overlay) return;
     overlay.classList.remove('hidden');
     overlay.classList.add('active');
     overlay.setAttribute('aria-hidden', 'false');
+    if (bg) { bg.classList.remove('hidden'); bg.classList.add('active'); }
 
     // Adjuntar listeners solo la primera vez
     if (!this._listenersAttached) {
@@ -213,6 +215,32 @@ const TutorialSystem = {
     text.textContent  = step.text;
     next.textContent  = step.nextLabel || 'Siguiente →';
     card.className    = `tutorial-card ${step.pos}`;
+
+    // Actualizar agujeros SVG después de que el card re-posicione en el DOM
+    requestAnimationFrame(() => requestAnimationFrame(() => this._updateMask()));
+  },
+
+  /** Ajusta los dos agujeros del SVG mask para que coincidan con
+   *  el elemento resaltado y el card del tutorial simultáneamente. */
+  _updateMask() {
+    const PADDING = 10;
+    const step     = this._STEPS[this._step];
+    const targetEl = step.target ? document.getElementById(step.target) : null;
+    const cardEl   = document.getElementById('tutorial-card');
+
+    function setHole(id, el) {
+      const hole = document.getElementById(id);
+      if (!hole) return;
+      if (!el) { hole.setAttribute('width', '0'); hole.setAttribute('height', '0'); return; }
+      const r = el.getBoundingClientRect();
+      hole.setAttribute('x',      String(Math.round(r.left   - PADDING)));
+      hole.setAttribute('y',      String(Math.round(r.top    - PADDING)));
+      hole.setAttribute('width',  String(Math.round(r.width  + PADDING * 2)));
+      hole.setAttribute('height', String(Math.round(r.height + PADDING * 2)));
+    }
+
+    setHole('tutorial-hole-target', targetEl);
+    setHole('tutorial-hole-card',   cardEl);
   },
 
   next() {
@@ -230,11 +258,21 @@ const TutorialSystem = {
       this._prevTarget = null;
     }
     const overlay = document.getElementById('tutorial-overlay');
+    const bg      = document.getElementById('tutorial-bg');
     if (overlay) {
       overlay.classList.add('hidden');
       overlay.setAttribute('aria-hidden', 'true');
       setTimeout(() => { overlay.classList.remove('active'); }, 350);
     }
+    if (bg) {
+      bg.classList.add('hidden');
+      setTimeout(() => { bg.classList.remove('active'); }, 350);
+    }
+    // Limpiar agujeros
+    ['tutorial-hole-target','tutorial-hole-card'].forEach(id => {
+      const h = document.getElementById(id);
+      if (h) { h.setAttribute('width','0'); h.setAttribute('height','0'); }
+    });
     const token = TerritorialApp.token;
     if (token) localStorage.setItem(`tutorial_v1_${token}`, 'done');
   },
