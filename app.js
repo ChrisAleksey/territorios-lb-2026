@@ -1335,7 +1335,11 @@ const TerritorialApp = {
   /* ── Open / close bottom sheet ───────────────────────────────────────────── */
   openSheet() {
     const np = document.getElementById('normal-panel');
-    if (np) np.style.display = '';
+    const ep = document.getElementById('extra-panel');
+    // Solo mostrar normal-panel si el extra-panel NO está activo
+    // (si extra-panel está show, el llamador ya puso normal-panel en display:none
+    //  y no debemos sobreescribirlo)
+    if (np && !ep?.classList.contains('show')) np.style.display = '';
     document.getElementById('bottom-sheet')?.classList.add('open');
     document.getElementById('sheet-backdrop')?.classList.add('active');
   },
