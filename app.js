@@ -156,7 +156,13 @@ const TutorialSystem = {
     {
       target: 'add-extra-btn',
       pos: 'pos-below-top',
-      text: '➕ ¿Necesitas cubrir un territorio que no está en tu lista? Toca aquí para agregarlo como territorio extra.',
+      text: '➕ ¿Necesitas cubrir un territorio que no está en tu lista? Toca este botón.',
+    },
+    {
+      target: 'add-extra-banner',
+      pos: 'pos-below-top',
+      text: '🗺️ El mapa se amplía mostrando todos los territorios disponibles. Toca el que quieras agregar y quedará en tu lista para esta sesión. Toca Cancelar si cambiaste de opinión.',
+      onEnter: '_showExampleBanner',
     },
     {
       target: 'map',
@@ -218,6 +224,11 @@ const TutorialSystem = {
     const next  = document.getElementById('tutorial-next');
     if (!card) return;
 
+    // Al salir del banner de ejemplo: ocultarlo
+    if (this._prevTarget === 'add-extra-banner') {
+      document.getElementById('add-extra-banner')?.classList.remove('show');
+    }
+
     // Al entrar al paso del sheet: limpiar z-index inline del paso anterior
     if (step.target === 'bottom-sheet') {
       document.getElementById('bottom-sheet')?.style.removeProperty('z-index');
@@ -254,19 +265,9 @@ const TutorialSystem = {
 
   },
 
-  /** Abre el sheet del primer territorio asignado como ejemplo en el tutorial. */
-  _openExampleSheet() {
-    const name = TerritorialApp.assignedTerritories?.[0];
-    if (!name) return;
-    TerritorialApp._populateSheet(name);
-    TerritorialApp.openSheet();
-    // El mapa tiene z-index:1001 (tutorial-target) y el sheet sólo z-index:20.
-    // Lo elevamos para que sea visible sobre el mapa mientras dure el paso.
-    const sheet    = document.getElementById('bottom-sheet');
-    const backdrop = document.getElementById('sheet-backdrop');
-    if (sheet)    sheet.style.zIndex    = '1002';
-    if (backdrop) backdrop.style.zIndex = '1001';
-    // Re-calcular el mask ahora que el sheet está visible
+  /** Muestra el banner verde de modo extra como ejemplo (sin activar el modo). */
+  _showExampleBanner() {
+    document.getElementById('add-extra-banner')?.classList.add('show');
     setTimeout(() => this._updateMask(), 350);
   },
 
@@ -343,6 +344,9 @@ const TutorialSystem = {
       const h = document.getElementById(id);
       if (h) { h.setAttribute('width','0'); h.setAttribute('height','0'); }
     });
+    // Ocultar banner de ejemplo si quedó visible
+    document.getElementById('add-extra-banner')?.classList.remove('show');
+
     // Cerrar sheet y limpiar z-index si quedó abierta como ejemplo
     if (document.getElementById('bottom-sheet')?.classList.contains('open')) {
       document.getElementById('bottom-sheet')?.style.removeProperty('z-index');
