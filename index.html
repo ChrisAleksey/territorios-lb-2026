@@ -1451,9 +1451,10 @@
     .tutorial-overlay {
       position: fixed; inset: 0; z-index: 1000;
       pointer-events: none;
+      opacity: 0;           /* invisible por defecto */
       transition: opacity 0.3s;
     }
-    .tutorial-overlay.active { pointer-events: auto; }
+    .tutorial-overlay.active { pointer-events: auto; opacity: 1; }
     .tutorial-overlay.hidden { opacity: 0; pointer-events: none; }
 
     /* Spotlight: el elemento resaltado "rompe" el oscuro con box-shadow */
