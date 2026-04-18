@@ -208,7 +208,7 @@ function adminApp() {
           if (Array.isArray(raw)) {
             // Sanear cada asignación
             const asg = raw.slice(0, 20).map(a => ({
-              capitanId:   typeof a.capitanId === 'string' ? a.capitanId.slice(0, 64) : 'sin-capitan',
+              capitanId:   (typeof a.capitanId === 'string' && a.capitanId.trim()) ? a.capitanId.slice(0, 64) : 'sin-capitan',
               // grupos son números de grupo ('1'–'11', 'Congregación'), no nombres de territorio
               grupos:      Array.isArray(a.grupos)
                 ? a.grupos.filter(t => typeof t === 'string' && t.length > 0 && t.length <= 30)
