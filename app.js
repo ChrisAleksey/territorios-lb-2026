@@ -184,6 +184,12 @@ const TutorialSystem = {
     overlay.setAttribute('aria-hidden', 'false');
     if (bg) { bg.classList.remove('hidden'); bg.classList.add('active'); }
 
+    // Cancelar el auto-colapso del top-card mientras dure el tutorial
+    if (TerritorialApp._topCardCollapseTimer) {
+      clearTimeout(TerritorialApp._topCardCollapseTimer);
+      TerritorialApp._topCardCollapseTimer = null;
+    }
+
     // Adjuntar listeners solo la primera vez
     if (!this._listenersAttached) {
       document.getElementById('tutorial-next')?.addEventListener('click', () => this.next());
@@ -279,6 +285,13 @@ const TutorialSystem = {
       const h = document.getElementById(id);
       if (h) { h.setAttribute('width','0'); h.setAttribute('height','0'); }
     });
+    // Reanudar el colapso del top-card ahora que el tutorial terminó
+    const topCard = document.getElementById('top-card');
+    if (topCard && !topCard.classList.contains('collapsed')) {
+      TerritorialApp._topCardCollapseTimer =
+        setTimeout(() => topCard.classList.add('collapsed'), 2000);
+    }
+
     const token = TerritorialApp.token;
     if (token) localStorage.setItem(`tutorial_v1_${token}`, 'done');
   },
@@ -1995,7 +2008,9 @@ const TerritorialApp = {
         requestAnimationFrame(() => {
           card.classList.add('visible');
           // Auto-colapsar después de 4 segundos
-          setTimeout(() => card.classList.add('collapsed'), 4000);
+          // (el tutorial cancela este timer para mantener el card visible)
+          TerritorialApp._topCardCollapseTimer =
+            setTimeout(() => card.classList.add('collapsed'), 4000);
         });
       });
     }
