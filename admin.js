@@ -209,8 +209,9 @@ function adminApp() {
             // Sanear cada asignación
             const asg = raw.slice(0, 20).map(a => ({
               capitanId:   typeof a.capitanId === 'string' ? a.capitanId.slice(0, 64) : '',
+              // grupos son números de grupo ('1'–'11', 'Congregación'), no nombres de territorio
               grupos:      Array.isArray(a.grupos)
-                ? a.grupos.filter(t => typeof t === 'string' && /^t\d{1,3}[a-z]?$/i.test(t))
+                ? a.grupos.filter(t => typeof t === 'string' && t.length > 0 && t.length <= 30)
                 : [],
               lugar:       typeof a.lugar === 'string' ? a.lugar.slice(0, 200) : '',
               error:       false,
@@ -614,6 +615,7 @@ _(Toca el link para ver tus territorios asignados)_`;
           sessionTime:  this.sessionTime,
         }));
       } catch(e) {}
+      if (!cap?.id) return;   // guard: capitanes aún no cargados o no encontrado
       window.location.href = `index.html?admin_select=${cap.id}`;
     },
 
