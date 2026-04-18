@@ -1474,8 +1474,8 @@
       50%      { box-shadow: 0 0 0 5px rgba(139,92,246,0.6), 0 0 32px 8px rgba(139,92,246,0.20); }
     }
     .tutorial-target {
-      position: relative !important;
-      z-index: 1001 !important;   /* encima de tutorial-bg (1000), debajo del overlay (1002) */
+      /* Sin position: relative — no sobreescribir position:fixed de sheets/bars */
+      z-index: 1001 !important;
       pointer-events: none;
       animation: tutorial-ring-pulse 1.8s ease-in-out infinite !important;
     }

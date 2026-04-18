@@ -213,7 +213,7 @@ const TutorialSystem = {
     const next  = document.getElementById('tutorial-next');
     if (!card) return;
 
-    // Al entrar al paso del sheet: limpiar z-index inline (ahora lo maneja .tutorial-target)
+    // Al entrar al paso del sheet: limpiar z-index inline del paso anterior
     if (step.target === 'bottom-sheet') {
       document.getElementById('bottom-sheet')?.style.removeProperty('z-index');
       document.getElementById('sheet-backdrop')?.style.removeProperty('z-index');
@@ -246,6 +246,7 @@ const TutorialSystem = {
     if (step.onEnter) {
       setTimeout(() => this[step.onEnter]?.(), 500);
     }
+
   },
 
   /** Abre el sheet del primer territorio asignado como ejemplo en el tutorial. */
@@ -261,6 +262,20 @@ const TutorialSystem = {
     if (sheet)    sheet.style.zIndex    = '1002';
     if (backdrop) backdrop.style.zIndex = '1001';
     // Re-calcular el mask ahora que el sheet está visible
+    setTimeout(() => this._updateMask(), 350);
+  },
+
+  /** Abre el sheet del primer territorio asignado como ejemplo en el tutorial. */
+  _openExampleSheet() {
+    const name = TerritorialApp.assignedTerritories?.[0];
+    if (!name) return;
+    TerritorialApp._populateSheet(name);
+    TerritorialApp.openSheet();
+    // Elevar el sheet sobre el mapa (que tiene z-index:1001 via tutorial-target)
+    const sheet    = document.getElementById('bottom-sheet');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (sheet)    sheet.style.zIndex    = '1002';
+    if (backdrop) backdrop.style.zIndex = '1001';
     setTimeout(() => this._updateMask(), 350);
   },
 
@@ -323,8 +338,10 @@ const TutorialSystem = {
       const h = document.getElementById(id);
       if (h) { h.setAttribute('width','0'); h.setAttribute('height','0'); }
     });
-    // Cerrar sheet si quedó abierta como ejemplo
+    // Cerrar sheet y limpiar z-index si quedó abierta como ejemplo
     if (document.getElementById('bottom-sheet')?.classList.contains('open')) {
+      document.getElementById('bottom-sheet')?.style.removeProperty('z-index');
+      document.getElementById('sheet-backdrop')?.style.removeProperty('z-index');
       TerritorialApp.closeSheet?.();
     }
 
