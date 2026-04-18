@@ -232,11 +232,17 @@ const TutorialSystem = {
       const hole = document.getElementById(id);
       if (!hole) return;
       if (!el) { hole.setAttribute('width', '0'); hole.setAttribute('height', '0'); return; }
-      const r = el.getBoundingClientRect();
+      const r  = el.getBoundingClientRect();
+      // rx/ry = border-radius del elemento + PADDING para que las esquinas del
+      // agujero coincidan exactamente con las curvas del borde del elemento
+      const br = parseFloat(getComputedStyle(el).borderRadius) || 0;
+      const rx = Math.round(br + PADDING);
       hole.setAttribute('x',      String(Math.round(r.left   - PADDING)));
       hole.setAttribute('y',      String(Math.round(r.top    - PADDING)));
       hole.setAttribute('width',  String(Math.round(r.width  + PADDING * 2)));
       hole.setAttribute('height', String(Math.round(r.height + PADDING * 2)));
+      hole.setAttribute('rx', String(rx));
+      hole.setAttribute('ry', String(rx));
     }
 
     setHole('tutorial-hole-target', targetEl);
