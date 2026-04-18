@@ -173,6 +173,35 @@ const FB = {
     if (!res.ok) throw new Error(`Firestore DELETE historial/${id} → ${res.status}`);
   },
 
+  async updateHistorial(id, fieldsObj) {
+    const fields     = this._objToFields(fieldsObj);
+    const updateMask = Object.keys(fieldsObj);
+    return this._patch(`historial/${id}`, fields, updateMask);
+  },
+
+  /* ── Auth admin ─────────────────────────────────────────────────────────── */
+  async checkAdminAuth(input) {
+    try {
+      const doc = await this._get('config/admin');
+      if (!doc) return false;
+      const cfg  = this._docToObj(doc);
+      const q    = (input || '').trim().toLowerCase();
+      // Array de palabras permitidas (contiene alguna)
+      if (Array.isArray(cfg.allowed)) return cfg.allowed.some(w => q.includes(w.toLowerCase()));
+      // Contraseña exacta
+      if (cfg.password) return cfg.password === input.trim();
+      return false;
+    } catch { return false; }
+  },
+
+  async setAdminPassword(password) {
+    return this._patch('config/admin', this._objToFields({ password }), ['password']);
+  },
+
+  async setAdminAllowed(words) {
+    return this._patch('config/admin', this._objToFields({ allowed: words }), ['allowed']);
+  },
+
   async addCicloReset(lugar, fecha) {
     return this._post('historial', this._objToFields({
       territorio:       lugar,

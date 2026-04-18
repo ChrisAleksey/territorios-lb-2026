@@ -338,12 +338,15 @@
       </div>
 
       <!-- Seed Firebase (uso único) -->
-      <div style="margin-top:24px;text-align:center;display:flex;gap:8px;justify-content:center;">
+      <div style="margin-top:24px;text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn-ghost" style="font-size:11px;opacity:0.5;" @click="seedCapitanes()">
           ↑ Subir capitanes a Firebase
         </button>
         <button class="btn-ghost" style="font-size:11px;opacity:0.5;" @click="seedHistorial()">
           ↑ Subir historial a Firebase
+        </button>
+        <button class="btn-ghost" style="font-size:11px;opacity:0.5;" @click="setAdminPassword()">
+          Establecer contraseña admin
         </button>
       </div>
 
@@ -414,7 +417,7 @@
 
       <!-- Tabla -->
       <div x-show="!historialLoading" class="card" style="padding:0;overflow-x:auto;margin-top:12px;">
-          <table class="data-table historial-table">
+          <table class="data-table historial-table" :class="historialEditingId ? 'editing' : ''">
             <thead>
               <tr>
                 <th>Territorio</th>
@@ -424,12 +427,13 @@
                 <th>Lugar</th>
                 <th>Predicación</th>
                 <th>Archivado</th>
-                <th style="width:1%;white-space:nowrap">Notas</th>
+                <th>Notas</th>
+                <th style="width:1%;white-space:nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="(e, i) in historialFiltered" :key="i">
-                <tr>
+                <tr :class="e.estado === 'ciclo_reset' ? 'row-reset' : ''">
                   <td data-label="Territorio">
                     <template x-if="e.estado !== 'ciclo_reset'">
                       <a :href="'/?goto=' + (e.territorio||'').toLowerCase()" target="_blank" style="text-decoration:none;">
@@ -441,48 +445,77 @@
                     </template>
                   </td>
                   <td data-label="Estado">
-                    <span class="token-pill"
+                    <span x-show="historialEditingId !== e._id" class="token-pill"
                       :style="e.estado==='completo'    ? 'background:rgba(76,175,80,.15);color:#4caf50'
                             : e.estado==='ciclo_reset'  ? 'background:rgba(100,181,246,.1);color:#64b5f6'
                             :                             'background:rgba(255,152,0,.15);color:#ff9800'"
-                      x-text="e.estado==='completo'   ? '✅ Completo'
-                            : e.estado==='ciclo_reset' ? '🔄 Reset ciclo'
-                            :                           '🟡 Parcial'"></span>
+                      x-text="e.estado==='completo'   ? 'Completo'
+                            : e.estado==='ciclo_reset' ? 'Reset ciclo'
+                            :                           'Parcial'"></span>
+                    <select x-show="historialEditingId === e._id" x-model="e.estado" @change="saveHistorialField(e, 'estado')" class="field-input" style="font-size:12px;padding:4px 6px;">
+                      <option value="completo">Completo</option>
+                      <option value="parcial">Parcial</option>
+                      <option value="ciclo_reset">Reset ciclo</option>
+                    </select>
                   </td>
                   <td data-label="Tipo" class="hide-mobile">
-                    <template x-if="e.tipo === 'casaencasa'">
-                      <span class="token-pill" style="background:rgba(56,142,60,.15);color:#66bb6a">🏠 Casa en casa</span>
+                    <template x-if="historialEditingId !== e._id && e.tipo === 'casaencasa'">
+                      <span class="token-pill" style="background:rgba(56,142,60,.15);color:#66bb6a">Casa en casa</span>
                     </template>
-                    <template x-if="e.tipo === 'carta'">
-                      <span class="token-pill" style="background:rgba(211,47,47,.12);color:#ef5350">✉️ Carta postal</span>
+                    <template x-if="historialEditingId !== e._id && e.tipo === 'carta'">
+                      <span class="token-pill" style="background:rgba(211,47,47,.12);color:#ef5350">Carta postal</span>
                     </template>
-                    <template x-if="!e.tipo">
+                    <template x-if="historialEditingId !== e._id && !e.tipo">
                       <span style="color:var(--text2);font-size:11px">—</span>
                     </template>
+                    <select x-show="historialEditingId === e._id" x-model="e.tipo" @change="saveHistorialField(e, 'tipo')" class="field-input" style="font-size:12px;padding:4px 6px;">
+                      <option value="">—</option>
+                      <option value="casaencasa">Casa en casa</option>
+                      <option value="carta">Carta postal</option>
+                    </select>
                   </td>
                   <td data-label="Capitán">
-                    <div class="cap-name-cell">
+                    <div x-show="historialEditingId !== e._id" class="cap-name-cell">
                       <div class="cap-avatar" x-text="e.capitan?.replace(/^(Hno\.|Hna\.)\s*/i,'').charAt(0)"></div>
                       <span x-text="e.capitan"></span>
                     </div>
+                    <select x-show="historialEditingId === e._id" x-model="e.capitan" @change="saveHistorialField(e, 'capitan')" class="field-input" style="font-size:12px;padding:4px 6px;min-width:130px;">
+                      <template x-for="cap in capitanes" :key="cap.id">
+                        <option :value="cap.nombre" x-text="cap.nombre"></option>
+                      </template>
+                    </select>
                   </td>
-                  <td data-label="Lugar" x-text="e.lugar"></td>
-                  <td data-label="Predicación" style="cursor:default">
-                    <div class="date-toggle">
+                  <td data-label="Lugar">
+                    <span x-show="historialEditingId !== e._id" x-text="e.lugar"></span>
+                    <select x-show="historialEditingId === e._id" x-model="e.lugar" @change="saveHistorialField(e, 'lugar')" class="field-input" style="font-size:12px;padding:4px 6px;min-width:120px;">
+                      <template x-for="loc in knownLocations" :key="loc">
+                        <option :value="loc" x-text="loc"></option>
+                      </template>
+                    </select>
+                  </td>
+                  <td data-label="Predicación">
+                    <div x-show="historialEditingId !== e._id" class="date-toggle">
                       <span class="date-short" x-text="formatDateShort(e.fechaPredicacion)"></span>
                       <span class="date-full" x-text="formatDate(e.fechaPredicacion)"></span>
                     </div>
+                    <input x-show="historialEditingId === e._id" type="date" x-model="e.fechaPredicacion" @change="saveHistorialField(e, 'fechaPredicacion')" class="field-input" style="font-size:12px;padding:4px 6px;">
                   </td>
-                  <td data-label="Archivado" style="cursor:default">
-                    <div class="date-toggle">
+                  <td data-label="Archivado">
+                    <div x-show="historialEditingId !== e._id" class="date-toggle">
                       <span class="date-short" x-text="formatDateShort(e.fechaArchivado)"></span>
                       <span class="date-full" x-text="formatDate(e.fechaArchivado)"></span>
                     </div>
+                    <input x-show="historialEditingId === e._id" type="date" x-model="e.fechaArchivado" @change="saveHistorialField(e, 'fechaArchivado')" class="field-input" style="font-size:12px;padding:4px 6px;">
                   </td>
                   <td data-label="Notas">
-                    <div style="display:flex;align-items:center;justify-content:flex-start;gap:8px;">
-                      <span x-text="e.notas||'—'"></span>
-                      <button class="btn-action" style="flex-shrink:0;margin-left:auto;background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);" @click="deleteHistorialEntry(e)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+                    <span x-show="historialEditingId !== e._id" x-text="e.notas||'—'"></span>
+                    <input x-show="historialEditingId === e._id" type="text" x-model="e.notas" @change="saveHistorialField(e, 'notas')" class="field-input" style="font-size:12px;padding:4px 6px;min-width:100px;">
+                  </td>
+                  <td data-label="Acciones">
+                    <div class="action-buttons">
+                      <button x-show="historialEditingId !== e._id" class="btn-action edit" @click="historialEditingId = e._id">Editar</button>
+                      <button x-show="historialEditingId === e._id" class="btn-action copy" @click="historialEditingId = null">Listo</button>
+                      <button class="btn-action" style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);" @click="deleteHistorialEntry(e)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
                     </div>
                   </td>
                 </tr>

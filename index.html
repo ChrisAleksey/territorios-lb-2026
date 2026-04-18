@@ -1470,17 +1470,17 @@
     <div class="login-card">
       <div class="login-card-title">Iniciar sesión</div>
       <div class="login-card-sub">Acceso exclusivo para administradores</div>
-      <label class="login-label" for="login-name-input">Nombre completo</label>
+      <label class="login-label" for="login-name-input">Contraseña</label>
       <input
         class="login-input"
         id="login-name-input"
-        type="text"
-        placeholder="Escribe tu nombre completo…"
-        autocomplete="off"
+        type="password"
+        placeholder="Contraseña de administrador…"
+        autocomplete="current-password"
         onkeydown="if(event.key==='Enter') AdminLogin.submit()"
       >
-      <div class="login-error" id="login-error">Acceso no autorizado.</div>
-      <button class="login-submit" onclick="AdminLogin.submit()">Entrar</button>
+      <div class="login-error" id="login-error">Contraseña incorrecta.</div>
+      <button class="login-submit" id="login-submit-btn" onclick="AdminLogin.submit()">Entrar</button>
       <button class="login-cancel" onclick="AdminLogin.close()">Cancelar</button>
     </div>
   </div>
@@ -1825,7 +1825,6 @@
   <!-- Admin login logic -->
   <script>
     const AdminLogin = {
-      ALLOWED:    ['rene', 'villegas', 'christian', 'aleksey'],
       isLoggedIn: false,
       _mode:      'admin', // 'admin' | 'informe'
 
@@ -1851,9 +1850,12 @@
         const overlay = document.getElementById('login-overlay');
         const input   = document.getElementById('login-name-input');
         const err     = document.getElementById('login-error');
+        const btn     = document.getElementById('login-submit-btn');
         input.value = '';
         input.classList.remove('error');
         err.classList.remove('show');
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
         overlay.classList.add('open');
         setTimeout(() => input.focus(), 200);
       },
@@ -1862,25 +1864,41 @@
         document.getElementById('login-overlay').classList.remove('open');
       },
 
-      submit() {
+      async submit() {
         const input = document.getElementById('login-name-input');
         const err   = document.getElementById('login-error');
-        const name  = input.value.trim().toLowerCase();
+        const btn   = document.getElementById('login-submit-btn');
+        const pass  = input.value.trim();
+        if (!pass) return;
 
-        if (this.ALLOWED.some(word => name.includes(word))) {
-          if (this._mode === 'informe') {
-            this.isLoggedIn = true;
+        btn.disabled = true;
+        btn.textContent = 'Verificando…';
+        input.classList.remove('error');
+        err.classList.remove('show');
+
+        try {
+          const ok = await FB.checkAdminAuth(pass);
+          if (ok) {
             sessionStorage.setItem('admin_auth', '1');
-            this.close();
-            TerritorialApp._unlockInformeBar();
+            if (this._mode === 'informe') {
+              this.isLoggedIn = true;
+              this.close();
+              TerritorialApp._unlockInformeBar();
+            } else {
+              window.location.href = 'admin.html';
+            }
           } else {
-            sessionStorage.setItem('admin_auth', '1');
-            window.location.href = 'admin.html';
+            input.classList.add('error');
+            err.classList.add('show');
+            btn.disabled = false;
+            btn.textContent = 'Entrar';
+            input.focus();
           }
-        } else {
-          input.classList.add('error');
+        } catch {
+          err.textContent = 'Error de conexión. Intenta de nuevo.';
           err.classList.add('show');
-          input.focus();
+          btn.disabled = false;
+          btn.textContent = 'Entrar';
         }
       }
     };

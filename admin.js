@@ -121,6 +121,8 @@ function adminApp() {
     historialEntries: [],
     historialLoading: false,
     historialSearch: '',
+    historialEditingId: null,
+    knownLocations: KNOWN_LOCATIONS,
 
     get historialFiltered() {
       const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -226,7 +228,7 @@ function adminApp() {
     navigate(section) {
       this.activeSection = section;
       this.sidebarOpen = false;
-      if (section === 'historial' && !this.historialEntries.length) this.loadHistorial();
+      if (section === 'historial') this.loadHistorial();
     },
 
     async loadHistorial() {
@@ -243,6 +245,15 @@ function adminApp() {
         console.error('[Admin] Error cargando historial:', err.message);
       } finally {
         this.historialLoading = false;
+      }
+    },
+
+    async saveHistorialField(entry, field) {
+      if (!entry._id) return;
+      try {
+        await FB.updateHistorial(entry._id, { [field]: entry[field] ?? '' });
+      } catch (err) {
+        alert('❌ Error al guardar: ' + err.message);
       }
     },
 
@@ -398,6 +409,17 @@ _(Toca el link para ver tus territorios asignados)_`;
     /* ════════════════════════════════════════════
        FIREBASE
     ════════════════════════════════════════════ */
+    async setAdminPassword() {
+      const pass = prompt('Nueva contraseña de administrador:');
+      if (!pass || !pass.trim()) return;
+      try {
+        await FB.setAdminPassword(pass.trim());
+        alert('✅ Contraseña guardada en Firebase.');
+      } catch (err) {
+        alert('❌ Error: ' + err.message);
+      }
+    },
+
     async seedCapitanes() {
       if (!confirm(`¿Escribir ${CAPITANES.length} capitanes a Firebase? Esto sobreescribe los existentes.`)) return;
       try {

@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Capitanes ────────────────────────────────────────────────────────────
+    // Lectura pública (app necesita verificar token).
+    // Escritura: valida que el documento tenga campos requeridos y que el
+    // token del path coincida con el campo token del documento.
+    match /capitanes/{token} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasAll(['nombre', 'token', 'activo']) &&
+        request.resource.data.nombre is string &&
+        request.resource.data.nombre.size() > 0 &&
+        request.resource.data.nombre.size() <= 120 &&
+        request.resource.data.token is string &&
+        request.resource.data.token == token &&
+        request.resource.data.activo is bool;
+
+      // Delete solo desde panel admin (no hay auth aún; se deja permitido
+      // pero con validación futura cuando se agregue Firebase Auth)
+      allow delete: if true;
+    }
+
+    // ── Sesiones ─────────────────────────────────────────────────────────────
+    // ID de sesión tiene formato: YYYY-MM-DD_tokenDelCapitan
+    // Escritura: valida campos mínimos y que el token del path coincida.
+    match /sesiones/{sesionId} {
+      allow read: if true;
+
+      allow create, update: if
+        request.resource.data.keys().hasAll(['capitanToken', 'fecha']) &&
+        request.resource.data.capitanToken is string &&
+        request.resource.data.capitanToken.size() > 0 &&
+        request.resource.data.fecha is string &&
+        request.resource.data.fecha.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
+        // El ID de sesión debe empezar con la fecha del documento
+        sesionId.split('_')[0] == request.resource.data.fecha;
+
+      allow delete: if true;
+    }
+
+    // ── Historial ─────────────────────────────────────────────────────────────
+    // Inmutable una vez creado (no se puede editar, solo crear o borrar).
+    // Creación: valida campos requeridos y valores de estado.
+    match /historial/{entryId} {
+      allow read: if true;
+
+      allow create: if
+        request.resource.data.keys().hasAll(['territorio', 'estado', 'capitan']) &&
+        request.resource.data.territorio is string &&
+        request.resource.data.territorio.size() > 0 &&
+        request.resource.data.estado in [
+          'completo', 'parcial', 'ciclo_reset'
+        ] &&
+        request.resource.data.capitan is string;
+
+      // No se permite editar registros de historial ya creados
+      allow update: if false;
+
+      allow delete: if true;
+    }
+
+  }
+}

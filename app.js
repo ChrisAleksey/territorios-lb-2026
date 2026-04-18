@@ -1911,6 +1911,11 @@ const TerritorialApp = {
       }
       this._cicloResets = resets;
 
+      // Fecha de corte cuando no hay reset: 90 días atrás (evita contar historial viejo)
+      const d90 = new Date();
+      d90.setDate(d90.getDate() - 90);
+      const cutoffDefault = d90.toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+
       // Segunda pasada: último completo por territorio (solo dentro del ciclo actual)
       const latest = {};
       for (const e of entries) {
@@ -1919,7 +1924,7 @@ const TerritorialApp = {
         const fecha = e.fechaPredicacion || e.fechaArchivado || '';
         if (!fecha) continue;
         const lugar       = TERRITORY_LOCATION[t] || '';
-        const ultimoReset = resets[lugar] || '1900-01-01';
+        const ultimoReset = resets[lugar] || cutoffDefault;
         if (fecha <= ultimoReset) continue; // anterior al ciclo actual
         if (!latest[t] || fecha > latest[t]) latest[t] = fecha;
       }
@@ -1949,7 +1954,12 @@ const TerritorialApp = {
 
   _getCompletadosEnCiclo(lugar) {
     const territorios = LOCATION_TERRITORIES[lugar] || [];
-    const ultimoReset = this._cicloResets[lugar] || '1900-01-01';
+    let ultimoReset = this._cicloResets[lugar];
+    if (!ultimoReset) {
+      const d = new Date();
+      d.setDate(d.getDate() - 90);
+      ultimoReset = d.toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+    }
     const hoy = FB.todayMX();
     return new Set(territorios.filter(t =>
       (this.territoryLastWorked[t] && this.territoryLastWorked[t] > ultimoReset)
