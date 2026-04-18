@@ -154,6 +154,11 @@ const TutorialSystem = {
       text: '📋 Aquí ves el resumen de tu sesión: fecha, hora y punto de encuentro.',
     },
     {
+      target: 'add-extra-btn',
+      pos: 'pos-below-top',
+      text: '➕ ¿Necesitas cubrir un territorio que no está en tu lista? Toca aquí para agregarlo como territorio extra.',
+    },
+    {
       target: 'map',
       pos: 'pos-below-top',
       text: '🗺️ Toca cualquier territorio coloreado para abrir sus detalles. Aquí tienes un ejemplo:',
