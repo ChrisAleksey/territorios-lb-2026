@@ -616,7 +616,7 @@ _(Toca el link para ver tus territorios asignados)_`;
         }));
       } catch(e) {}
       if (!cap?.id) return;   // guard: capitanes aún no cargados o no encontrado
-      window.location.href = `index.html?admin_select=${cap.id}`;
+      window.location.href = `./?admin_select=${cap.id}`;
     },
 
     getCapitanTerritoryCount(capId) {
