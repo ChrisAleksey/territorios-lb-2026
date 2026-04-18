@@ -155,8 +155,14 @@ const TutorialSystem = {
     },
     {
       target: 'map',
-      pos: 'pos-center-map',
-      text: '🗺️ Toca cualquier territorio coloreado para ver sus detalles y marcar tu avance.',
+      pos: 'pos-below-top',
+      text: '🗺️ Toca cualquier territorio coloreado para abrir sus detalles. Aquí tienes un ejemplo:',
+      onEnter: '_openExampleSheet',
+    },
+    {
+      target: 'bottom-sheet',
+      pos: 'pos-below-top',
+      text: '📝 Elige el estado: ✅ Completo si terminaste, 🔄 En progreso o ⏳ Pendiente si no. Si quedó inconcluso escribe el motivo en Notas y toca Guardar — el color del territorio se actualiza.',
     },
     {
       target: 'finish-bar',
@@ -207,6 +213,17 @@ const TutorialSystem = {
     const next  = document.getElementById('tutorial-next');
     if (!card) return;
 
+    // Al entrar al paso del sheet: limpiar z-index inline (ahora lo maneja .tutorial-target)
+    if (step.target === 'bottom-sheet') {
+      document.getElementById('bottom-sheet')?.style.removeProperty('z-index');
+      document.getElementById('sheet-backdrop')?.style.removeProperty('z-index');
+    }
+
+    // Cerrar sheet si salimos del paso que la tenía abierta como ejemplo
+    if (this._prevTarget === 'bottom-sheet') {
+      setTimeout(() => TerritorialApp.closeSheet?.(), 250);
+    }
+
     // Quitar spotlight anterior
     if (this._prevTarget) {
       document.getElementById(this._prevTarget)?.classList.remove('tutorial-target');
@@ -224,6 +241,27 @@ const TutorialSystem = {
 
     // Actualizar agujeros SVG después de que el card re-posicione en el DOM
     requestAnimationFrame(() => requestAnimationFrame(() => this._updateMask()));
+
+    // Ejecutar acción de entrada del paso (ej. abrir sheet de ejemplo)
+    if (step.onEnter) {
+      setTimeout(() => this[step.onEnter]?.(), 500);
+    }
+  },
+
+  /** Abre el sheet del primer territorio asignado como ejemplo en el tutorial. */
+  _openExampleSheet() {
+    const name = TerritorialApp.assignedTerritories?.[0];
+    if (!name) return;
+    TerritorialApp._populateSheet(name);
+    TerritorialApp.openSheet();
+    // El mapa tiene z-index:1001 (tutorial-target) y el sheet sólo z-index:20.
+    // Lo elevamos para que sea visible sobre el mapa mientras dure el paso.
+    const sheet    = document.getElementById('bottom-sheet');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (sheet)    sheet.style.zIndex    = '1002';
+    if (backdrop) backdrop.style.zIndex = '1001';
+    // Re-calcular el mask ahora que el sheet está visible
+    setTimeout(() => this._updateMask(), 350);
   },
 
   /** Ajusta los dos agujeros del SVG mask para que coincidan con
@@ -285,6 +323,11 @@ const TutorialSystem = {
       const h = document.getElementById(id);
       if (h) { h.setAttribute('width','0'); h.setAttribute('height','0'); }
     });
+    // Cerrar sheet si quedó abierta como ejemplo
+    if (document.getElementById('bottom-sheet')?.classList.contains('open')) {
+      TerritorialApp.closeSheet?.();
+    }
+
     // Reanudar el colapso del top-card ahora que el tutorial terminó
     const topCard = document.getElementById('top-card');
     if (topCard && !topCard.classList.contains('collapsed')) {
