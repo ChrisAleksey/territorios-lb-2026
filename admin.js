@@ -486,6 +486,7 @@ _(Al enviar el informe, selecciona tu nombre de capitán)_`;
 `🗓️ *Fecha:* ${fechaStr}
 ⏰ *Hora:* ${horaStr}
 📍 *Punto de encuentro:* ${asg.lugar.trim()}
+👤 *Capitán:* ${cap.nombre}
 👥 *Grupos:* ${asg.grupos.join(', ')}
 
 🗺️ *Tu mapa de territorios:*
