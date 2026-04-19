@@ -123,7 +123,11 @@ const FB = {
       const data = await res.json();
       (data.documents || []).forEach(doc => {
         const obj = this._docToObj(doc);
-        if (obj) all.push(obj);
+        if (obj) {
+          // Garantizar que token esté siempre presente aunque no sea campo del doc
+          if (!obj.token && doc.name) obj.token = doc.name.split('/').pop();
+          all.push(obj);
+        }
       });
       pageToken = data.nextPageToken || null;
     } while (pageToken);
