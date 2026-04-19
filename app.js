@@ -466,12 +466,25 @@ const TerritorialApp = {
   },
 
   /* ── Backend / Firebase ──────────────────────────────────────────────────── */
+  _fechaOffset(days) {
+    // Retorna fecha YYYY-MM-DD en zona MX con offset de días
+    const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+    d.setDate(d.getDate() + days);
+    return d.toLocaleDateString('sv-SE', { timeZone: 'America/Mexico_City' });
+  },
+
   async loadFromBackend() {
-    const fecha = FB.todayMX();
+    // Intentar hoy, mañana y pasado (el admin puede generar el programa con anticipación)
+    const candidatos = [0, 1, 2].map(d => this._fechaOffset(d));
+    let sesion = null, fecha = null;
+    for (const f of candidatos) {
+      const s = await FB.getSesion(this.token, f).catch(() => null);
+      if (s) { sesion = s; fecha = f; break; }
+    }
+    if (!sesion) fecha = candidatos[0]; // fallback: hoy para mensajes de error
     this._sessionFecha = fecha;
 
     try {
-      const sesion = await FB.getSesion(this.token, fecha);
       if (!sesion) {
         this.showToast('No hay sesión activa para hoy', 'error');
         console.warn('[TerritorialApp] Sin sesión en Firebase para hoy.');
