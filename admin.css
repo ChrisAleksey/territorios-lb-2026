@@ -1090,6 +1090,8 @@ input[type="time"] { color-scheme: dark; }
   .content-section { padding: 20px 16px 24px; }
 
   .assignment-fields { grid-template-columns: 1fr; }
+  .assignment-row { align-items: flex-start; }
+  .assignment-number { margin-top: 12px; }
 
   .form-grid { grid-template-columns: 1fr; }
   .span-2 { grid-column: span 1; }
@@ -1170,6 +1172,32 @@ input[type="time"] { color-scheme: dark; }
 
   .section-header-row { flex-direction: column; }
   .section-header-row .btn-primary { width: 100%; }
+
+  /* ── WA card: header en columna para nombres largos ── */
+  .wa-card { padding: 16px; gap: 12px; }
+  .wa-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+  .groups-badge { align-self: flex-start; }
+
+  /* ── Assignment row: número alineado arriba ── */
+  .assignment-row { align-items: flex-start; }
+  .assignment-number { margin-top: 12px; }
+
+  /* ── Preview mensaje: sin monospace estrecho ── */
+  .wa-preview {
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Tabla capitanes: acción en columna ── */
+  .action-buttons { flex-direction: column; gap: 4px; }
 }
 
 /* ── Admin toast ───────────────────────────────────────── */
