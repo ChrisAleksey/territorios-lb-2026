@@ -1322,6 +1322,38 @@
     .admin-all-item-date {
       font-size: 11px; color: var(--text2); flex: 1; text-align: right;
     }
+    /* Search + sort controls */
+    .admin-list-controls {
+      display: flex; align-items: center; gap: 7px;
+    }
+    .admin-search-wrap {
+      flex: 1; display: flex; align-items: center;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 9px; gap: 6px;
+      transition: border-color .15s;
+    }
+    .admin-search-wrap:focus-within {
+      border-color: rgba(117,96,168,0.55);
+    }
+    .admin-search-icon { font-size: 13px; flex-shrink: 0; opacity: .5; }
+    .admin-search-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text); font-size: 13px; font-weight: 500;
+      font-family: inherit; min-width: 0;
+    }
+    .admin-search-input::placeholder { color: var(--text3); }
+    .admin-sort-btns { display: flex; gap: 3px; flex-shrink: 0; }
+    .admin-sort-btn {
+      height: 30px; padding: 0 10px; border-radius: 7px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      color: var(--text2); font-size: 11px; font-weight: 700; cursor: pointer;
+      transition: background .12s, border-color .12s, color .12s;
+      white-space: nowrap; letter-spacing: .02em;
+    }
+    .admin-sort-btn.active {
+      background: rgba(117,96,168,0.18); border-color: rgba(117,96,168,0.5);
+      color: var(--accent);
+    }
     .admin-select-actions { display: flex; gap: 10px; }
     .admin-select-cancel {
       flex: 1; padding: 12px;
@@ -1689,6 +1721,20 @@
       <span id="admin-show-all-icon">🗺️</span>
       <span id="admin-show-all-label">Ver todos los territorios del mapa</span>
     </button>
+    <!-- Search + sort controls -->
+    <div class="admin-list-controls" id="admin-list-controls">
+      <div class="admin-search-wrap">
+        <span class="admin-search-icon">🔍</span>
+        <input type="text" id="admin-search-input" class="admin-search-input"
+          placeholder="Buscar territorio…"
+          oninput="TerritorialApp._onAdminSearch(this.value)"
+          autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="admin-sort-btns">
+        <button id="admin-sort-date" class="admin-sort-btn active" onclick="TerritorialApp.setAdminSort('date')" title="Ordenar por último trabajado">Reciente</button>
+        <button id="admin-sort-num" class="admin-sort-btn" onclick="TerritorialApp.setAdminSort('num')" title="Ordenar por número"># Núm</button>
+      </div>
+    </div>
     <!-- Lista de todos los territorios con último trabajo -->
     <div class="admin-all-list" id="admin-all-list"></div>
     <div class="admin-select-actions">

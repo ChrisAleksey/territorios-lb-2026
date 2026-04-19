@@ -415,6 +415,8 @@ const TerritorialApp = {
   adminSelectedTerritories: new Set(),
   adminAllowedTerritories:  null,
   adminSessionTipo:         'casaencasa',
+  _adminSearchQuery:        '',
+  _adminSortMode:           'date',   // 'date' | 'num'
   informeUnlocked:          false,
   extraTerritories:         [],   // territorios extra que el capitán eligió
 
@@ -1787,7 +1789,14 @@ const TerritorialApp = {
       localStorage.removeItem('admin_session_tipo');
     } catch(e) {}
 
-    this._adminViewAll = false; // reset al iniciar nueva selección
+    this._adminViewAll     = false; // reset al iniciar nueva selección
+    this._adminSearchQuery = '';
+    this._adminSortMode    = 'date';
+    // Limpiar input DOM y botones de sort si ya están montados
+    const si = document.getElementById('admin-search-input');
+    if (si) si.value = '';
+    document.getElementById('admin-sort-date')?.classList.add('active');
+    document.getElementById('admin-sort-num')?.classList.remove('active');
 
     // Cargar territorios permitidos para este lugar de encuentro
     try {
@@ -2087,8 +2096,18 @@ const TerritorialApp = {
       };
     }
 
-    // Lista ordenada por más reciente primero
-    const sorted = [...byNum].sort((a, b) => {
+    // Filtrar por búsqueda
+    const q = (this._adminSearchQuery || '').trim().toLowerCase();
+    const filtered = q
+      ? byNum.filter(t => t.toLowerCase().includes(q))
+      : [...byNum];
+
+    // Ordenar según modo activo
+    const sorted = filtered.sort((a, b) => {
+      if (this._adminSortMode === 'num') {
+        return num(a) - num(b);
+      }
+      // 'date': más reciente primero, sin historial al final
       const da = this.territoryLastWorked[a] || '0000-00-00';
       const db = this.territoryLastWorked[b] || '0000-00-00';
       if (db !== da) return db > da ? 1 : -1;
@@ -2120,6 +2139,27 @@ const TerritorialApp = {
       item.addEventListener('click', () => this.toggleAdminTerritory(name));
       el.appendChild(item);
     }
+
+    // Mostrar mensaje vacío si no hay resultados para la búsqueda
+    if (q && sorted.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding:14px 10px;text-align:center;font-size:12px;color:var(--text3);';
+      empty.textContent = `Sin resultados para "${q}"`;
+      el.appendChild(empty);
+    }
+  },
+
+  _onAdminSearch(val) {
+    this._adminSearchQuery = val || '';
+    this._renderAdminTerritoryList();
+  },
+
+  setAdminSort(mode) {
+    this._adminSortMode = mode;
+    // Actualizar botones activos
+    document.getElementById('admin-sort-date')?.classList.toggle('active', mode === 'date');
+    document.getElementById('admin-sort-num')?.classList.toggle('active', mode === 'num');
+    this._renderAdminTerritoryList();
   },
 
   _updateAdminSelectCount() {
