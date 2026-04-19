@@ -1787,6 +1787,8 @@ const TerritorialApp = {
       localStorage.removeItem('admin_session_tipo');
     } catch(e) {}
 
+    this._adminViewAll = false; // reset al iniciar nueva selección
+
     // Cargar territorios permitidos para este lugar de encuentro
     try {
       const stored = localStorage.getItem('admin_allowed_territories');
@@ -1900,6 +1902,65 @@ const TerritorialApp = {
     }
 
     this._renderAdminTerritoryList();
+  },
+
+  toggleAdminViewAll() {
+    if (this._adminViewAll === undefined) this._adminViewAll = false;
+    this._adminViewAll = !this._adminViewAll;
+
+    const btn   = document.getElementById('admin-show-all-btn');
+    const icon  = document.getElementById('admin-show-all-icon');
+    const label = document.getElementById('admin-show-all-label');
+
+    if (this._adminViewAll) {
+      // Mostrar TODOS los territorios del tipo correcto
+      const tipoOk   = (name) => this.territoryPrimaryTypes[name] === this.adminSessionTipo;
+      const showList = this.allTerritoryNames.filter(tipoOk);
+      this._adminShowList = new Set(showList);
+
+      const fillFilter = this.adminSessionTipo === 'casaencasa'
+        ? ['==', ['get', 'fill'], '#388e3c']
+        : ['any', ['==', ['get', 'fill'], '#d32f2f'], ['==', ['get', 'fill'], '#f57c00']];
+      ['territory-fill', 'territory-glow', 'territory-line'].forEach(id => {
+        if (this.map.getLayer(id)) this.map.setFilter(id, fillFilter);
+      });
+      const nameFilter = ['in', ['get', 'name'], ['literal', showList]];
+      if (this.map.getLayer('territory-labels')) this.map.setFilter('territory-labels', nameFilter);
+
+      if (btn)   btn.style.background   = 'rgba(117,96,168,0.15)';
+      if (btn)   btn.style.borderColor  = 'var(--accent)';
+      if (btn)   btn.style.color        = 'var(--accent)';
+      if (icon)  icon.textContent  = '📍';
+      if (label) label.textContent = 'Mostrar solo lugar de encuentro';
+
+      this._renderAdminTerritoryList();
+    } else {
+      // Restaurar filtro por lugar
+      const tipoOk   = (name) => this.territoryPrimaryTypes[name] === this.adminSessionTipo;
+      const showList = this.allTerritoryNames.filter(n => {
+        const inAllowed = !this.adminAllowedTerritories || this.adminAllowedTerritories.has(n);
+        return inAllowed && tipoOk(n);
+      });
+      this._adminShowList = new Set(showList);
+
+      const nameFilter = ['in', ['get', 'name'], ['literal', showList]];
+      const fillFilter = this.adminSessionTipo === 'casaencasa'
+        ? ['==', ['get', 'fill'], '#388e3c']
+        : ['any', ['==', ['get', 'fill'], '#d32f2f'], ['==', ['get', 'fill'], '#f57c00']];
+      const showFilter = ['all', nameFilter, fillFilter];
+      ['territory-fill', 'territory-glow', 'territory-line'].forEach(id => {
+        if (this.map.getLayer(id)) this.map.setFilter(id, showFilter);
+      });
+      if (this.map.getLayer('territory-labels')) this.map.setFilter('territory-labels', nameFilter);
+
+      if (btn)   btn.style.background  = 'rgba(255,255,255,0.04)';
+      if (btn)   btn.style.borderColor = 'var(--border)';
+      if (btn)   btn.style.color       = 'var(--text2)';
+      if (icon)  icon.textContent  = '🗺️';
+      if (label) label.textContent = 'Ver todos los territorios del mapa';
+
+      this._renderAdminTerritoryList();
+    }
   },
 
   toggleAdminTerritory(name) {

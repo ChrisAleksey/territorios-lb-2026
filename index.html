@@ -1684,6 +1684,11 @@
       </div>
       <span style="font-size:11px;color:var(--text2);">Toca para seleccionar</span>
     </div>
+    <!-- Toggle: ver solo lugar vs todo el mapa -->
+    <button id="admin-show-all-btn" onclick="TerritorialApp.toggleAdminViewAll()" style="display:flex;align-items:center;gap:7px;width:100%;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;text-align:left;">
+      <span id="admin-show-all-icon">🗺️</span>
+      <span id="admin-show-all-label">Ver todos los territorios del mapa</span>
+    </button>
     <!-- Lista de todos los territorios con último trabajo -->
     <div class="admin-all-list" id="admin-all-list"></div>
     <div class="admin-select-actions">
