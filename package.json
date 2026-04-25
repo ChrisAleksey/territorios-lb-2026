@@ -4,7 +4,8 @@
   "description": "Sistema de gestión de cartas postales por territorios para la congregación.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:rules",
+    "test:rules": "firebase emulators:exec --only firestore \"node --test tests/firestore.rules.test.mjs\""
   },
   "keywords": [],
   "author": "",
@@ -12,5 +13,10 @@
   "dependencies": {
     "@tmcw/togeojson": "^7.1.2",
     "@xmldom/xmldom": "^0.9.9"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.6.0",
+    "firebase-tools": "^14.17.0"
   }
 }

@@ -2,65 +2,138 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Capitanes ────────────────────────────────────────────────────────────
-    // Lectura pública (app necesita verificar token).
-    // Escritura: valida que el documento tenga campos requeridos y que el
-    // token del path coincida con el campo token del documento.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.keys().hasAny(['admin'])
+        && request.auth.token.admin == true;
+    }
+
+    function isCaptain(token) {
+      return signedIn()
+        && request.auth.token.keys().hasAny(['capitanToken'])
+        && request.auth.token.capitanToken is string
+        && request.auth.token.capitanToken == token;
+    }
+
+    function hasOptionalString(field, maxSize) {
+      return !request.resource.data.keys().hasAny([field])
+        || (request.resource.data[field] is string
+          && request.resource.data[field].size() <= maxSize);
+    }
+
+    function hasOptionalList(field) {
+      return !request.resource.data.keys().hasAny([field])
+        || request.resource.data[field] is list;
+    }
+
+    function hasOptionalMap(field) {
+      return !request.resource.data.keys().hasAny([field])
+        || request.resource.data[field] is map;
+    }
+
+    function validDate(field) {
+      return request.resource.data[field] is string
+        && request.resource.data[field].matches('[0-9]{4}-[0-9]{2}-[0-9]{2}');
+    }
+
+    function validCapitan(token) {
+      return request.resource.data.keys().hasAll(['nombre', 'token', 'activo'])
+        && request.resource.data.keys().hasOnly(['nombre', 'token', 'tel', 'activo'])
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 120
+        && request.resource.data.token is string
+        && request.resource.data.token == token
+        && request.resource.data.activo is bool
+        && hasOptionalString('tel', 40);
+    }
+
+    function validSesion(sesionId) {
+      return request.resource.data.keys().hasAll(['capitanToken', 'fecha'])
+        && request.resource.data.keys().hasOnly([
+          'capitanToken', 'fecha', 'tipo', 'hora', 'lugar', 'grupos',
+          'territorios', 'capitan', 'estados'
+        ])
+        && request.resource.data.capitanToken is string
+        && request.resource.data.capitanToken.size() > 0
+        && validDate('fecha')
+        && sesionId == request.resource.data.fecha + '_' + request.resource.data.capitanToken
+        && hasOptionalString('tipo', 30)
+        && hasOptionalString('hora', 30)
+        && hasOptionalString('lugar', 120)
+        && hasOptionalString('grupos', 80)
+        && hasOptionalString('capitan', 120)
+        && hasOptionalList('territorios')
+        && hasOptionalMap('estados');
+    }
+
+    function validCaptainStatusUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estados'])
+        && request.resource.data.estados is map;
+    }
+
+    function validHistorial() {
+      return request.resource.data.keys().hasAll([
+          'territorio', 'estado', 'capitan', 'capitanToken',
+          'fechaPredicacion', 'fechaArchivado'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'territorio', 'lugar', 'estado', 'notas', 'capitan',
+          'capitanToken', 'tipo', 'fechaPredicacion',
+          'fechaCompletado', 'fechaArchivado'
+        ])
+        && request.resource.data.territorio is string
+        && request.resource.data.territorio.size() > 0
+        && request.resource.data.territorio.size() <= 80
+        && request.resource.data.estado in ['completo', 'parcial', 'ciclo_reset']
+        && request.resource.data.capitan is string
+        && request.resource.data.capitan.size() <= 120
+        && request.resource.data.capitanToken is string
+        && hasOptionalString('lugar', 120)
+        && hasOptionalString('notas', 1000)
+        && hasOptionalString('tipo', 30)
+        && validDate('fechaPredicacion')
+        && validDate('fechaArchivado')
+        && (!request.resource.data.keys().hasAny(['fechaCompletado']) || validDate('fechaCompletado'));
+    }
+
     match /capitanes/{token} {
-      allow read: if true;
-
-      allow create, update: if
-        request.resource.data.keys().hasAll(['nombre', 'token', 'activo']) &&
-        request.resource.data.nombre is string &&
-        request.resource.data.nombre.size() > 0 &&
-        request.resource.data.nombre.size() <= 120 &&
-        request.resource.data.token is string &&
-        request.resource.data.token == token &&
-        request.resource.data.activo is bool;
-
-      // Delete solo desde panel admin (no hay auth aún; se deja permitido
-      // pero con validación futura cuando se agregue Firebase Auth)
-      allow delete: if true;
+      allow get: if isAdmin() || isCaptain(token);
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && validCapitan(token);
+      allow delete: if isAdmin();
     }
 
-    // ── Sesiones ─────────────────────────────────────────────────────────────
-    // ID de sesión tiene formato: YYYY-MM-DD_tokenDelCapitan
-    // Escritura: valida campos mínimos y que el token del path coincida.
     match /sesiones/{sesionId} {
-      allow read: if true;
-
-      allow create, update: if
-        request.resource.data.keys().hasAll(['capitanToken', 'fecha']) &&
-        request.resource.data.capitanToken is string &&
-        request.resource.data.capitanToken.size() > 0 &&
-        request.resource.data.fecha is string &&
-        request.resource.data.fecha.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}') &&
-        // El ID de sesión debe empezar con la fecha del documento
-        sesionId.split('_')[0] == request.resource.data.fecha;
-
-      allow delete: if true;
+      allow get: if isAdmin() || isCaptain(resource.data.capitanToken);
+      allow list: if isAdmin();
+      allow create, update: if isAdmin() && validSesion(sesionId);
+      allow update: if isCaptain(resource.data.capitanToken) && validCaptainStatusUpdate();
+      allow delete: if isAdmin();
     }
 
-    // ── Historial ─────────────────────────────────────────────────────────────
-    // Inmutable una vez creado (no se puede editar, solo crear o borrar).
-    // Creación: valida campos requeridos y valores de estado.
     match /historial/{entryId} {
-      allow read: if true;
-
-      allow create: if
-        request.resource.data.keys().hasAll(['territorio', 'estado', 'capitan']) &&
-        request.resource.data.territorio is string &&
-        request.resource.data.territorio.size() > 0 &&
-        request.resource.data.estado in [
-          'completo', 'parcial', 'ciclo_reset'
-        ] &&
-        request.resource.data.capitan is string;
-
-      // No se permite editar registros de historial ya creados
-      allow update: if false;
-
-      allow delete: if true;
+      allow read: if signedIn();
+      allow create: if validHistorial() && (
+        isAdmin()
+        || (
+          request.resource.data.estado in ['completo', 'parcial']
+          && isCaptain(request.resource.data.capitanToken)
+        )
+      );
+      allow update, delete: if isAdmin();
     }
 
+    match /config/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
