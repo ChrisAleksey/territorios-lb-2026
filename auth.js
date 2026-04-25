@@ -2,6 +2,8 @@
 
 const AdminAuth = {
   API_KEY: 'AIzaSyBsdDG-k1zgHuYwjo05Ba5rcqlkxmIG4FA',
+  ADMIN_EMAIL_DOMAIN: 'admin.territorios-lb.local',
+  ADMIN_USERS: ['aleksey', 'rene'],
   SESSION_KEY: 'firebase_admin_auth',
   CLOCK_SKEW_MS: 5 * 60 * 1000,
 
@@ -27,13 +29,28 @@ const AdminAuth = {
     return this._session;
   },
 
-  async signInAdmin(email, password) {
+  async signInAdmin(passcode) {
+    let lastError = null;
+    for (const email of this._candidateEmails()) {
+      try {
+        const session = await this._signInWithEmail(email, passcode);
+        this._setSession(session);
+        this._writeSession(session);
+        return session;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError || new Error('Contraseña incorrecta.');
+  },
+
+  async _signInWithEmail(email, passcode) {
     const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${this.API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: email.trim(),
-        password,
+        email,
+        password: passcode,
         returnSecureToken: true
       })
     });
@@ -45,9 +62,6 @@ const AdminAuth = {
       this.signOut();
       throw new Error('Tu usuario no tiene permisos de administrador.');
     }
-
-    this._setSession(session);
-    this._writeSession(session);
     return session;
   },
 
@@ -135,6 +149,10 @@ const AdminAuth = {
     return session;
   },
 
+  _candidateEmails() {
+    return this.ADMIN_USERS.map(user => `${user}@${this.ADMIN_EMAIL_DOMAIN}`);
+  },
+
   _decodeClaims(idToken) {
     try {
       const payload = idToken.split('.')[1];
@@ -150,7 +168,7 @@ const AdminAuth = {
   _authError(data) {
     const code = data?.error?.message || '';
     if (code.includes('EMAIL_NOT_FOUND') || code.includes('INVALID_PASSWORD') || code.includes('INVALID_LOGIN_CREDENTIALS')) {
-      return 'Correo o contraseña incorrectos.';
+      return 'Contraseña incorrecta.';
     }
     if (code.includes('USER_DISABLED')) return 'Este usuario está deshabilitado.';
     if (code.includes('TOO_MANY_ATTEMPTS_TRY_LATER')) return 'Demasiados intentos. Intenta más tarde.';

@@ -1590,15 +1590,6 @@
     <div class="login-card">
       <div class="login-card-title">Iniciar sesión</div>
       <div class="login-card-sub">Acceso exclusivo para administradores</div>
-      <label class="login-label" for="login-email-input">Correo</label>
-      <input
-        class="login-input"
-        id="login-email-input"
-        type="email"
-        placeholder="admin@ejemplo.com"
-        autocomplete="username"
-        onkeydown="if(event.key==='Enter') document.getElementById('login-name-input').focus()"
-      >
       <label class="login-label" for="login-name-input">Contraseña</label>
       <input
         class="login-input"
@@ -1608,7 +1599,7 @@
         autocomplete="current-password"
         onkeydown="if(event.key==='Enter') AdminLogin.submit()"
       >
-      <div class="login-error" id="login-error">Correo o contraseña incorrectos.</div>
+      <div class="login-error" id="login-error">Contraseña incorrecta.</div>
       <button class="login-submit" id="login-submit-btn" onclick="AdminLogin.submit()">Entrar</button>
       <button class="login-cancel" onclick="AdminLogin.close()">Cancelar</button>
     </div>
@@ -1998,22 +1989,18 @@
 
       _openModal() {
         const overlay = document.getElementById('login-overlay');
-        const email   = document.getElementById('login-email-input');
         const input   = document.getElementById('login-name-input');
         const err     = document.getElementById('login-error');
         const submit  = document.getElementById('login-submit-btn');
-        email.value = '';
         input.value = '';
-        email.classList.remove('error');
         input.classList.remove('error');
         err.classList.remove('show');
-        err.textContent = 'Correo o contraseña incorrectos.';
-        email.disabled = false;
+        err.textContent = 'Contraseña incorrecta.';
         input.disabled = false;
         submit.disabled = false;
         submit.textContent = 'Entrar';
         overlay.classList.add('open');
-        setTimeout(() => email.focus(), 200);
+        setTimeout(() => input.focus(), 200);
       },
 
       close() {
@@ -2021,24 +2008,20 @@
       },
 
       async submit() {
-        const email  = document.getElementById('login-email-input');
         const input  = document.getElementById('login-name-input');
         const err    = document.getElementById('login-error');
         const submit = document.getElementById('login-submit-btn');
-        const mail   = email.value.trim();
-        const pwd    = input.value;
-        if (!mail || !pwd) return;
+        const pwd    = input.value.trim();
+        if (!pwd) return;
 
-        email.classList.remove('error');
         input.classList.remove('error');
         err.classList.remove('show');
-        email.disabled = true;
         input.disabled = true;
         submit.disabled = true;
         submit.textContent = 'Entrando…';
 
         try {
-          await AdminAuth.signInAdmin(mail, pwd);
+          await AdminAuth.signInAdmin(pwd);
           if (this._mode === 'informe') {
             this.isLoggedIn = true;
             this.close();
@@ -2047,12 +2030,10 @@
             window.location.href = 'admin.html';
           }
         } catch (authErr) {
-          email.classList.add('error');
           input.classList.add('error');
           err.textContent = authErr.message || 'No se pudo iniciar sesión.';
           err.classList.add('show');
           input.value = '';
-          email.disabled = false;
           input.disabled = false;
           submit.disabled = false;
           submit.textContent = 'Entrar';

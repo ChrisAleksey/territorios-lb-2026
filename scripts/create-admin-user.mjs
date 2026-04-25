@@ -1,39 +1,58 @@
 #!/usr/bin/env node
-import { applicationDefault, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import bcrypt from 'bcryptjs';
 
 const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'territorios-lb-2026-27d76';
-const [email, password] = process.argv.slice(2);
+const ADMIN_EMAIL_DOMAIN = 'admin.territorios-lb.local';
+const ADMIN_USERS = {
+  aleksey: 'aleksey',
+  rene: 'rene'
+};
+const args = process.argv.slice(2);
 
-if (!email || !password) {
-  console.error('Uso: npm run admin:create -- correo@dominio.com "contraseña-temporal"');
+if (args.length === 0 || args.length % 2 !== 0) {
+  console.error('Uso: npm run admin:create -- nombre passcode [nombre passcode...]');
   process.exit(1);
 }
 
-initializeApp({
-  credential: applicationDefault(),
-  projectId
-});
+const users = [];
+for (let i = 0; i < args.length; i += 2) {
+  const adminName = String(args[i]).trim().toLowerCase();
+  const passcode = args[i + 1];
+  if (!ADMIN_USERS[adminName]) {
+    console.error(`Admin no reconocido: ${args[i]}`);
+    process.exit(1);
+  }
 
-const auth = getAuth();
-let user;
-
-try {
-  user = await auth.getUserByEmail(email);
-  await auth.updateUser(user.uid, { password, disabled: false });
-} catch (err) {
-  if (err.code !== 'auth/user-not-found') throw err;
-  user = await auth.createUser({
-    email,
-    password,
+  users.push({
+    localId: `admin:${adminName}`,
+    email: `${adminName}@${ADMIN_EMAIL_DOMAIN}`,
     emailVerified: true,
+    displayName: adminName,
+    passwordHash: Buffer.from(await bcrypt.hash(passcode, 10), 'utf8').toString('base64'),
+    customAttributes: JSON.stringify({ admin: true, adminName }),
     disabled: false
   });
 }
 
-await auth.setCustomUserClaims(user.uid, {
-  ...(user.customClaims || {}),
-  admin: true
-});
+const dir = await mkdtemp(join(tmpdir(), 'territorios-admin-import-'));
+const file = join(dir, 'users.json');
 
-console.log(`Admin listo: ${email} (${user.uid}) en ${projectId}`);
+try {
+  await writeFile(file, JSON.stringify({ users }), { mode: 0o600 });
+  const result = spawnSync('firebase', [
+    'auth:import',
+    file,
+    '--hash-algo=BCRYPT',
+    '--project',
+    projectId
+  ], { stdio: 'inherit' });
+
+  if (result.status !== 0) process.exit(result.status || 1);
+  console.log(`Admins listos en ${projectId}: ${users.map(user => user.localId).join(', ')}`);
+} finally {
+  await rm(dir, { recursive: true, force: true });
+}

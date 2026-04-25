@@ -3,10 +3,10 @@ import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'territorios-lb-2026-27d76';
-const email = process.argv[2];
+const identifier = process.argv[2];
 
-if (!email) {
-  console.error('Uso: npm run admin:claim -- correo@dominio.com');
+if (!identifier) {
+  console.error('Uso: npm run admin:claim -- uid-o-email');
   process.exit(1);
 }
 
@@ -16,12 +16,14 @@ initializeApp({
 });
 
 const auth = getAuth();
-const user = await auth.getUserByEmail(email);
-const claims = {
+const user = identifier.includes('@')
+  ? await auth.getUserByEmail(identifier)
+  : await auth.getUser(identifier);
+
+await auth.setCustomUserClaims(user.uid, {
   ...(user.customClaims || {}),
-  admin: true
-};
+  admin: true,
+  adminName: user.displayName || user.uid.replace(/^admin:/, '')
+});
 
-await auth.setCustomUserClaims(user.uid, claims);
-
-console.log(`Admin claim activado para ${email} (${user.uid}) en ${projectId}`);
+console.log(`Admin claim activado para ${user.email || user.uid} (${user.uid}) en ${projectId}`);
