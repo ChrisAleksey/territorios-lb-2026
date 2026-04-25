@@ -10,6 +10,39 @@ const FB = {
   PROJECT: 'territorios-lb-2026-27d76',
   BASE:    'https://firestore.googleapis.com/v1/projects/territorios-lb-2026-27d76/databases/(default)/documents',
 
+  _authTokenProvider:     null,
+  _appCheckTokenProvider: null,
+
+  configureSecurity({ authTokenProvider, appCheckTokenProvider } = {}) {
+    if (authTokenProvider !== undefined) this._authTokenProvider = authTokenProvider;
+    if (appCheckTokenProvider !== undefined) this._appCheckTokenProvider = appCheckTokenProvider;
+  },
+
+  async _resolveToken(provider) {
+    if (!provider) return null;
+    const value = typeof provider === 'function' ? await provider() : provider;
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (typeof value.token === 'string') return value.token;
+    return null;
+  },
+
+  async _headers(extra = {}) {
+    const headers = { ...extra };
+    const authToken = await this._resolveToken(this._authTokenProvider);
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    const appCheckToken = await this._resolveToken(this._appCheckTokenProvider);
+    if (appCheckToken) headers['X-Firebase-AppCheck'] = appCheckToken;
+    return headers;
+  },
+
+  async _fetch(url, options = {}) {
+    return fetch(url, {
+      ...options,
+      headers: await this._headers(options.headers || {})
+    });
+  },
+
   /* ── Conversión JS ↔ Firestore ─────────────────────────────────────────── */
   _toFS(val) {
     if (val === null || val === undefined) return { nullValue: null };
@@ -46,7 +79,7 @@ const FB = {
 
   /* ── HTTP helpers ──────────────────────────────────────────────────────── */
   async _get(path) {
-    const res = await fetch(`${this.BASE}/${path}?key=${this.API_KEY}`);
+    const res = await this._fetch(`${this.BASE}/${path}?key=${this.API_KEY}`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Firestore GET ${path} → ${res.status}`);
     return res.json();
@@ -55,7 +88,7 @@ const FB = {
   async _patch(path, fields, updateMask) {
     let url = `${this.BASE}/${path}?key=${this.API_KEY}`;
     if (updateMask) updateMask.forEach(f => { url += `&updateMask.fieldPaths=${encodeURIComponent(f)}`; });
-    const res = await fetch(url, {
+    const res = await this._fetch(url, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ fields })
@@ -65,7 +98,7 @@ const FB = {
   },
 
   async _post(collectionPath, fields) {
-    const res = await fetch(`${this.BASE}/${collectionPath}?key=${this.API_KEY}`, {
+    const res = await this._fetch(`${this.BASE}/${collectionPath}?key=${this.API_KEY}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ fields })
@@ -109,7 +142,7 @@ const FB = {
   },
 
   async deleteCapitan(token) {
-    const res = await fetch(`${this.BASE}/capitanes/${token}?key=${this.API_KEY}`, { method: 'DELETE' });
+    const res = await this._fetch(`${this.BASE}/capitanes/${token}?key=${this.API_KEY}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Firestore DELETE capitanes/${token} → ${res.status}`);
   },
 
@@ -118,7 +151,7 @@ const FB = {
     do {
       let url = `${this.BASE}/capitanes?key=${this.API_KEY}&pageSize=300`;
       if (pageToken) url += `&pageToken=${pageToken}`;
-      const res = await fetch(url);
+      const res = await this._fetch(url);
       if (!res.ok) throw new Error(`Firestore GET capitanes → ${res.status}`);
       const data = await res.json();
       (data.documents || []).forEach(doc => {
@@ -185,7 +218,7 @@ const FB = {
     do {
       let url = `${this.BASE}/historial?key=${this.API_KEY}&pageSize=300`;
       if (pageToken) url += `&pageToken=${pageToken}`;
-      const res = await fetch(url);
+      const res = await this._fetch(url);
       if (!res.ok) throw new Error(`Firestore GET historial → ${res.status}`);
       const data = await res.json();
       (data.documents || []).forEach(doc => {
@@ -200,7 +233,7 @@ const FB = {
   },
 
   async deleteHistorial(id) {
-    const res = await fetch(`${this.BASE}/historial/${id}?key=${this.API_KEY}`, { method: 'DELETE' });
+    const res = await this._fetch(`${this.BASE}/historial/${id}?key=${this.API_KEY}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Firestore DELETE historial/${id} → ${res.status}`);
   },
 
