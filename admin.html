@@ -16,11 +16,7 @@
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
 
-  <!-- Protección: debe venir del login modal -->
   <script>
-    if (!sessionStorage.getItem('admin_auth')) {
-      window.location.replace('index.html');
-    }
     function goToMap() {
       window.location.href = 'index.html';
     }
@@ -611,6 +607,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="firebase.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    AdminAuth.requireAdmin().then((isAdmin) => {
+      if (!isAdmin) window.location.replace('index.html');
+    });
+  </script>
   <script src="admin.js"></script>
 </body>
 </html>

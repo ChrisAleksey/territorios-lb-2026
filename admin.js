@@ -130,6 +130,11 @@ function adminApp() {
        LIFECYCLE
     ════════════════════════════════════════════ */
     async init() {
+      if (!(await AdminAuth.requireAdmin())) {
+        window.location.replace('index.html');
+        return;
+      }
+
       this.sessionDate = FB.todayMX(); // Zona horaria México, igual que app.js
 
       // Cargar capitanes desde Firestore

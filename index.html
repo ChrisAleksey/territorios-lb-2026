@@ -1590,6 +1590,15 @@
     <div class="login-card">
       <div class="login-card-title">Iniciar sesión</div>
       <div class="login-card-sub">Acceso exclusivo para administradores</div>
+      <label class="login-label" for="login-email-input">Correo</label>
+      <input
+        class="login-input"
+        id="login-email-input"
+        type="email"
+        placeholder="admin@ejemplo.com"
+        autocomplete="username"
+        onkeydown="if(event.key==='Enter') document.getElementById('login-name-input').focus()"
+      >
       <label class="login-label" for="login-name-input">Contraseña</label>
       <input
         class="login-input"
@@ -1599,8 +1608,8 @@
         autocomplete="current-password"
         onkeydown="if(event.key==='Enter') AdminLogin.submit()"
       >
-      <div class="login-error" id="login-error">Contraseña incorrecta.</div>
-      <button class="login-submit" onclick="AdminLogin.submit()">Entrar</button>
+      <div class="login-error" id="login-error">Correo o contraseña incorrectos.</div>
+      <button class="login-submit" id="login-submit-btn" onclick="AdminLogin.submit()">Entrar</button>
       <button class="login-cancel" onclick="AdminLogin.close()">Cancelar</button>
     </div>
   </div>
@@ -1958,6 +1967,7 @@
 
   <!-- Firebase helper -->
   <script src="firebase.js"></script>
+  <script src="auth.js"></script>
 
   <!-- App logic -->
   <script src="app.js"></script>
@@ -1965,16 +1975,11 @@
   <!-- Admin login logic -->
   <script>
     const AdminLogin = {
-      // SHA-256 de las contraseñas válidas (aleksey, rene)
-      _HASHES: new Set([
-        '3027418b987e5c09dcff6ee4329e751487e0d20c438dc706e3f402d09ee0314a', // aleksey
-        '63c5d687c64d48947a75bf25daa7a128d0c9a8fe1205c7ae3728224015ee7c0e', // rene
-      ]),
       isLoggedIn: false,
       _mode:      'admin',
 
-      open() {
-        if (sessionStorage.getItem('admin_auth')) {
+      async open() {
+        if (await AdminAuth.requireAdmin()) {
           window.location.href = 'admin.html';
           return;
         }
@@ -1982,8 +1987,8 @@
         this._openModal();
       },
 
-      openForInforme() {
-        if (sessionStorage.getItem('admin_auth')) {
+      async openForInforme() {
+        if (await AdminAuth.requireAdmin()) {
           TerritorialApp._unlockInformeBar();
           return;
         }
@@ -1993,15 +1998,22 @@
 
       _openModal() {
         const overlay = document.getElementById('login-overlay');
+        const email   = document.getElementById('login-email-input');
         const input   = document.getElementById('login-name-input');
         const err     = document.getElementById('login-error');
+        const submit  = document.getElementById('login-submit-btn');
+        email.value = '';
         input.value = '';
+        email.classList.remove('error');
         input.classList.remove('error');
         err.classList.remove('show');
-        err.textContent = 'Contraseña incorrecta.';
+        err.textContent = 'Correo o contraseña incorrectos.';
+        email.disabled = false;
         input.disabled = false;
+        submit.disabled = false;
+        submit.textContent = 'Entrar';
         overlay.classList.add('open');
-        setTimeout(() => input.focus(), 200);
+        setTimeout(() => email.focus(), 200);
       },
 
       close() {
@@ -2009,18 +2021,24 @@
       },
 
       async submit() {
-        const input = document.getElementById('login-name-input');
-        const err   = document.getElementById('login-error');
-        const pwd   = input.value;
-        if (!pwd) return;
+        const email  = document.getElementById('login-email-input');
+        const input  = document.getElementById('login-name-input');
+        const err    = document.getElementById('login-error');
+        const submit = document.getElementById('login-submit-btn');
+        const mail   = email.value.trim();
+        const pwd    = input.value;
+        if (!mail || !pwd) return;
 
-        // SHA-256 via Web Crypto API (nativa en todos los navegadores modernos)
-        const buf     = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-        const hashHex = Array.from(new Uint8Array(buf))
-                             .map(b => b.toString(16).padStart(2, '0')).join('');
+        email.classList.remove('error');
+        input.classList.remove('error');
+        err.classList.remove('show');
+        email.disabled = true;
+        input.disabled = true;
+        submit.disabled = true;
+        submit.textContent = 'Entrando…';
 
-        if (this._HASHES.has(hashHex)) {
-          sessionStorage.setItem('admin_auth', '1');
+        try {
+          await AdminAuth.signInAdmin(mail, pwd);
           if (this._mode === 'informe') {
             this.isLoggedIn = true;
             this.close();
@@ -2028,10 +2046,16 @@
           } else {
             window.location.href = 'admin.html';
           }
-        } else {
+        } catch (authErr) {
+          email.classList.add('error');
           input.classList.add('error');
+          err.textContent = authErr.message || 'No se pudo iniciar sesión.';
           err.classList.add('show');
           input.value = '';
+          email.disabled = false;
+          input.disabled = false;
+          submit.disabled = false;
+          submit.textContent = 'Entrar';
           input.focus();
         }
       }
