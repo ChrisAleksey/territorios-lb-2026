@@ -1,0 +1,14 @@
+# Source files not needed in deployment
+*.kml
+*.gs
+convertKml.js
+PLAN.md
+README.md
+CLAUDE.md
+firebase.json
+firestore.rules
+tests/
+.github/
+node_modules/
+.claude/
+.playwright-mcp/
