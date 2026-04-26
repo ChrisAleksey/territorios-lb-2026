@@ -1,5 +1,7 @@
 # Plan: App Web Territorios LB 2026
 
+> Documento histórico/legacy. La arquitectura vigente usa Firebase Firestore + Firebase Auth. No usar este archivo como fuente de verdad para backend, auth o datos nuevos.
+
 ## Visión general
 
 Reemplazar el flujo manual (copiar/pegar mensajes de WhatsApp + imágenes de Drive) por una app web donde:

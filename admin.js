@@ -3,50 +3,15 @@
    Alpine.js x-data function
    ============================================================ */
 
-const _norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const _norm = TerritoryModel.normalize;
+const KNOWN_GRUPOS = TerritoryModel.KNOWN_GRUPOS;
+let CYCLE_CONFIG = TerritoryModel.DEFAULT_CYCLE_CONFIG;
+let KNOWN_LOCATIONS = TerritoryModel.getKnownLocations(CYCLE_CONFIG);
 
-// Mapa normalizado → key original para lookup sin tildes
-const _LOCATION_KEYS = {};  // se llena después de definir LOCATION_TERRITORIES
-
-
-const KNOWN_GRUPOS = ['1','2','3','4','5','6','7','8','9','10','11','Congregación'];
-
-const KNOWN_LOCATIONS = [
-  'Fam. Hernández Mora',
-  'Fam. Espinosa Valencia',
-  'Fam. Nájera Galván',
-  'Fam. Reyes Maldonado',
-  'Fam. Maldonado Vilchis',
-  'Fam. Lozano Gonzales',
-  'Salón del Reino / Casa de Toñito',
-  'Fam. Rivas Arredondo',
-  'Fam. Diez Reyes',
-  'Fam. Hernández Alanís',
-  'Fam. Aparicio López',
-];
-
-function _tRange(from, to) {
-  const arr = [];
-  for (let i = from; i <= to; i++) arr.push(`t${i}`);
-  return arr;
+function _refreshCycleLookups(config) {
+  CYCLE_CONFIG = TerritoryModel.resolveConfig(config);
+  KNOWN_LOCATIONS = TerritoryModel.getKnownLocations(CYCLE_CONFIG);
 }
-
-const LOCATION_TERRITORIES = {
-  'Fam. Hernández Mora':             _tRange(1,   11),
-  'Fam. Espinosa Valencia':          _tRange(12,  22),
-  'Fam. Nájera Galván':              _tRange(23,  33),
-  'Fam. Reyes Maldonado':            _tRange(34,  37),
-  'Fam. Maldonado Vilchis':          _tRange(38,  42),
-  'Fam. Lozano Gonzales':            _tRange(43,  47),
-  'Salón del Reino / Casa de Toñito':_tRange(48,  68),
-  'Fam. Rivas Arredondo':            _tRange(69,  76),
-  'Fam. Diez Reyes':                 _tRange(77,  82),
-  'Fam. Hernández Alanís':           _tRange(83,  89),
-  'Fam. Aparicio López':             _tRange(90, 106),
-};
-
-// Índice normalizado para lookup sin tildes
-Object.keys(LOCATION_TERRITORIES).forEach(k => { _LOCATION_KEYS[_norm(k)] = k; });
 
 // Territorios con polígono carta postal (rojo/naranja en el KML)
 // 7 solo-carta + 18 mixtos = 25 territorios relevantes para carta postal
@@ -124,6 +89,7 @@ function adminApp() {
       lastReset: null,
       casa:  { completados: 0, parciales: 0, total: TOTAL_CASA,  progreso: 0 },
       carta: { completados: 0, parciales: 0, total: TOTAL_CARTA, progreso: 0 },
+      ciclos: [],
     },
 
     /* ════════════════════════════════════════════
@@ -131,11 +97,12 @@ function adminApp() {
     ════════════════════════════════════════════ */
     async init() {
       if (!(await AdminAuth.requireAdmin())) {
-        window.location.replace('index.html');
+        window.location.replace('index.html?v=20260426');
         return;
       }
 
       this.sessionDate = FB.todayMX(); // Zona horaria México, igual que app.js
+      await this.loadCycleConfig();
 
       // Cargar capitanes desde Firestore
       this.capitanesLoading = true;
@@ -144,6 +111,7 @@ function adminApp() {
         this.capitanes = docs.map(c => ({ ...c, id: c.token }));
       } catch (err) {
         console.error('[Admin] Error cargando capitanes:', err.message);
+        this._toast('No se pudieron cargar los capitanes. Revisa tu conexión o vuelve a iniciar sesión.', 'error');
       } finally {
         this.capitanesLoading = false;
       }
@@ -229,6 +197,16 @@ function adminApp() {
       } catch(e) {}
     },
 
+    async loadCycleConfig() {
+      try {
+        const config = await FB.getCycleConfig();
+        _refreshCycleLookups(config || TerritoryModel.DEFAULT_CYCLE_CONFIG);
+      } catch (err) {
+        console.warn('[Admin] Usando configuración local de ciclos:', err.message);
+        _refreshCycleLookups(TerritoryModel.DEFAULT_CYCLE_CONFIG);
+      }
+    },
+
     /* ════════════════════════════════════════════
        NAVIGATION
     ════════════════════════════════════════════ */
@@ -250,64 +228,96 @@ function adminApp() {
           (a.fechaPredicacion || a.fechaArchivado || ''))
         );
 
-        // Última fecha de ciclo_reset
-        const resets = entries
-          .filter(e => e.estado === 'ciclo_reset')
-          .map(e => e.fechaPredicacion || e.fechaArchivado || '')
-          .filter(Boolean)
-          .sort()
-          .reverse();
-        const lastReset = resets[0] || '0000-00-00';
+        const cycleKey = (lugar, tipo) => TerritoryModel.getCycleKey(lugar, tipo);
+        const entryTipo = (e) => TerritoryModel.TERRITORY_TYPES.includes(e.tipo) ? e.tipo : 'casaencasa';
+        const resetsByCycle = {};
+        for (const e of entries) {
+          if (e.estado !== 'ciclo_reset') continue;
+          const lugar = e.lugar || e.territorio || '';
+          const tipos = TerritoryModel.TERRITORY_TYPES.includes(e.tipo) ? [e.tipo] : TerritoryModel.TERRITORY_TYPES;
+          const fecha = e.fechaPredicacion || e.fechaArchivado || '';
+          for (const tipo of tipos) {
+            const key = cycleKey(lugar, tipo);
+            if (lugar && fecha && (!resetsByCycle[key] || fecha > resetsByCycle[key])) {
+              resetsByCycle[key] = fecha;
+            }
+          }
+        }
 
-        // Entradas del ciclo actual (después del último reset)
-        const ciclo = entries.filter(e =>
-          e.estado !== 'ciclo_reset' &&
-          (e.fechaPredicacion || e.fechaArchivado || '') > lastReset
+        const territoryLocation = TerritoryModel.getTerritoryLocationMap(CYCLE_CONFIG);
+        const cycleTerritories = new Set(TerritoryModel.getAllCycleTerritories(CYCLE_CONFIG));
+        const currentEntries = entries.filter(e => {
+          if (e.estado === 'ciclo_reset') return false;
+          const territorio = (e.territorio || '').toLowerCase();
+          if (!territorio || !cycleTerritories.has(territorio)) return false;
+          const lugar = e.lugar || territoryLocation[territorio] || '';
+          const tipo = entryTipo(e);
+          const fecha = e.fechaPredicacion || e.fechaArchivado || '';
+          return fecha && fecha > (resetsByCycle[cycleKey(lugar, tipo)] || '0000-00-00');
+        });
+
+        const allCompletionKeys = new Set(
+          currentEntries
+            .filter(e => e.estado === 'completo')
+            .map(e => `${entryTipo(e)}::${(e.territorio || '').toLowerCase()}`)
         );
-
-        // Territorios únicos completados
         const completadosSet = new Set(
-          ciclo.filter(e => e.estado === 'completo').map(e => (e.territorio || '').toLowerCase())
+          currentEntries.filter(e => e.estado === 'completo').map(e => (e.territorio || '').toLowerCase())
         );
-
-        // Territorios únicos parciales (visitados pero no completados)
         const parcialesSet = new Set(
-          ciclo
+          currentEntries
             .filter(e => e.estado === 'parcial')
+            .map(e => ({ territorio: (e.territorio || '').toLowerCase(), tipo: entryTipo(e) }))
+            .filter(e => e.territorio && !allCompletionKeys.has(`${e.tipo}::${e.territorio}`))
+            .map(e => e.territorio)
+        );
+        const completedByType = (tipo) => new Set(
+          currentEntries
+            .filter(e => e.estado === 'completo' && entryTipo(e) === tipo)
             .map(e => (e.territorio || '').toLowerCase())
-            .filter(t => t && !completadosSet.has(t))
+        );
+        const partialByType = (tipo, completedSet) => new Set(
+          currentEntries
+            .filter(e => e.estado === 'parcial' && entryTipo(e) === tipo)
+            .map(e => (e.territorio || '').toLowerCase())
+            .filter(t => t && !completedSet.has(t))
         );
 
         const completados = completadosSet.size;
         const parciales   = parcialesSet.size;
-        const totalTerr   = 106;
+        const totalTerr   = cycleTerritories.size || 106;
         const pendientes  = Math.max(0, totalTerr - completados - parciales);
-        const progreso    = Math.round((completados / totalTerr) * 100);
+        const progreso    = totalTerr ? Math.round((completados / totalTerr) * 100) : 0;
 
-        // Stats por tipo: Casa en casa (99 territorios con polígono verde)
-        const casaComp = new Set(
-          ciclo.filter(e => e.estado === 'completo' && e.tipo !== 'carta')
-               .map(e => (e.territorio || '').toLowerCase())
-        );
-        const casaParc = new Set(
-          ciclo.filter(e => e.estado === 'parcial' && e.tipo !== 'carta')
-               .map(e => (e.territorio || '').toLowerCase())
-               .filter(t => t && !casaComp.has(t))
-        );
+        const casaComp = completedByType('casaencasa');
+        const casaParc = partialByType('casaencasa', casaComp);
+        const cartaComp = completedByType('carta');
+        const cartaParc = partialByType('carta', cartaComp);
 
-        // Stats por tipo: Carta postal (25 territorios con polígono rojo/naranja)
-        const cartaComp = new Set(
-          ciclo.filter(e => e.estado === 'completo' && e.tipo === 'carta')
-               .map(e => (e.territorio || '').toLowerCase())
+        const recientes = currentEntries.slice(0, 8);
+        const lastReset = Object.values(resetsByCycle).sort().reverse()[0] || '0000-00-00';
+        const ciclos = TerritoryModel.getKnownLocations(CYCLE_CONFIG).flatMap(lugar =>
+          TerritoryModel.TERRITORY_TYPES.map(tipo => {
+            const territorios = TerritoryModel.getTerritoriesForLugar(CYCLE_CONFIG, lugar, tipo);
+            if (!territorios.length) return null;
+            const completedSet = tipo === 'carta' ? cartaComp : casaComp;
+            const partialSet = tipo === 'carta' ? cartaParc : casaParc;
+            const total = territorios.length;
+            const completos = territorios.filter(t => completedSet.has(t)).length;
+            const parcialesLugar = territorios.filter(t => partialSet.has(t)).length;
+            return {
+              lugar,
+              tipo,
+              tipoLabel: tipo === 'carta' ? 'Carta Postal' : 'Casa en casa',
+              total,
+              completos,
+              parciales: parcialesLugar,
+              pendientes: Math.max(0, total - completos - parcialesLugar),
+              progreso: total ? Math.round((completos / total) * 100) : 0,
+              lastReset: resetsByCycle[cycleKey(lugar, tipo)] || null,
+            };
+          }).filter(Boolean)
         );
-        const cartaParc = new Set(
-          ciclo.filter(e => e.estado === 'parcial' && e.tipo === 'carta')
-               .map(e => (e.territorio || '').toLowerCase())
-               .filter(t => t && !cartaComp.has(t))
-        );
-
-        // Últimas 8 actividades (excluyendo resets)
-        const recientes = entries.filter(e => e.estado !== 'ciclo_reset').slice(0, 8);
 
         this.dashboard = {
           loading: false,
@@ -325,9 +335,11 @@ function adminApp() {
             total:       TOTAL_CARTA,
             progreso:    Math.round((cartaComp.size / TOTAL_CARTA) * 100),
           },
+          ciclos,
         };
       } catch (err) {
         console.error('[Admin] Error cargando dashboard:', err.message);
+        this._toast('No se pudo cargar el dashboard. Revisa tu conexión.', 'error');
         this.dashboard.loading = false;
       }
     },
@@ -344,6 +356,7 @@ function adminApp() {
         this.historialEntries = entries;
       } catch (err) {
         console.error('[Admin] Error cargando historial:', err.message);
+        this._toast('No se pudo cargar el historial. Revisa tu conexión.', 'error');
       } finally {
         this.historialLoading = false;
       }
@@ -356,7 +369,8 @@ function adminApp() {
         await FB.deleteHistorial(entry._id);
         this.historialEntries = this.historialEntries.filter(e => e._id !== entry._id);
       } catch (err) {
-        alert('❌ Error al eliminar: ' + err.message);
+        console.error('[Admin] Error eliminando historial:', err.message);
+        this._toast('No se pudo eliminar el registro. Intenta de nuevo.', 'error');
       }
     },
 
@@ -564,7 +578,7 @@ _(Toca el link para ver tus territorios asignados)_`;
         this._toast(`✅ ${promises.length} sesión(es) guardada(s) en Firebase`, 'success');
       } catch (err) {
         console.error('[Admin] Error guardando sesiones en Firebase:', err);
-        this._toast(`❌ Error al guardar sesiones: ${err.message}`, 'error');
+        this._toast('No se pudieron guardar las sesiones. Revisa tu conexión y permisos.', 'error');
       }
     },
 
@@ -643,10 +657,9 @@ _(Toca el link para ver tus territorios asignados)_`;
         localStorage.setItem('admin_capitan_territories', JSON.stringify(this.territoriosPorCapitan));
         // Tipo de sesión para filtrar por presencial/carta
         localStorage.setItem('admin_session_tipo', this.sessionTipo);
-        // Territorios permitidos según el lugar de encuentro
-        const _lugarKey = _LOCATION_KEYS[_norm(lugar)] || lugar;
-        const allowed = LOCATION_TERRITORIES[_lugarKey] || null;
-        if (allowed) localStorage.setItem('admin_allowed_territories', JSON.stringify(allowed));
+        // Territorios permitidos según el lugar de encuentro y tipo de sesión
+        const allowed = TerritoryModel.getTerritoriesForLugar(CYCLE_CONFIG, lugar, this.sessionTipo);
+        if (allowed.length) localStorage.setItem('admin_allowed_territories', JSON.stringify(allowed));
         else localStorage.removeItem('admin_allowed_territories');
         // Guardar estado completo del programa para restaurar al volver
         localStorage.setItem('admin_asignaciones_state', JSON.stringify(this.asignaciones));
@@ -695,7 +708,8 @@ _(Toca el link para ver tus territorios asignados)_`;
       try {
         await FB.saveCapitan(cap);
       } catch (err) {
-        alert('❌ Error guardando capitán: ' + err.message);
+        console.error('[Admin] Error guardando capitán:', err.message);
+        this._toast('No se pudo guardar el capitán. Revisa datos, conexión y permisos.', 'error');
         return;
       }
 
@@ -716,7 +730,8 @@ _(Toca el link para ver tus territorios asignados)_`;
         await FB.deleteCapitan(cap.token);
         this.capitanes = this.capitanes.filter(c => c.id !== cap.id);
       } catch (err) {
-        alert('❌ Error eliminando capitán: ' + err.message);
+        console.error('[Admin] Error eliminando capitán:', err.message);
+        this._toast('No se pudo eliminar el capitán. Intenta de nuevo.', 'error');
       }
     },
 

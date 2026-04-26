@@ -88,7 +88,7 @@
   </script>
 
   <!-- MapLibre GL JS v5 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.11.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.11.0/dist/maplibre-gl.css" integrity="sha384-mnM9NG1099tBMNxdDQNDKIxYcn/fmqQXFJvbT5l1MsrWvzfxBEffceBsw75/cW2R" crossorigin="anonymous">
 
   <style>
     /* ─── Design Tokens ─────────────────────────────────────────── */
@@ -134,6 +134,18 @@
     html {
       background: var(--card-solid);
       overscroll-behavior: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     body {
@@ -576,6 +588,14 @@
     .notes-textarea:focus {
       border-color: rgba(117,96,168,0.4);
       background: rgba(117,96,168,0.04);
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     /* Save button */
@@ -1583,12 +1603,12 @@
   <div id="map"></div>
 
   <!-- Admin login button -->
-  <button class="admin-login-btn" id="admin-login-btn" onclick="AdminLogin.open()" title="Admin">🔒</button>
+  <button class="admin-login-btn" id="admin-login-btn" onclick="AdminLogin.open()" title="Admin" aria-label="Abrir login de administrador">🔒</button>
 
   <!-- Login modal -->
-  <div class="login-overlay" id="login-overlay">
+  <div class="login-overlay" id="login-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title" aria-hidden="true">
     <div class="login-card">
-      <div class="login-card-title">Iniciar sesión</div>
+      <div class="login-card-title" id="login-title">Iniciar sesión</div>
       <div class="login-card-sub">Acceso exclusivo para administradores</div>
       <label class="login-label" for="login-name-input">Contraseña</label>
       <input
@@ -1609,18 +1629,19 @@
   <!-- Search bar -->
   <div class="search-bar" id="search-bar">
     <span class="search-icon">🔍</span>
+    <label class="sr-only" for="search-input">Buscar territorio</label>
     <input type="text" id="search-input" placeholder="Buscar territorio (ej. t30)…"
            oninput="TerritorialApp.filterBySearch(this.value)" autocomplete="off">
-    <button class="search-clear" id="search-clear" onclick="TerritorialApp.clearSearch()" style="display:none">✕</button>
+    <button class="search-clear" id="search-clear" onclick="TerritorialApp.clearSearch()" style="display:none" aria-label="Limpiar búsqueda">✕</button>
   </div>
 
   <!-- Type toggle switch -->
-  <div class="type-toggle" id="type-toggle">
-    <button class="type-btn active casaencasa-active" id="btn-casaencasa" onclick="TerritorialApp.switchType('casaencasa')">
+  <div class="type-toggle" id="type-toggle" role="group" aria-label="Tipo de territorio">
+    <button class="type-btn active casaencasa-active" id="btn-casaencasa" onclick="TerritorialApp.switchType('casaencasa')" aria-pressed="true">
       <span class="type-dot casaencasa-dot"></span>
       Casa en casa
     </button>
-    <button class="type-btn" id="btn-carta" onclick="TerritorialApp.switchType('carta')">
+    <button class="type-btn" id="btn-carta" onclick="TerritorialApp.switchType('carta')" aria-pressed="false">
       <span class="type-dot carta-dot"></span>
       Carta Postal
     </button>
@@ -1655,7 +1676,7 @@
       </div>
       <div class="legend-item">
         <div class="legend-swatch legend-parcial"></div>
-        <span>Parcial</span>
+        <span>En progreso</span>
       </div>
     </div>
   </div>
@@ -1673,7 +1694,7 @@
       <div style="display:flex;align-items:center;gap:6px">
         <span class="top-card-group" x-data x-text="'Grupo ' + ($store.app.sessionInfo.grupo || '…')">Grupo …</span>
         <button class="tutorial-replay-btn" id="tutorial-replay-btn" onclick="event.stopPropagation();TutorialSystem.replay()" title="Ver tutorial">?</button>
-        <button class="top-card-toggle" onclick="event.stopPropagation();document.getElementById('top-card').classList.toggle('collapsed')">▾</button>
+        <button class="top-card-toggle" onclick="event.stopPropagation();document.getElementById('top-card').classList.toggle('collapsed')" aria-label="Contraer o expandir información de sesión">▾</button>
       </div>
     </div>
     <div class="top-card-meta">
@@ -1696,7 +1717,7 @@
 
 
   <!-- Admin territory selection bar -->
-  <div class="admin-select-bar" id="admin-select-banner">
+  <div class="admin-select-bar" id="admin-select-banner" role="region" aria-label="Selector de territorios admin">
     <div class="admin-bar-handle" id="admin-bar-handle">
       <div class="admin-bar-handle-pill"></div>
     </div>
@@ -1725,14 +1746,15 @@
     <div class="admin-list-controls" id="admin-list-controls">
       <div class="admin-search-wrap">
         <span class="admin-search-icon">🔍</span>
+        <label class="sr-only" for="admin-search-input">Buscar territorio para asignar</label>
         <input type="text" id="admin-search-input" class="admin-search-input"
           placeholder="Buscar territorio…"
           oninput="TerritorialApp._onAdminSearch(this.value)"
           autocomplete="off" autocorrect="off" spellcheck="false">
       </div>
       <div class="admin-sort-btns">
-        <button id="admin-sort-date" class="admin-sort-btn active" onclick="TerritorialApp.setAdminSort('date')" title="Ordenar por último trabajado">Reciente</button>
-        <button id="admin-sort-num" class="admin-sort-btn" onclick="TerritorialApp.setAdminSort('num')" title="Ordenar por número"># Núm</button>
+        <button id="admin-sort-date" class="admin-sort-btn active" onclick="TerritorialApp.setAdminSort('date')" title="Ordenar por último trabajado" aria-pressed="true">Reciente</button>
+        <button id="admin-sort-num" class="admin-sort-btn" onclick="TerritorialApp.setAdminSort('num')" title="Ordenar por número" aria-pressed="false"># Núm</button>
       </div>
     </div>
     <!-- Lista de todos los territorios con último trabajo -->
@@ -1747,7 +1769,7 @@
   <div class="sheet-backdrop" id="sheet-backdrop" onclick="TerritorialApp.closeSheet()"></div>
 
   <!-- Territory bottom sheet -->
-  <div class="bottom-sheet" id="bottom-sheet">
+  <div class="bottom-sheet" id="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-name" aria-hidden="true">
     <div class="sheet-handle"></div>
 
     <div class="sheet-territory-header">
@@ -1761,7 +1783,7 @@
       </div>
       <div style="display:flex;align-items:flex-start;gap:8px;">
         <span class="sheet-badge" id="sheet-badge"></span>
-        <button class="sheet-close-btn" onclick="TerritorialApp.closeSheet()">✕</button>
+        <button class="sheet-close-btn" onclick="TerritorialApp.closeSheet()" aria-label="Cerrar territorio">✕</button>
       </div>
     </div>
 
@@ -1785,7 +1807,7 @@
         </button>
       </div>
       <div class="notes-wrap">
-        <div class="notes-label">Notas</div>
+        <label class="notes-label" for="sheet-notes">Notas</label>
         <textarea class="notes-textarea" id="sheet-notes"
                   placeholder="Observaciones del territorio…" rows="2"></textarea>
       </div>
@@ -1846,7 +1868,7 @@
   <div class="finish-backdrop" id="finish-backdrop" onclick="TerritorialApp.closeFinishSheet()"></div>
 
   <!-- Finish sheet -->
-  <div class="finish-sheet" id="finish-sheet">
+  <div class="finish-sheet" id="finish-sheet" role="dialog" aria-modal="true" aria-labelledby="finish-sheet-title" aria-hidden="true">
     <div class="sheet-handle"></div>
     <div class="finish-sheet-title" id="finish-sheet-title">Finalizar servicio</div>
 
@@ -1859,7 +1881,7 @@
       <div class="finish-stat parcial">
         <span class="finish-stat-icon">🔶</span>
         <span class="finish-stat-num" id="finish-count-parcial">0</span>
-        <span class="finish-stat-label">parciales</span>
+        <span class="finish-stat-label">en progreso</span>
       </div>
       <div class="finish-stat">
         <span class="finish-stat-icon">⏳</span>
@@ -1878,48 +1900,22 @@
 
     <!-- Confirmación de capitán -->
     <div style="margin-bottom:16px;">
-      <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;">
+      <div style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;">
         Capitán de hoy
-      </label>
+      </div>
       <!-- Vista por defecto: nombre del capitán asignado + botón cambiar -->
       <div id="finish-capitan-display" style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;">
         <span id="finish-capitan-name" style="font-size:14px;font-weight:600;color:var(--text);">—</span>
-        <button type="button" onclick="TerritorialApp._showCapitanPicker()" style="font-size:12px;color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-family:inherit;">Cambiar</button>
+        <button type="button" id="finish-capitan-change-btn" onclick="TerritorialApp._showCapitanPicker()" style="font-size:12px;color:var(--accent);font-weight:600;background:none;border:none;cursor:pointer;padding:0;font-family:inherit;" aria-label="Cambiar capitán de hoy">Cambiar</button>
       </div>
-      <!-- Picker oculto (solo si hubo sustitución) -->
-      <select id="finish-capitan-select" style="display:none;width:100%;margin-top:8px;background:rgba(255,255,255,0.05);border:1px solid var(--accent);border-radius:var(--r-sm);padding:11px 14px;font-family:inherit;font-size:14px;color:var(--text);outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;">
-        <option value="" style="background:var(--card-solid);">— Selecciona un capitán —</option>
-        <option style="background:var(--card-solid);">Hno. Abraham Maldonado</option>
-        <option style="background:var(--card-solid);">Hno. Alejandro Vazquez Maciel</option>
-        <option style="background:var(--card-solid);">Hno. Aleksey Cruz</option>
-        <option style="background:var(--card-solid);">Hno. Amadiz Lozano</option>
-        <option style="background:var(--card-solid);">Hno. Arturo Aparicio</option>
-        <option style="background:var(--card-solid);">Hno. Christian Cruz Grajales</option>
-        <option style="background:var(--card-solid);">Hno. Emanuel Evangelista</option>
-        <option style="background:var(--card-solid);">Hno. Fernando Frausto Trujillo</option>
-        <option style="background:var(--card-solid);">Hno. Francisco Javier Garcia</option>
-        <option style="background:var(--card-solid);">Hno. Ivan García</option>
-        <option style="background:var(--card-solid);">Hno. Joel Espinosa Hernandez</option>
-        <option style="background:var(--card-solid);">Hno. Jorge Diez Frausto</option>
-        <option style="background:var(--card-solid);">Hno. Jorge Diez Reyes</option>
-        <option style="background:var(--card-solid);">Hno. Jose Alberto Davila</option>
-        <option style="background:var(--card-solid);">Hno. Jose Luis Najera</option>
-        <option style="background:var(--card-solid);">Hno. José Carlos Matadamas</option>
-        <option style="background:var(--card-solid);">Hno. Juan Carlos Valero</option>
-        <option style="background:var(--card-solid);">Hno. Luis Fernando Ruiz</option>
-        <option style="background:var(--card-solid);">Hno. Luis Roberto Aparicio</option>
-        <option style="background:var(--card-solid);">Hno. Nestor Yedan Montoya</option>
-        <option style="background:var(--card-solid);">Hno. Omar Vazquez Maciel</option>
-        <option style="background:var(--card-solid);">Hno. Orlando Najera</option>
-        <option style="background:var(--card-solid);">Hno. René Villegas Cano</option>
-        <option style="background:var(--card-solid);">Hno. Sergio Armando Hernandez</option>
-      </select>
+      <!-- Campo oculto (solo si hubo sustitución o sesión sin capitán asignado) -->
+      <input id="finish-capitan-select" type="text" aria-label="Capitán de hoy" placeholder="Escribe el nombre del capitán" autocomplete="name" style="display:none;width:100%;box-sizing:border-box;margin-top:8px;background:rgba(255,255,255,0.05);border:1px solid var(--accent);border-radius:var(--r-sm);padding:11px 14px;font-family:inherit;font-size:14px;color:var(--text);outline:none;">
     </div>
 
     <!-- Campos extra solo en vista general (admin) -->
     <div id="informe-extra-fields" style="display:none">
       <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;">
+        <label for="informe-fecha" style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;">
           Fecha de predicación
         </label>
         <input type="date" id="informe-fecha" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 14px;font-family:inherit;font-size:14px;color:var(--text);outline:none;color-scheme:dark;">
@@ -1941,7 +1937,7 @@
   </div>
 
   <!-- MapLibre GL JS -->
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.11.0/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.11.0/dist/maplibre-gl.js" integrity="sha384-UqLzv/PVLQB7sEV62X3GYMHHoOqGqOb1iE7JdfWsbtK4gYx1Q1VzU3qsx+otdWEa" crossorigin="anonymous"></script>
 
   <!-- Alpine.js (store for reactive bits) -->
   <script>
@@ -1951,17 +1947,19 @@
       });
     });
   </script>
-  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" integrity="sha384-l8f0VcPi/M1iHPv8egOnY/15TDwqgbOR1anMIJWvU6nLRgZVLTLSaNqi/TOoT5Fh" crossorigin="anonymous"></script>
 
   <!-- GSAP -->
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc" crossorigin="anonymous"></script>
 
   <!-- Firebase helper -->
-  <script src="firebase.js"></script>
-  <script src="auth.js"></script>
+  <script src="firebase.js?v=20260426"></script>
+  <script src="app-check.js?v=20260426"></script>
+  <script src="auth.js?v=20260426"></script>
+  <script src="territory-model.js?v=20260426"></script>
 
   <!-- App logic -->
-  <script src="app.js"></script>
+  <script src="app.js?v=20260426"></script>
 
   <!-- Admin login logic -->
   <script>
@@ -1971,7 +1969,7 @@
 
       async open() {
         if (await AdminAuth.requireAdmin()) {
-          window.location.href = 'admin.html';
+          window.location.href = 'admin.html?v=20260426';
           return;
         }
         this._mode = 'admin';
@@ -2000,11 +1998,14 @@
         submit.disabled = false;
         submit.textContent = 'Entrar';
         overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden', 'false');
         setTimeout(() => input.focus(), 200);
       },
 
       close() {
-        document.getElementById('login-overlay').classList.remove('open');
+        const overlay = document.getElementById('login-overlay');
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden', 'true');
       },
 
       async submit() {
@@ -2027,7 +2028,7 @@
             this.close();
             TerritorialApp._unlockInformeBar();
           } else {
-            window.location.href = 'admin.html';
+            window.location.href = 'admin.html?v=20260426';
           }
         } catch (authErr) {
           input.classList.add('error');
@@ -2069,7 +2070,7 @@
   <!-- Fondo oscuro enmascarado (dos agujeros simultáneos) -->
   <div id="tutorial-bg" aria-hidden="true"></div>
   <!-- Contenedor del tutorial (bloqueador de clics + card) -->
-  <div id="tutorial-overlay" class="tutorial-overlay" aria-hidden="true">
+  <div id="tutorial-overlay" class="tutorial-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tutorial-text">
     <div id="tutorial-card" class="tutorial-card pos-center">
       <div id="tutorial-step-badge" class="tutorial-step-badge">1 / 4</div>
       <p id="tutorial-text" class="tutorial-text"></p>

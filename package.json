@@ -7,7 +7,9 @@
     "test": "npm run test:rules",
     "test:rules": "firebase emulators:exec --project demo-territorios-lb-2026 --only firestore \"node --test tests/firestore.rules.test.mjs\"",
     "admin:claim": "node scripts/set-admin-claim.mjs",
-    "admin:create": "node scripts/create-admin-user.mjs"
+    "admin:create": "node scripts/create-admin-user.mjs",
+    "captains:import": "node scripts/import-captain-users.mjs",
+    "cycles:seed": "node scripts/seed-cycle-config.mjs"
   },
   "keywords": [],
   "author": "",

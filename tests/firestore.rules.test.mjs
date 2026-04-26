@@ -133,6 +133,36 @@ describe('sesiones', () => {
   });
 });
 
+describe('config/ciclos', () => {
+  const ciclos = {
+    version: 1,
+    lugares: {
+      'Fam. Prueba': {
+        nombre: 'Fam. Prueba',
+        territorios: ['t1', 't2'],
+        tipos: ['casaencasa'],
+        activo: true,
+      },
+    },
+  };
+
+  test('permite lectura autenticada y bloquea anónimos', async () => {
+    await seed('config/ciclos', ciclos);
+
+    await assertFails(getDoc(doc(dbAsAnon(), 'config/ciclos')));
+    await assertSucceeds(getDoc(doc(dbAsCaptain('cap-token'), 'config/ciclos')));
+    await assertSucceeds(getDoc(doc(dbAsAdmin(), 'config/ciclos')));
+  });
+
+  test('permite al admin guardar configuración válida', async () => {
+    await assertSucceeds(setDoc(doc(dbAsAdmin(), 'config/ciclos'), ciclos));
+  });
+
+  test('bloquea escritura de ciclos a capitanes', async () => {
+    await assertFails(setDoc(doc(dbAsCaptain('cap-token'), 'config/ciclos'), ciclos));
+  });
+});
+
 describe('historial', () => {
   test('bloquea lectura anónima y permite lectura autenticada', async () => {
     await seed('historial/entry-1', historial);
@@ -150,6 +180,17 @@ describe('historial', () => {
       ...historial,
       territorio: 'Fam. Prueba',
       estado: 'ciclo_reset',
+    }));
+  });
+
+  test('permite ciclo_reset admin con tipo de ciclo', async () => {
+    await assertSucceeds(setDoc(doc(dbAsAdmin(), 'historial/reset-carta'), {
+      ...historial,
+      territorio: 'Fam. Prueba',
+      estado: 'ciclo_reset',
+      capitan: 'Sistema',
+      capitanToken: '',
+      tipo: 'carta',
     }));
   });
 

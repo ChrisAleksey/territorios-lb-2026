@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import bcrypt from 'bcryptjs';
 
-const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'territorios-lb-2026-27d76';
+const projectId = process.env.FIREBASE_PROJECT_ID || 'territorios-lb-2026-27d76';
 const ADMIN_EMAIL_DOMAIN = 'admin.territorios-lb.local';
 const ADMIN_USERS = {
   aleksey: 'aleksey',

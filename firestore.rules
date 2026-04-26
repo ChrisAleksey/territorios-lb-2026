@@ -76,6 +76,14 @@ service cloud.firestore {
         && request.resource.data.estados is map;
     }
 
+    function validCycleConfig() {
+      return request.resource.data.keys().hasAll(['version', 'lugares'])
+        && request.resource.data.keys().hasOnly(['version', 'lugares'])
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.lugares is map;
+    }
+
     function validHistorial() {
       return request.resource.data.keys().hasAll([
           'territorio', 'estado', 'capitan', 'capitanToken',
@@ -126,6 +134,12 @@ service cloud.firestore {
         )
       );
       allow update, delete: if isAdmin();
+    }
+
+    match /config/ciclos {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && validCycleConfig();
+      allow delete: if isAdmin();
     }
 
     match /config/{docId} {

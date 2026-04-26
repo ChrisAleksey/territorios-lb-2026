@@ -266,7 +266,16 @@ const FB = {
     return this._patch('config/admin', this._objToFields({ allowed: words }), ['allowed']);
   },
 
-  async addCicloReset(lugar, fecha) {
+  async getCycleConfig() {
+    const doc = await this._get('config/ciclos');
+    return doc ? this._docToObj(doc) : null;
+  },
+
+  async saveCycleConfig(config) {
+    return this._patch('config/ciclos', this._objToFields(config));
+  },
+
+  async addCicloReset(lugar, fecha, tipo = 'casaencasa') {
     return this._post('historial', this._objToFields({
       territorio:       lugar,
       lugar:            lugar,
@@ -274,6 +283,7 @@ const FB = {
       notas:            'Ciclo completo — auto-reset',
       capitan:          'Sistema',
       capitanToken:     '',
+      tipo,
       fechaPredicacion: fecha,
       fechaCompletado:  fecha,
       fechaArchivado:   fecha

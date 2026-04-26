@@ -2,7 +2,7 @@
 import { applicationDefault, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
-const projectId = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'territorios-lb-2026-27d76';
+const projectId = process.env.FIREBASE_PROJECT_ID || 'territorios-lb-2026-27d76';
 const identifier = process.argv[2];
 
 if (!identifier) {

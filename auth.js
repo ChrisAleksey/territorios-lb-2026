@@ -1,47 +1,117 @@
 'use strict';
 
-const AdminAuth = {
+const FirebasePasscodeAuth = {
   API_KEY: 'AIzaSyBsdDG-k1zgHuYwjo05Ba5rcqlkxmIG4FA',
   ADMIN_EMAIL_DOMAIN: 'admin.territorios-lb.local',
+  CAPTAIN_EMAIL_DOMAIN: 'capitan.territorios-lb.local',
   ADMIN_USERS: ['aleksey', 'rene'],
-  SESSION_KEY: 'firebase_admin_auth',
+  ADMIN_SESSION_KEY: 'firebase_admin_auth',
+  CAPTAIN_SESSION_PREFIX: 'firebase_captain_auth_',
   CLOCK_SKEW_MS: 5 * 60 * 1000,
 
-  _session: null,
-  _initPromise: null,
+  _adminSession: null,
+  _captainSessions: {},
+  _adminInitPromise: null,
 
-  init() {
-    if (!this._initPromise) this._initPromise = this._init();
-    return this._initPromise;
+  initAdmin() {
+    if (!this._adminInitPromise) this._adminInitPromise = this._initAdmin();
+    return this._adminInitPromise;
   },
 
-  async _init() {
-    const session = this._readSession();
+  async _initAdmin() {
+    const session = this._readSession(this.ADMIN_SESSION_KEY);
     if (!session) return null;
-    this._setSession(session);
+    this._setAdminSession(session);
     if (this._shouldRefresh(session)) {
       try {
-        await this._refresh();
+        await this._refreshAdmin();
       } catch {
-        this.signOut();
+        this.signOutAdmin();
       }
     }
-    return this._session;
+    return this._adminSession;
   },
 
   async signInAdmin(passcode) {
     let lastError = null;
-    for (const email of this._candidateEmails()) {
+    for (const email of this.ADMIN_USERS.map(user => `${user}@${this.ADMIN_EMAIL_DOMAIN}`)) {
       try {
         const session = await this._signInWithEmail(email, passcode);
-        this._setSession(session);
-        this._writeSession(session);
+        if (!session.claims.admin) throw new Error('Tu usuario no tiene permisos de administrador.');
+        this._setAdminSession(session);
+        this._writeSession(this.ADMIN_SESSION_KEY, session);
         return session;
       } catch (err) {
         lastError = err;
       }
     }
     throw lastError || new Error('Contraseña incorrecta.');
+  },
+
+  async requireAdmin() {
+    await this.initAdmin();
+    return !!this._adminSession?.claims?.admin;
+  },
+
+  async getAdminIdToken() {
+    await this.initAdmin();
+    if (!this._adminSession) return null;
+    if (this._shouldRefresh(this._adminSession)) await this._refreshAdmin();
+    return this._adminSession?.idToken || null;
+  },
+
+  signOutAdmin() {
+    this._adminSession = null;
+    this._adminInitPromise = null;
+    sessionStorage.removeItem(this.ADMIN_SESSION_KEY);
+    this._configureFirebaseTokenProvider();
+  },
+
+  _setAdminSession(session) {
+    this._adminSession = session;
+    this._configureFirebaseTokenProvider();
+  },
+
+  async signInCaptain(token) {
+    const normalizedToken = this._normalizeToken(token);
+    if (!normalizedToken) throw new Error('Link de capitán inválido.');
+
+    const key = this._captainSessionKey(normalizedToken);
+    let session = this._captainSessions[normalizedToken] || this._readSession(key);
+    if (session?.claims?.capitanToken === normalizedToken) {
+      this._captainSessions[normalizedToken] = session;
+      this._configureFirebaseTokenProvider(normalizedToken);
+      if (this._shouldRefresh(session)) session = await this._refreshCaptain(normalizedToken);
+      return session;
+    }
+
+    session = await this._signInWithEmail(this._captainEmail(normalizedToken), normalizedToken);
+    if (session.claims.capitanToken !== normalizedToken) {
+      this.signOutCaptain(normalizedToken);
+      throw new Error('El link de capitán no tiene permisos válidos.');
+    }
+    this._captainSessions[normalizedToken] = session;
+    this._writeSession(key, session);
+    this._configureFirebaseTokenProvider(normalizedToken);
+    return session;
+  },
+
+  async getCaptainIdToken(token) {
+    const normalizedToken = this._normalizeToken(token);
+    if (!normalizedToken) return null;
+    let session = this._captainSessions[normalizedToken] || this._readSession(this._captainSessionKey(normalizedToken));
+    if (!session) return null;
+    this._captainSessions[normalizedToken] = session;
+    if (this._shouldRefresh(session)) session = await this._refreshCaptain(normalizedToken);
+    return session?.idToken || null;
+  },
+
+  signOutCaptain(token) {
+    const normalizedToken = this._normalizeToken(token);
+    if (!normalizedToken) return;
+    delete this._captainSessions[normalizedToken];
+    sessionStorage.removeItem(this._captainSessionKey(normalizedToken));
+    this._configureFirebaseTokenProvider();
   },
 
   async _signInWithEmail(email, passcode) {
@@ -56,56 +126,30 @@ const AdminAuth = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(this._authError(data));
-
-    const session = this._sessionFromAuthResponse(data);
-    if (!session.claims.admin) {
-      this.signOut();
-      throw new Error('Tu usuario no tiene permisos de administrador.');
-    }
-    return session;
+    return this._sessionFromAuthResponse(data);
   },
 
-  async requireAdmin() {
-    await this.init();
-    return !!this._session?.claims?.admin;
+  _configureFirebaseTokenProvider(preferredCaptainToken = null) {
+    if (!window.FB?.configureSecurity) return;
+    FB.configureSecurity({ authTokenProvider: async () => {
+      if (this._adminSession) return this.getAdminIdToken();
+      if (preferredCaptainToken) return this.getCaptainIdToken(preferredCaptainToken);
+      const token = Object.keys(this._captainSessions)[0];
+      return token ? this.getCaptainIdToken(token) : null;
+    }});
   },
 
-  async getIdToken() {
-    await this.init();
-    if (!this._session) return null;
-    if (this._shouldRefresh(this._session)) {
-      await this._refresh();
-    }
-    return this._session?.idToken || null;
-  },
-
-  signOut() {
-    this._session = null;
-    this._initPromise = null;
-    sessionStorage.removeItem(this.SESSION_KEY);
-    if (window.FB?.configureSecurity) {
-      FB.configureSecurity({ authTokenProvider: null });
-    }
-  },
-
-  _setSession(session) {
-    this._session = session;
-    if (window.FB?.configureSecurity) {
-      FB.configureSecurity({ authTokenProvider: () => this.getIdToken() });
-    }
-  },
-
-  _readSession() {
+  _readSession(key) {
     try {
-      const raw = sessionStorage.getItem(this.SESSION_KEY);
+      const raw = sessionStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
     }
   },
 
-  _writeSession(session) {
-    sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+  _writeSession(key, session) {
+    sessionStorage.setItem(key, JSON.stringify(session));
   },
 
   _sessionFromAuthResponse(data) {
@@ -126,11 +170,30 @@ const AdminAuth = {
     return !session.idToken || !session.expiresAt || Date.now() > session.expiresAt - this.CLOCK_SKEW_MS;
   },
 
-  async _refresh() {
-    if (!this._session?.refreshToken) throw new Error('Sesión expirada.');
+  async _refreshAdmin() {
+    const session = await this._refreshSession(this._adminSession);
+    if (!session.claims.admin) throw new Error('Tu usuario no tiene permisos de administrador.');
+    this._setAdminSession(session);
+    this._writeSession(this.ADMIN_SESSION_KEY, session);
+    return session;
+  },
+
+  async _refreshCaptain(token) {
+    const normalizedToken = this._normalizeToken(token);
+    const current = this._captainSessions[normalizedToken] || this._readSession(this._captainSessionKey(normalizedToken));
+    const session = await this._refreshSession(current);
+    if (session.claims.capitanToken !== normalizedToken) throw new Error('Sesión de capitán inválida.');
+    this._captainSessions[normalizedToken] = session;
+    this._writeSession(this._captainSessionKey(normalizedToken), session);
+    this._configureFirebaseTokenProvider(normalizedToken);
+    return session;
+  },
+
+  async _refreshSession(session) {
+    if (!session?.refreshToken) throw new Error('Sesión expirada.');
     const body = new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: this._session.refreshToken
+      refresh_token: session.refreshToken
     });
     const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${this.API_KEY}`, {
       method: 'POST',
@@ -139,18 +202,10 @@ const AdminAuth = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(this._authError(data));
-    const session = this._sessionFromAuthResponse({
+    return this._sessionFromAuthResponse({
       ...data,
-      email: this._session.email
+      email: session.email
     });
-    if (!session.claims.admin) throw new Error('Tu usuario no tiene permisos de administrador.');
-    this._setSession(session);
-    this._writeSession(session);
-    return session;
-  },
-
-  _candidateEmails() {
-    return this.ADMIN_USERS.map(user => `${user}@${this.ADMIN_EMAIL_DOMAIN}`);
   },
 
   _decodeClaims(idToken) {
@@ -165,6 +220,18 @@ const AdminAuth = {
     }
   },
 
+  _normalizeToken(token) {
+    return String(token || '').trim().toLowerCase();
+  },
+
+  _captainEmail(token) {
+    return `${token}@${this.CAPTAIN_EMAIL_DOMAIN}`;
+  },
+
+  _captainSessionKey(token) {
+    return `${this.CAPTAIN_SESSION_PREFIX}${token}`;
+  },
+
   _authError(data) {
     const code = data?.error?.message || '';
     if (code.includes('EMAIL_NOT_FOUND') || code.includes('INVALID_PASSWORD') || code.includes('INVALID_LOGIN_CREDENTIALS')) {
@@ -172,8 +239,23 @@ const AdminAuth = {
     }
     if (code.includes('USER_DISABLED')) return 'Este usuario está deshabilitado.';
     if (code.includes('TOO_MANY_ATTEMPTS_TRY_LATER')) return 'Demasiados intentos. Intenta más tarde.';
+    if (code.includes('API_KEY_HTTP_REFERRER_BLOCKED')) return 'Este dominio no está autorizado para iniciar sesión.';
     return 'No se pudo iniciar sesión.';
   }
+};
+
+const AdminAuth = {
+  init: () => FirebasePasscodeAuth.initAdmin(),
+  signInAdmin: passcode => FirebasePasscodeAuth.signInAdmin(passcode),
+  requireAdmin: () => FirebasePasscodeAuth.requireAdmin(),
+  getIdToken: () => FirebasePasscodeAuth.getAdminIdToken(),
+  signOut: () => FirebasePasscodeAuth.signOutAdmin()
+};
+
+const CaptainAuth = {
+  signIn: token => FirebasePasscodeAuth.signInCaptain(token),
+  getIdToken: token => FirebasePasscodeAuth.getCaptainIdToken(token),
+  signOut: token => FirebasePasscodeAuth.signOutCaptain(token)
 };
 
 AdminAuth.init();
