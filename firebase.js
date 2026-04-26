@@ -290,3 +290,5 @@ const FB = {
     }));
   }
 };
+
+window.FB = FB;

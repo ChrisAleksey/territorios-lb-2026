@@ -258,4 +258,8 @@ const CaptainAuth = {
   signOut: token => FirebasePasscodeAuth.signOutCaptain(token)
 };
 
+window.FirebasePasscodeAuth = FirebasePasscodeAuth;
+window.AdminAuth = AdminAuth;
+window.CaptainAuth = CaptainAuth;
+
 AdminAuth.init();

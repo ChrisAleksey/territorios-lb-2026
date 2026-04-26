@@ -2191,11 +2191,11 @@ const TerritorialApp = {
         territories: Array.from(this.adminSelectedTerritories)
       }));
     } catch(e) {}
-    window.location.href = 'admin.html';
+    window.location.href = 'admin.html?v=20260426';
   },
 
   cancelAdminSelection() {
-    window.location.href = 'admin.html';
+    window.location.href = 'admin.html?v=20260426';
   },
 
   _showTopCard() {
@@ -2412,6 +2412,8 @@ const TerritorialApp = {
     }
   }
 };
+
+window.TerritorialApp = TerritorialApp;
 
 /* ─── Boot ──────────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
