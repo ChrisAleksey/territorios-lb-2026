@@ -6,7 +6,7 @@ const FirebaseAppCheck = {
     messagingSenderId: '41037652213',
     measurementId: 'G-VP1TZPJCF7',
     storageBucket: 'territorios-lb-2026-27d76.firebasestorage.app',
-    siteKey: '', // reCAPTCHA v3 site key; vacío mantiene App Check apagado.
+    siteKey: '6LeJzsssAAAAAK0177Q5RgATKUg_JXp3VwY6kVoT',
     sdkVersion: '12.6.0'
   },
 
