@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Style Guide — Territorios LB 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       DESIGN TOKENS — fuente de verdad para todo el proyecto
+       Copiar este bloque :root en index.html y admin.css
+    ═══════════════════════════════════════════════════════ */
+    :root {
+      /* ── Fondos ── */
+      --bg:           #141318;
+      --bg2:          #1c1a24;
+      --card:         rgba(32,29,48,0.96);
+      --card-solid:   #201d30;
+      --glass:        rgba(10,8,20,0.88);
+
+      /* ── Acento JW (morado) ── */
+      --accent:       #7560a8;
+      --accent-hover: #5e4d8a;
+      --accent-glow:  rgba(117,96,168,0.22);
+      --accent-dim:   rgba(117,96,168,0.12);
+
+      /* ── Semánticos ── */
+      --success:      #10b981;
+      --success-glow: rgba(16,185,129,0.25);
+      --warning:      #f59e0b;
+      --warning-glow: rgba(245,158,11,0.25);
+      --danger:       #ef4444;
+      --danger-glow:  rgba(239,68,68,0.25);
+      --whatsapp:     #25d366;
+
+      /* ── Texto ── */
+      --text:         #eeeaf8;
+      --text2:        #9b96b8;
+      --text3:        #6b6585;
+
+      /* ── Bordes ── */
+      --border:       rgba(117,96,168,0.18);
+      --border2:      rgba(117,96,168,0.08);
+
+      /* ── Radios ── */
+      --r-xl:         24px;
+      --r-lg:         20px;
+      --r-md:         14px;
+      --r-sm:         10px;
+      --r-xs:         6px;
+
+      /* ── Sombras ── */
+      --shadow-sm:          0 2px 8px rgba(0,0,0,0.30);
+      --shadow-md:          0 4px 16px rgba(0,0,0,0.40);
+      --shadow-lg:          0 8px 32px rgba(0,0,0,0.50);
+      --shadow-glow-accent: 0 4px 24px var(--accent-glow);
+
+      /* ── Espaciado ── */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      /* ── Animaciones ── */
+      --spring:       cubic-bezier(0.16, 1, 0.3, 1);
+      --bounce:       cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease:         0.2s ease;
+    }
+
+    /* ── prefers-reduced-motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+
+    /* ── Layout ── */
+    .sg-header {
+      border-bottom: 1px solid var(--border);
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .sg-header-title { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+    .sg-header-sub   { font-size: 12px; color: var(--text2); margin-top: 2px; }
+    .sg-header-links { display: flex; gap: 10px; }
+    .sg-header-link  {
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 12px; font-weight: 600;
+      color: var(--text2);
+      text-decoration: none;
+      transition: border-color var(--ease), color var(--ease), background var(--ease);
+    }
+    .sg-header-link:hover { border-color: var(--accent); color: var(--text); background: var(--accent-dim); }
+
+    .sg-body { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    .sg-section { margin-bottom: 64px; }
+    .sg-section-title {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sg-section-sub {
+      font-size: 12px; color: var(--text2);
+      margin-bottom: 20px; margin-top: -12px;
+    }
+
+    /* ── Grid ── */
+    .sg-grid    { display: grid; gap: 12px; }
+    .sg-grid-2  { grid-template-columns: repeat(2,1fr); }
+    .sg-grid-3  { grid-template-columns: repeat(3,1fr); }
+    .sg-grid-4  { grid-template-columns: repeat(4,1fr); }
+    .sg-grid-5  { grid-template-columns: repeat(5,1fr); }
+    .sg-flex    { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+
+    /* ── Token label ── */
+    .token-label {
+      font-size: 10px; font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--text3); margin-top: 6px; word-break: break-all;
+    }
+
+    /* ════════════════════════════════════════════════════════
+       COLORES
+    ════════════════════════════════════════════════════════ */
+    .color-swatch {
+      border-radius: var(--r-sm);
+      overflow: hidden;
+      border: 1px solid var(--border2);
+    }
+    .color-block  { height: 56px; }
+    .color-info   { padding: 8px 10px; background: var(--card-solid); }
+    .color-name   { font-size: 12px; font-weight: 600; color: var(--text); }
+    .color-value  { font-size: 10px; color: var(--text2); font-family: monospace; margin-top: 2px; }
+
+    /* ════════════════════════════════════════════════════════
+       TIPOGRAFÍA
+    ════════════════════════════════════════════════════════ */
+    .type-sample  { padding: 16px 20px; background: var(--card-solid); border-radius: var(--r-md); border: 1px solid var(--border); margin-bottom: 8px; }
+    .type-meta    { font-size: 10px; color: var(--text3); font-family: monospace; margin-top: 6px; }
+
+    /* ════════════════════════════════════════════════════════
+       BOTONES
+    ════════════════════════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 12px 20px;
+      border: none; border-radius: var(--r-md);
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: transform 0.12s var(--bounce), box-shadow 0.15s, opacity 0.15s, background 0.15s;
+      white-space: nowrap;
+      position: relative;
+    }
+    .btn:active { transform: scale(0.95); }
+
+    /* focus-visible: solo teclado, nunca mouse/touch */
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+      color: #fff;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 24px rgba(117,96,168,0.5); }
+
+    .btn-success {
+      background: linear-gradient(135deg, #059669, var(--success));
+      color: #fff;
+      box-shadow: 0 4px 14px var(--success-glow);
+    }
+    .btn-success:hover { box-shadow: 0 4px 20px rgba(16,185,129,0.5); }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #d97706, var(--warning));
+      color: #fff;
+      box-shadow: 0 4px 14px var(--warning-glow);
+    }
+    .btn-warning:hover { box-shadow: 0 4px 20px rgba(245,158,11,0.5); }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626, var(--danger));
+      color: #fff;
+      box-shadow: 0 4px 14px var(--danger-glow);
+    }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+    .btn-whatsapp {
+      background: linear-gradient(135deg, #1ebe5c, var(--whatsapp));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(37,211,102,0.3);
+    }
+
+    .btn-sm { padding: 8px 14px; font-size: 12px; border-radius: var(--r-sm); }
+    .btn-lg { padding: 16px 28px; font-size: 16px; border-radius: var(--r-lg); }
+    .btn-full { width: 100%; }
+
+    .btn-icon-only {
+      width: 40px; height: 40px; padding: 0;
+      border-radius: 12px;
+      font-size: 16px;
+    }
+
+    /* disabled: 0.5 en lugar de 0.45 — mejor contraste WCAG */
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+    /* loading state — spinner reemplaza contenido */
+    .btn.loading {
+      pointer-events: none;
+      color: transparent !important;
+    }
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: btn-spin 0.55s linear infinite;
+    }
+    .btn-ghost.loading::after {
+      border-color: rgba(255,255,255,0.15);
+      border-top-color: var(--text2);
+    }
+    @keyframes btn-spin { to { transform: rotate(360deg); } }
+
+    /* ════════════════════════════════════════════════════════
+       BADGES
+    ════════════════════════════════════════════════════════ */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    /* Fix: #93c5fd sobre fondo morado tenía contraste bajo — ahora verde como el territorio */
+    .badge-casaencasa { color: #86efac; background: rgba(16,185,129,0.12);  border-color: rgba(16,185,129,0.28); }
+    .badge-carta      { color: #fca5a5; background: rgba(239,68,68,0.12);   border-color: rgba(239,68,68,0.3);  }
+    .badge-completo   { color: #4ade80; background: rgba(16,185,129,0.12);  border-color: rgba(16,185,129,0.25); }
+    .badge-parcial    { color: #fbbf24; background: rgba(245,158,11,0.12);  border-color: rgba(245,158,11,0.25); }
+    .badge-pendiente  { color: var(--text2); background: rgba(255,255,255,0.05); border-color: var(--border); }
+    .badge-accent     { color: var(--accent); background: var(--accent-glow); border-color: rgba(117,96,168,0.3); }
+
+    /* ════════════════════════════════════════════════════════
+       CARDS
+    ════════════════════════════════════════════════════════ */
+    .card {
+      background: var(--card-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+    }
+    .card-glass {
+      background: var(--card);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+    }
+    /* Card interactiva (touchable) */
+    .card-touchable {
+      background: var(--card-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      cursor: pointer;
+      transition: transform 0.12s var(--bounce), background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    }
+    .card-touchable:hover  { border-color: rgba(117,96,168,0.35); box-shadow: var(--shadow-sm); }
+    .card-touchable:active { transform: scale(0.98); background: rgba(32,29,48,0.8); }
+    .card-touchable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .card-title   { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .card-sub     { font-size: 12px; color: var(--text2); margin-top: 3px; }
+    .card-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+    /* ════════════════════════════════════════════════════════
+       INPUTS
+    ════════════════════════════════════════════════════════ */
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 11px 14px;
+      font-family: inherit; font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
+      width: 100%;
+    }
+    .input::placeholder { color: var(--text3); }
+    .input:focus {
+      border-color: rgba(117,96,168,0.5);
+      background: rgba(117,96,168,0.05);
+    }
+    .input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 0;
+      border-color: var(--accent);
+    }
+    .input.error { border-color: rgba(239,68,68,0.6); }
+
+    .textarea {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 10px 13px;
+      font-family: inherit; font-size: 13px;
+      color: var(--text);
+      resize: none; outline: none;
+      width: 100%; min-height: 72px;
+      transition: border-color var(--ease), background var(--ease);
+    }
+    .textarea::placeholder { color: var(--text3); }
+    .textarea:focus {
+      border-color: rgba(117,96,168,0.4);
+      background: rgba(117,96,168,0.04);
+    }
+    .textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 0;
+    }
+
+    .select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 11px 14px;
+      font-family: inherit; font-size: 14px;
+      color: var(--text);
+      outline: none; width: 100%;
+      transition: border-color var(--ease);
+      cursor: pointer;
+    }
+    .select:focus { border-color: rgba(117,96,168,0.5); }
+    .select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+
+    /* ════════════════════════════════════════════════════════
+       STATUS DOTS
+    ════════════════════════════════════════════════════════ */
+    .status-row   { display: flex; align-items: center; gap: 8px; }
+    .status-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-completo { background: var(--success); }
+    .dot-parcial  { background: var(--warning); }
+    .dot-pendiente{ background: var(--text3); }
+
+    /* ════════════════════════════════════════════════════════
+       TOAST
+    ════════════════════════════════════════════════════════ */
+    .toast-demo {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 11px 18px;
+      background: var(--card-solid);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      font-size: 13px; font-weight: 600;
+      box-shadow: var(--shadow-md);
+    }
+    .toast-demo.success { border-color: rgba(16,185,129,0.35); }
+    .toast-demo.warning { border-color: rgba(245,158,11,0.35); }
+    .toast-demo.error   { border-color: rgba(239,68,68,0.35);  }
+    .toast-demo.info    { border-color: rgba(117,96,168,0.35); }
+
+    /* ════════════════════════════════════════════════════════
+       ACTION BUTTONS (mapa)
+    ════════════════════════════════════════════════════════ */
+    .action-row-demo {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 10px;
+    }
+    .action-btn-demo {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 6px; padding: 14px 8px;
+      border-radius: var(--r-md);
+      border: none; cursor: pointer;
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: #fff;
+    }
+    .action-btn-demo .icon { font-size: 18px; }
+    .ab-completo { background: linear-gradient(135deg,#059669,var(--success)); box-shadow: 0 4px 14px var(--success-glow); }
+    .ab-parcial  { background: linear-gradient(135deg,#d97706,var(--warning)); box-shadow: 0 4px 14px var(--warning-glow); }
+    .ab-pendiente{ background: linear-gradient(135deg,#1e293b,#334155); border: 1px solid var(--border); }
+
+    /* ════════════════════════════════════════════════════════
+       PROGRESS RING (mini)
+    ════════════════════════════════════════════════════════ */
+    .ring-wrap { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+    .ring-svg  { width: 48px; height: 48px; transform: rotate(-90deg); }
+    .ring-bg   { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+    .ring-fill { fill: none; stroke: var(--success); stroke-width: 3; stroke-linecap: round; }
+    .ring-label{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+
+    /* ════════════════════════════════════════════════════════
+       CHIP — Fix: hover ya no sugiere "eliminar" con rojo total.
+       Solo el ✕ se intensifica y cambia a danger.
+    ════════════════════════════════════════════════════════ */
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(117,96,168,0.15);
+      border: 1px solid rgba(117,96,168,0.4);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px; font-weight: 700;
+      color: #c4b5fd;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background var(--ease), border-color var(--ease);
+    }
+    .chip:hover { background: rgba(117,96,168,0.25); border-color: rgba(117,96,168,0.6); }
+    .chip-x {
+      font-size: 10px; opacity: 0.5;
+      transition: opacity var(--ease), color var(--ease);
+    }
+    .chip:hover .chip-x { opacity: 1; color: var(--danger); }
+
+    /* ════════════════════════════════════════════════════════
+       INCONSISTENCIAS (highlight)
+    ════════════════════════════════════════════════════════ */
+    .diff-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+      font-size: 12px;
+    }
+    .diff-label { font-weight: 700; color: var(--text); align-self: center; }
+    .diff-old   { font-family: monospace; font-size: 11px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 6px; padding: 6px 10px; color: #fca5a5; }
+    .diff-new   { font-family: monospace; font-size: 11px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); border-radius: 6px; padding: 6px 10px; color: #4ade80; }
+    .diff-header{ font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); padding-bottom: 4px; }
+    .warning-box{
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25);
+      border-radius: var(--r-sm); padding: 12px 16px; margin-bottom: 16px;
+      font-size: 12px; color: var(--warning); line-height: 1.6;
+    }
+    .info-box{
+      background: rgba(117,96,168,0.08); border: 1px solid rgba(117,96,168,0.2);
+      border-radius: var(--r-sm); padding: 12px 16px; margin-bottom: 16px;
+      font-size: 12px; color: var(--text2); line-height: 1.6;
+    }
+
+    /* ── Sombras — demo cards ── */
+    .shadow-demo {
+      background: var(--card-solid);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 20px 16px;
+      text-align: center;
+    }
+    .shadow-demo .shadow-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .shadow-demo .shadow-val  { font-size: 10px; font-family: monospace; color: var(--text3); }
+
+    /* ── Espaciado — demo blocks ── */
+    .space-demo {
+      display: flex; align-items: center; gap: 16px;
+      padding: 10px 14px;
+      background: var(--card-solid);
+      border: 1px solid var(--border2);
+      border-radius: var(--r-xs);
+    }
+    .space-bar {
+      background: var(--accent-dim);
+      border: 1px solid rgba(117,96,168,0.3);
+      border-radius: 3px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+    .space-token { font-size: 11px; font-family: monospace; color: var(--accent); font-weight: 700; width: 72px; }
+    .space-val   { font-size: 11px; color: var(--text2); width: 32px; }
+    .space-use   { font-size: 11px; color: var(--text3); flex: 1; }
+
+    /* ── Estados — demo ── */
+    .state-row {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 16px; background: var(--card-solid);
+      border: 1px solid var(--border); border-radius: var(--r-md);
+      margin-bottom: 8px;
+    }
+    .state-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; width: 80px; flex-shrink: 0; }
+
+    /* ── Misc ── */
+    .sg-copy {
+      font-family: 'SF Mono','Fira Code',monospace; font-size: 11px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border2);
+      border-radius: var(--r-xs); padding: 2px 6px; color: var(--text2);
+    }
+    hr.sg-hr { border: none; border-top: 1px solid var(--border2); margin: 16px 0; }
+
+    /* simulate focus-visible for demo */
+    .demo-focus-visible {
+      outline: 2px solid var(--accent) !important;
+      outline-offset: 3px !important;
+    }
+    .demo-focus-visible-inset {
+      outline: 2px solid var(--accent) !important;
+      outline-offset: 0 !important;
+      border-color: var(--accent) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="sg-header">
+    <div>
+      <div class="sg-header-title">UI Style Guide — Territorios LB 2026</div>
+      <div class="sg-header-sub">Fuente de verdad de estilos · Actualizado 2026-04-17</div>
+    </div>
+    <nav class="sg-header-links">
+      <a class="sg-header-link" href="index.html">Mapa</a>
+      <a class="sg-header-link" href="admin.html">Admin</a>
+    </nav>
+  </header>
+
+  <main class="sg-body">
+
+    <!-- ══ INCONSISTENCIAS ══════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Inconsistencias detectadas — pendiente de sincronizar</div>
+      <div class="warning-box">
+        Los archivos <strong>index.html</strong> y <strong>admin.css</strong> definen tokens distintos.
+        El bloque <code>:root</code> de esta página es la versión unificada. Los tokens nuevos
+        (<code>--shadow-*</code>, <code>--space-*</code>) también deben copiarse.
+      </div>
+
+      <div class="diff-row" style="margin-bottom:8px">
+        <div class="diff-header">Variable</div>
+        <div class="diff-header">index.html (actual)</div>
+        <div class="diff-header">admin.css (actual)</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+        <div class="diff-row">
+          <div class="diff-label">--card</div>
+          <div class="diff-old">rgba(32,29,48,<strong>0.94</strong>)</div>
+          <div class="diff-new">rgba(32,29,48,0.96) ← usar este</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-label">--accent-glow / --accent-dim</div>
+          <div class="diff-old">--accent-glow solo</div>
+          <div class="diff-new">ambos: glow (hover) + dim (bg)</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-label">--bounce</div>
+          <div class="diff-old">solo en index.html</div>
+          <div class="diff-new">agregar a admin.css</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-label">--text3 / --border2</div>
+          <div class="diff-old">faltan en index.html</div>
+          <div class="diff-new">agregar a index.html</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-label">--r-xl/lg/md/sm/xs</div>
+          <div class="diff-old">--radius-card, --radius-btn (2 vars)</div>
+          <div class="diff-new">escala completa de 5 niveles</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-label">--shadow-* (nuevos)</div>
+          <div class="diff-old">hardcoded en cada regla</div>
+          <div class="diff-new">4 tokens: sm / md / lg / glow-accent</div>
+        </div>
+        <div class="diff-row">
+          <div class="diff-label">--space-* (nuevos)</div>
+          <div class="diff-old">gaps/paddings hardcoded</div>
+          <div class="diff-new">escala 1–8: 4px → 48px</div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong style="color:var(--text)">Fixes aplicados en este style guide:</strong><br>
+        · <code>badge-casaencasa</code> — color cambiado a verde (#86efac) para mejor contraste sobre fondo neutro<br>
+        · <code>.btn:disabled</code> — opacity 0.45 → 0.50 (mejor contraste WCAG)<br>
+        · <code>.chip:hover</code> — ya no vira todo a rojo; solo el ✕ se intensifica<br>
+        · <code>:focus-visible</code> — ring visible para navegación por teclado (outline, no box-shadow)<br>
+        · <code>prefers-reduced-motion</code> — todas las animaciones se desactivan si el sistema lo pide
+      </div>
+    </section>
+
+    <!-- ══ COLORES ═══════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Paleta de colores</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:20px">
+        Paleta JW Library. El morado <code>#7560a8</code> es el color exacto del tab activo en JW Library iOS.
+      </p>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Fondos</p>
+      <div class="sg-grid sg-grid-4" style="margin-bottom:24px">
+        <div class="color-swatch">
+          <div class="color-block" style="background:#141318"></div>
+          <div class="color-info"><div class="color-name">--bg</div><div class="color-value">#141318</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#1c1a24"></div>
+          <div class="color-info"><div class="color-name">--bg2</div><div class="color-value">#1c1a24</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#201d30"></div>
+          <div class="color-info"><div class="color-name">--card-solid</div><div class="color-value">#201d30</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:rgba(32,29,48,0.96);border:1px dashed rgba(255,255,255,0.1)"></div>
+          <div class="color-info"><div class="color-name">--card (glass)</div><div class="color-value">rgba(32,29,48,.96)</div></div>
+        </div>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Acento JW</p>
+      <div class="sg-grid sg-grid-4" style="margin-bottom:24px">
+        <div class="color-swatch">
+          <div class="color-block" style="background:#7560a8"></div>
+          <div class="color-info"><div class="color-name">--accent</div><div class="color-value">#7560a8</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#5e4d8a"></div>
+          <div class="color-info"><div class="color-name">--accent-hover</div><div class="color-value">#5e4d8a</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:rgba(117,96,168,0.22)"></div>
+          <div class="color-info"><div class="color-name">--accent-glow</div><div class="color-value">rgba(117,96,168,.22)</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:rgba(117,96,168,0.12)"></div>
+          <div class="color-info"><div class="color-name">--accent-dim</div><div class="color-value">rgba(117,96,168,.12)</div></div>
+        </div>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Semánticos</p>
+      <div class="sg-grid sg-grid-4" style="margin-bottom:24px">
+        <div class="color-swatch">
+          <div class="color-block" style="background:#10b981"></div>
+          <div class="color-info"><div class="color-name">--success</div><div class="color-value">#10b981</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#f59e0b"></div>
+          <div class="color-info"><div class="color-name">--warning</div><div class="color-value">#f59e0b</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#ef4444"></div>
+          <div class="color-info"><div class="color-name">--danger</div><div class="color-value">#ef4444</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#25d366"></div>
+          <div class="color-info"><div class="color-name">--whatsapp</div><div class="color-value">#25d366</div></div>
+        </div>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Texto</p>
+      <div class="sg-grid sg-grid-3">
+        <div class="color-swatch">
+          <div class="color-block" style="background:#eeeaf8"></div>
+          <div class="color-info"><div class="color-name">--text</div><div class="color-value">#eeeaf8 · Principal</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#9b96b8"></div>
+          <div class="color-info"><div class="color-name">--text2</div><div class="color-value">#9b96b8 · Secundario</div></div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-block" style="background:#6b6585"></div>
+          <div class="color-info"><div class="color-name">--text3</div><div class="color-value">#6b6585 · Deshabilitado</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ TIPOGRAFÍA ════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Tipografía — Inter</div>
+      <div class="type-sample">
+        <div style="font-size:28px;font-weight:700;letter-spacing:-0.03em;line-height:1">T52</div>
+        <div class="type-meta">28px · weight 700 · tracking -0.03em · Títulos de territorio en modal</div>
+      </div>
+      <div class="type-sample">
+        <div style="font-size:18px;font-weight:700;letter-spacing:-0.02em">Panel de administración</div>
+        <div class="type-meta">18px · weight 700 · tracking -0.02em · Títulos de sección</div>
+      </div>
+      <div class="type-sample">
+        <div style="font-size:15px;font-weight:700;letter-spacing:-0.01em">Hno. Fernando Frausto Trujillo</div>
+        <div class="type-meta">15px · weight 700 · tracking -0.01em · Nombres, subtítulos</div>
+      </div>
+      <div class="type-sample">
+        <div style="font-size:14px;font-weight:400;color:var(--text)">Texto de cuerpo normal. Fecha: Sábado 5 de Abril 2026 · Hora: 9:30 am</div>
+        <div class="type-meta">14px · weight 400 · Cuerpo principal</div>
+      </div>
+      <div class="type-sample">
+        <div style="font-size:12px;font-weight:500;color:var(--text2)">Metainformación · Grupos 1, 3, 5 · Punto de reunión: Fam. Hernández</div>
+        <div class="type-meta">12px · weight 500 · color --text2 · Meta / subtexto</div>
+      </div>
+      <div class="type-sample">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2)">Notas (opcional)</div>
+        <div class="type-meta">11px · weight 700 · uppercase · tracking 0.08em · Labels de campos</div>
+      </div>
+      <div class="type-sample">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent)">Territorios</div>
+        <div class="type-meta">10px · weight 700 · uppercase · tracking 0.1em · color --accent · Eyebrows de sección</div>
+      </div>
+    </section>
+
+    <!-- ══ BOTONES ═════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Botones</div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Tamaño normal</p>
+      <div class="sg-flex" style="margin-bottom:24px">
+        <button class="btn btn-primary">Confirmar selección</button>
+        <button class="btn btn-success">Guardar</button>
+        <button class="btn btn-warning">En progreso</button>
+        <button class="btn btn-danger">Eliminar</button>
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-whatsapp">WhatsApp</button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Tamaño small</p>
+      <div class="sg-flex" style="margin-bottom:24px">
+        <button class="btn btn-primary btn-sm">Agregar</button>
+        <button class="btn btn-ghost btn-sm">Cancelar</button>
+        <button class="btn btn-success btn-sm">Listo</button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Ancho completo</p>
+      <div style="max-width:400px;display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+        <button class="btn btn-primary btn-full btn-lg">Generar mensajes</button>
+        <button class="btn btn-ghost btn-full">Cancelar</button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Botones de acción del mapa</p>
+      <div style="max-width:360px;margin-bottom:24px">
+        <div class="action-row-demo">
+          <button class="action-btn-demo ab-completo"><span class="icon">✅</span>Completo</button>
+          <button class="action-btn-demo ab-parcial"><span class="icon">🟡</span>Parcial</button>
+          <button class="action-btn-demo ab-pendiente"><span class="icon">↩️</span>Pendiente</button>
+        </div>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Deshabilitado — opacity 0.5</p>
+      <div class="sg-flex" style="margin-bottom:24px">
+        <button class="btn btn-primary" disabled>Deshabilitado</button>
+        <button class="btn btn-success" disabled>Deshabilitado</button>
+        <button class="btn btn-ghost" disabled>Deshabilitado</button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Estado loading (spinner)</p>
+      <div class="sg-flex">
+        <button class="btn btn-primary loading">Guardando</button>
+        <button class="btn btn-success loading">Verificando</button>
+        <button class="btn btn-ghost loading">Cargando</button>
+      </div>
+    </section>
+
+    <!-- ══ BADGES ════════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Badges</div>
+      <div class="sg-flex">
+        <span class="badge badge-casaencasa">Casa en casa</span>
+        <span class="badge badge-carta">Carta Postal</span>
+        <span class="badge badge-completo">Completado</span>
+        <span class="badge badge-parcial">En progreso</span>
+        <span class="badge badge-pendiente">Pendiente</span>
+        <span class="badge badge-accent">Grupo 1, 3, 5</span>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-top:10px">
+        Fix: <code>badge-casaencasa</code> cambió de azul (#93c5fd) a verde (#86efac) para alinearse con
+        el color del territorio y mejorar contraste sobre fondos neutros.
+      </p>
+
+      <hr class="sg-hr">
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;margin-top:16px">Chips — fix hover</p>
+      <div class="sg-flex" style="margin-bottom:8px">
+        <span class="chip">T1 <span class="chip-x">✕</span></span>
+        <span class="chip">T6 <span class="chip-x">✕</span></span>
+        <span class="chip">T52 <span class="chip-x">✕</span></span>
+        <span class="chip">T99 <span class="chip-x">✕</span></span>
+      </div>
+      <p style="font-size:11px;color:var(--text3)">
+        Hover: el fondo se intensifica ligeramente (no rojo). Solo el <code>✕</code> vira a danger al pasar el mouse.
+      </p>
+
+      <hr class="sg-hr">
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;margin-top:16px">Status dots</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="status-row"><div class="status-dot dot-completo"></div><span style="font-size:13px">Completo</span></div>
+        <div class="status-row"><div class="status-dot dot-parcial"></div><span style="font-size:13px">En progreso</span></div>
+        <div class="status-row"><div class="status-dot dot-pendiente"></div><span style="font-size:13px">Pendiente</span></div>
+      </div>
+    </section>
+
+    <!-- ══ CARDS ══════════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Cards</div>
+      <div class="sg-grid sg-grid-3" style="margin-bottom:24px">
+        <div class="card">
+          <div class="card-title">Card sólida</div>
+          <div class="card-sub">background: var(--card-solid)</div>
+          <div class="card-divider"></div>
+          <p style="font-size:13px;color:var(--text2)">Para contenido estático. Admin panel, formularios, listas.</p>
+        </div>
+        <div class="card-glass">
+          <div class="card-title">Card glass blur</div>
+          <div class="card-sub">backdrop-filter: blur(20px)</div>
+          <div class="card-divider"></div>
+          <p style="font-size:13px;color:var(--text2)">Para overlays sobre el mapa: modal, búsqueda, leyenda.</p>
+        </div>
+        <div class="card-touchable" tabindex="0">
+          <div class="card-title">Card touchable</div>
+          <div class="card-sub">cursor: pointer · escala en :active</div>
+          <div class="card-divider"></div>
+          <p style="font-size:13px;color:var(--text2)">Hover sutil + scale(0.98) al presionar. Focus ring con teclado.</p>
+        </div>
+      </div>
+
+      <hr class="sg-hr">
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;margin-top:8px">Card de capitán (ejemplo)</p>
+      <div class="card" style="max-width:400px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <span style="font-size:15px;font-weight:700">Hno. Fernando Frausto</span>
+          <span class="badge badge-accent">Grupo 1, 3</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:10px">
+          <div style="display:flex;gap:8px;font-size:12px;color:var(--text2)"><span>📅</span><span>Sábado 5 de Abril 2026</span></div>
+          <div style="display:flex;gap:8px;font-size:12px;color:var(--text2)"><span>🕘</span><span>9:30 am</span></div>
+        </div>
+        <div class="card-divider"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="ring-wrap">
+              <svg class="ring-svg" viewBox="0 0 48 48">
+                <circle class="ring-bg" cx="24" cy="24" r="20"/>
+                <circle class="ring-fill" cx="24" cy="24" r="20"
+                  stroke-dasharray="125.6" stroke-dashoffset="31"/>
+              </svg>
+              <div class="ring-label">75%</div>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:700">3 / 6</div>
+              <div style="font-size:11px;color:var(--text2)">completados</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm">Reunión</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ INPUTS ═══════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Inputs</div>
+      <div class="sg-grid sg-grid-2" style="max-width:700px">
+        <div class="input-group">
+          <label class="input-label">Fecha de sesión</label>
+          <input type="date" class="input" value="2026-04-05">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Hora</label>
+          <input type="time" class="input" value="09:30">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Punto de encuentro</label>
+          <input type="text" class="input" placeholder="Fam. Hernández Mora…">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Capitán</label>
+          <select class="select">
+            <option>Seleccionar capitán…</option>
+            <option>Hno. Fernando Frausto</option>
+            <option>Hno. Aleksey Cruz</option>
+          </select>
+        </div>
+        <div class="input-group" style="grid-column:1/-1">
+          <label class="input-label">Notas (opcional)</label>
+          <textarea class="textarea" placeholder="Ej. Incompleto, solo se hizo lado sombra…"></textarea>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Focus visible (teclado)</label>
+          <input type="text" class="input demo-focus-visible-inset" placeholder="Tab hasta aquí…">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Con error</label>
+          <input type="text" class="input error" placeholder="Campo requerido">
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ TOASTS ════════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Toasts / notificaciones</div>
+      <div class="sg-flex">
+        <div class="toast-demo success">✅ <span>Guardado correctamente</span></div>
+        <div class="toast-demo warning">🟡 <span>En progreso</span></div>
+        <div class="toast-demo error">❌ <span>Error al guardar</span></div>
+        <div class="toast-demo info">📍 <span>Punto de reunión</span></div>
+      </div>
+    </section>
+
+    <!-- ══ RADIOS ═══════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Radios</div>
+      <div class="sg-flex" style="align-items:flex-end">
+        <div style="text-align:center">
+          <div style="width:80px;height:80px;background:var(--accent-dim);border:1px solid var(--border);border-radius:var(--r-xl)"></div>
+          <div class="token-label">--r-xl<br>24px · modales</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:80px;height:80px;background:var(--accent-dim);border:1px solid var(--border);border-radius:var(--r-lg)"></div>
+          <div class="token-label">--r-lg<br>20px · cards</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:80px;height:80px;background:var(--accent-dim);border:1px solid var(--border);border-radius:var(--r-md)"></div>
+          <div class="token-label">--r-md<br>14px · botones</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:80px;height:80px;background:var(--accent-dim);border:1px solid var(--border);border-radius:var(--r-sm)"></div>
+          <div class="token-label">--r-sm<br>10px · inputs</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:80px;height:80px;background:var(--accent-dim);border:1px solid var(--border);border-radius:var(--r-xs)"></div>
+          <div class="token-label">--r-xs<br>6px · badges</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ SOMBRAS Y ELEVACIÓN ══════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Sombras y elevación</div>
+      <p class="sg-section-sub">Los tokens <code>--shadow-*</code> reemplazan los <code>box-shadow</code> hardcodeados dispersos por el código.</p>
+
+      <div class="sg-grid sg-grid-4">
+        <div class="shadow-demo" style="box-shadow:var(--shadow-sm)">
+          <div class="shadow-name">--shadow-sm</div>
+          <div class="shadow-val">0 2px 8px rgba(0,0,0,.30)</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px">Cards hover, toasts</div>
+        </div>
+        <div class="shadow-demo" style="box-shadow:var(--shadow-md)">
+          <div class="shadow-name">--shadow-md</div>
+          <div class="shadow-val">0 4px 16px rgba(0,0,0,.40)</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px">Modales, dropdowns</div>
+        </div>
+        <div class="shadow-demo" style="box-shadow:var(--shadow-lg)">
+          <div class="shadow-name">--shadow-lg</div>
+          <div class="shadow-val">0 8px 32px rgba(0,0,0,.50)</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px">Overlays, sheets</div>
+        </div>
+        <div class="shadow-demo" style="box-shadow:var(--shadow-glow-accent)">
+          <div class="shadow-name">--shadow-glow-accent</div>
+          <div class="shadow-val">0 4px 24px var(--accent-glow)</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:6px">Botones primarios</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ ESPACIADO ════════════════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Escala de espaciado</div>
+      <p class="sg-section-sub">Escala multiplicativa basada en 4px. Reemplaza los <code>gap</code> y <code>padding</code> hardcodeados.</p>
+
+      <div style="display:flex;flex-direction:column;gap:6px;max-width:700px">
+        <div class="space-demo"><span class="space-token">--space-1</span><span class="space-val">4px</span><div class="space-bar" style="width:4px"></div><span class="space-use">gap interno de iconos, separadores mínimos</span></div>
+        <div class="space-demo"><span class="space-token">--space-2</span><span class="space-val">8px</span><div class="space-bar" style="width:8px"></div><span class="space-use">gap entre badge y texto, chip padding</span></div>
+        <div class="space-demo"><span class="space-token">--space-3</span><span class="space-val">12px</span><div class="space-bar" style="width:12px"></div><span class="space-use">gap de grids compactos, padding sm</span></div>
+        <div class="space-demo"><span class="space-token">--space-4</span><span class="space-val">16px</span><div class="space-bar" style="width:16px"></div><span class="space-use">card-divider margin, padding de listas</span></div>
+        <div class="space-demo"><span class="space-token">--space-5</span><span class="space-val">20px</span><div class="space-bar" style="width:20px"></div><span class="space-use">padding estándar de cards</span></div>
+        <div class="space-demo"><span class="space-token">--space-6</span><span class="space-val">24px</span><div class="space-bar" style="width:24px"></div><span class="space-use">gap entre secciones, header padding</span></div>
+        <div class="space-demo"><span class="space-token">--space-7</span><span class="space-val">32px</span><div class="space-bar" style="width:32px"></div><span class="space-use">padding de secciones de página</span></div>
+        <div class="space-demo"><span class="space-token">--space-8</span><span class="space-val">48px</span><div class="space-bar" style="width:48px"></div><span class="space-use">padding de body, separación entre secciones</span></div>
+      </div>
+    </section>
+
+    <!-- ══ ESTADOS INTERACTIVOS ══════════════════════════════════════════ -->
+    <section class="sg-section">
+      <div class="sg-section-title">Estados interactivos</div>
+      <p class="sg-section-sub">Todos los estados de UI: hover, focus (teclado), active/pressed, loading, disabled.</p>
+
+      <!-- :focus-visible -->
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Focus visible (navegación por teclado)</p>
+      <div class="state-row">
+        <span class="state-label">Botón</span>
+        <button class="btn btn-primary demo-focus-visible">Foco de teclado</button>
+        <button class="btn btn-ghost demo-focus-visible">Cancelar</button>
+        <span style="font-size:11px;color:var(--text3)">outline: 2px solid var(--accent) · offset 3px · solo con Tab, nunca con click</span>
+      </div>
+      <div class="state-row">
+        <span class="state-label">Input</span>
+        <input class="input demo-focus-visible-inset" style="max-width:220px" placeholder="Focus visible…">
+        <span style="font-size:11px;color:var(--text3)">outline inset, border-color: var(--accent)</span>
+      </div>
+      <div class="state-row">
+        <span class="state-label">Card</span>
+        <div class="card-touchable demo-focus-visible" tabindex="0" style="padding:12px 16px;font-size:13px;font-weight:600;">Card tocable enfocada</div>
+        <span style="font-size:11px;color:var(--text3)">outline: 2px solid var(--accent) · offset 2px</span>
+      </div>
+
+      <!-- :active / pressed -->
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;margin-top:24px">Active / pressed</p>
+      <div class="state-row">
+        <span class="state-label">Botón</span>
+        <button class="btn btn-primary" style="transform:scale(0.95)">Presionado</button>
+        <span style="font-size:11px;color:var(--text3)">transform: scale(0.95) · transition: 0.12s var(--bounce)</span>
+      </div>
+      <div class="state-row">
+        <span class="state-label">Card</span>
+        <div class="card-touchable" style="padding:12px 16px;font-size:13px;font-weight:600;transform:scale(0.98);background:rgba(32,29,48,0.8);">Card presionada</div>
+        <span style="font-size:11px;color:var(--text3)">transform: scale(0.98) · fondo más oscuro</span>
+      </div>
+
+      <!-- loading -->
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;margin-top:24px">Loading</p>
+      <div class="state-row">
+        <span class="state-label">Spinner</span>
+        <button class="btn btn-primary loading" style="min-width:140px">Guardando…</button>
+        <button class="btn btn-ghost loading" style="min-width:130px">Verificando…</button>
+        <span style="font-size:11px;color:var(--text3)">color: transparent · ::after con border-radius 50% animado · pointer-events: none</span>
+      </div>
+
+      <!-- disabled -->
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;margin-top:24px">Disabled</p>
+      <div class="state-row">
+        <span class="state-label">opacity 0.5</span>
+        <button class="btn btn-primary" disabled>Deshabilitado</button>
+        <button class="btn btn-success" disabled>Deshabilitado</button>
+        <span style="font-size:11px;color:var(--text3)">opacity: 0.50 (era 0.45 — mejor contraste WCAG) · cursor: not-allowed · pointer-events: none</span>
+      </div>
+
+      <!-- prefers-reduced-motion -->
+      <p style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;margin-top:24px">prefers-reduced-motion</p>
+      <div class="info-box" style="margin-bottom:0">
+        Cuando el sistema tiene activado "Reducir movimiento", el media query <code>prefers-reduced-motion: reduce</code>
+        fuerza <code>animation-duration: 0.01ms</code> y <code>transition-duration: 0.01ms</code> en <em>todos</em> los elementos.
+        Esto elimina el spring bounce, el spinner y el scale de botones sin modificar el código funcional.
+      </div>
+    </section>
+
+  </main>
+
+</body>
+</html>

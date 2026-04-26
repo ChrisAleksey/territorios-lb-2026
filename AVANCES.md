@@ -229,8 +229,8 @@ Tareas:
 - **Scripts operativos:** `scripts/import-captain-users.mjs`, `scripts/seed-cycle-config.mjs`.
 - **Configuración deploy/proyecto:** `package.json`, `firebase.json`, `vercel.json`, `.vercelignore`, `.gitignore`.
 - **Documentación vigente:** `README.md`, `CLAUDE.md`, `AVANCES.md`.
+- **Style guide interno:** `ui.html` — se versiona en Git, pero está excluido de Vercel producción por `.vercelignore`.
 - **Documentación legacy:** `PLAN.md` — histórico, no usar como arquitectura actual.
-- **Archivos locales/sueltos por decidir:** `ui.html` es style guide; imágenes `extra-mode-zoom*.jpeg` y `t6-poligono-erroneo.png` son evidencia visual/debug; no borrar sin confirmación.
 
 ### 8. Documentación correcta del proyecto
 
@@ -300,7 +300,7 @@ Checklist post-deploy autorizado:
 
 ### Decisiones locales pendientes
 
-- Decidir si se eliminan o se conservan archivos sueltos: `extra-mode-zoom*.jpeg`, `t6-poligono-erroneo.png`, `ui.html`.
+- `ui.html` se conserva en Git como style guide interno, excluido de Vercel producción por `.vercelignore`.
 - Decidir si se modulariza `app.js` en archivos más pequeños antes de seguir creciendo el frontend.
 - Cloud Functions + Secret Manager quedan descartados por ahora porque requieren plan Blaze.
 - La limpieza de documentación se hizo sin borrar contexto útil: `PLAN.md` queda como histórico/legacy y README/CLAUDE.md como fuentes vigentes.
