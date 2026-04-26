@@ -7,7 +7,7 @@
 - Firebase es el backend activo único.
 - No usar Google Apps Script ni Google Sheets para backend, auth o datos nuevos.
 - No desplegar a Vercel producción sin confirmación explícita.
-- No desplegar `firestore.rules` a producción hasta que admin y capitanes usen Firebase Auth correctamente.
+- No desplegar nuevas versiones de `firestore.rules` a producción sin pruebas locales y confirmación explícita.
 - No tocar datos activos de producción sin confirmación explícita, especialmente `sesiones`, `historial` y `capitanes`.
 - No ejecutar scripts contra Firebase producción (`cycles:seed`, `captains:import`, deploy de reglas) sin revisar impacto y confirmar primero.
 - Usar ramas de prueba/actualización para subir avances a GitHub.
@@ -50,9 +50,10 @@
 | Modelo de ciclos por lugar | Completado en producción | `config/ciclos` modela qué territorios lidera cada lugar y cómo calcular ciclo completo por tipo (`casaencasa`/`carta`); sembrado en producción con 11 lugares. |
 | Consistencia UI/UX | Parcial | Lenguaje, controles, labels/foco, responsive estático y smoke Playwright post-reglas revisados; falta validación manual en dispositivo real. |
 | Limpieza y organización | Parcial | Mapa de archivos agregado; `.gitignore` evita subir carpetas locales; `PLAN.md` marcado como legacy; archivos sueltos revisados y pendientes de decisión final. |
-| Documentación correcta | Completado local | README y CLAUDE.md alineados con Firebase/Auth/ciclos/App Check y guardrails de producción. |
-| App Check | Preparado local / pendiente consola | `app-check.js` ya tiene Web App ID y queda apagado sin reCAPTCHA v3 site key; requiere consola Firebase: registrar App Check, configurar site key, primero monitor, revisar tráfico legítimo, después enforcement. |
+| Documentación correcta | Completado en Git | README, CLAUDE.md y AVANCES.md alineados con Firebase/Auth/ciclos/App Check y guardrails de producción. |
+| App Check | Preparado en producción / pendiente consola | `app-check.js` ya tiene Web App ID y está desplegado; queda apagado sin reCAPTCHA v3 site key. Requiere consola Firebase: registrar App Check, configurar site key, primero monitor, revisar tráfico legítimo, después enforcement. |
 | CSP/SRI/frontend hardening | Parcial | CSP configurada para CDNs actuales, Firebase SDK web y reCAPTCHA; SRI agregado; frontend ya no expone lista hardcodeada nombre→token ni guarda extras con token en `localStorage`; falta site key App Check, monitor/enforcement y revisión final con datos reales. |
+| Deploy frontend producción | Completado | `master` actualizado y Vercel producción desplegado/aliasado a `https://territorios-lb-2026.vercel.app`; smoke Playwright OK. |
 | Deploy reglas producción | Completado | `firestore.rules` desplegado con Firebase CLI; anónimo bloqueado y capitán real autenticado lee `capitanes`, `sesiones` y `config/ciclos`. |
 
 ## Implementaciones completadas
@@ -269,7 +270,7 @@ Tareas:
 - [x] Revisar errores visibles para usuario vs errores técnicos de consola.
 - [x] Agregar mensajes claros cuando Firebase/Auth/Firestore fallen.
 - [x] Mantener un registro de cambios importantes en este archivo.
-- [ ] Confirmar que GitHub Actions siga pasando antes de fusionar a `master`. **Pendiente hasta push/PR; localmente `npm test` pasa.**
+- [x] Confirmar que GitHub Actions siga pasando antes/después de fusionar a `master`: ejecuciones Firestore Rules CI `24965420892` y `24965359373` OK.
 
 Checklist pre-deploy/merge:
 1. Revisar `git status --short` y confirmar que no haya secretos, `.env`, logs ni archivos temporales.
@@ -292,10 +293,11 @@ Checklist post-deploy autorizado:
 
 ## Bloqueadores / decisiones pendientes
 
-### Bloqueado por producción / confirmación explícita
+### Bloqueado por consola / validación manual
 
 - Registrar App Check en consola, copiar reCAPTCHA v3 `siteKey` a `app-check.js`, activar primero monitor, revisar tráfico y solo después enforcement.
 - Revisar/cerrar restricciones de Firebase API key en consola.
+- Hacer walkthrough manual con login admin real y link capitán real en dispositivo/navegador de uso final.
 
 ### Bloqueado por datos reales
 
@@ -397,3 +399,9 @@ python3 -m http.server 5173 --directory "/Users/aleksey/Proyectos/territorios-lb
 - Se verificó con Firebase CLI la app web existente: `1:41037652213:web:5402152c15385c4f5ee5bc`; Firebase CLI no expone comandos App Check para registrar reCAPTCHA v3 en este entorno, queda pendiente consola.
 - Hallazgo de datos: existe 1 sesión histórica `2026-04-18_sin-cap-*` con capitán vacío y token sintético sin capitán activo; no se modificó.
 - Validación post-reglas adicional: un capitán real no puede leer el perfil de otro capitán.
+- Se preparó commit `3bd8025` con hardening Firebase/Auth/ciclos/App Check y commit `e5f2acd` corrigiendo globals frontend (`FB`, `AdminAuth`, `CaptainAuth`, `TerritorialApp`) para scripts clásicos/handlers inline.
+- Se subió `master` a GitHub y GitHub Actions Firestore Rules CI pasó en las ejecuciones `24965359373` y `24965420892`.
+- Se desplegó Vercel producción directo: deploy `dpl_HsKnqB6RpHuTUom5Qo6dhafHAAuT`, alias `https://territorios-lb-2026.vercel.app`.
+- Smoke Playwright producción post-deploy: `index.html?v=20260426` carga mapa sin errores/warnings; `FB`, `AdminAuth`, `CaptainAuth`, `TerritorialApp` y `FirebaseAppCheck` están disponibles; App Check permanece apagado porque `siteKey` sigue vacío.
+- Smoke Playwright producción admin sin sesión: `admin.html?v=20260426` redirige correctamente a `index.html?v=20260426` sin errores/warnings.
+- Se respetó “solo app”: `ui.html`, `extra-mode-zoom*.jpeg` y `t6-poligono-erroneo.png` quedaron fuera de Git y excluidos del deploy directo por `.vercelignore`.
