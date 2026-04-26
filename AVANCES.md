@@ -51,8 +51,8 @@
 | Consistencia UI/UX | Parcial | Lenguaje, controles, labels/foco, responsive estático y smoke Playwright post-reglas revisados; falta validación manual en dispositivo real. |
 | Limpieza y organización | Parcial | Mapa de archivos agregado; `.gitignore` evita subir carpetas locales; `PLAN.md` marcado como legacy; archivos sueltos revisados y pendientes de decisión final. |
 | Documentación correcta | Completado en Git | README, CLAUDE.md y AVANCES.md alineados con Firebase/Auth/ciclos/App Check y guardrails de producción. |
-| App Check | Activo en producción / monitor | `app-check.js` tiene Web App ID + reCAPTCHA v3 site key y producción obtiene token App Check válido; mantener Firestore en monitor hasta revisar tráfico real, luego enforcement. |
-| CSP/SRI/frontend hardening | Parcial | CSP configurada para CDNs actuales, Firebase SDK web y reCAPTCHA; SRI agregado; frontend ya no expone lista hardcodeada nombre→token ni guarda extras con token en `localStorage`; App Check ya emite token; falta revisar monitor y decidir enforcement. |
+| App Check | Completado en producción | `app-check.js` tiene Web App ID + reCAPTCHA v3 site key; producción obtiene token App Check válido y Firestore está en enforcement (`ENFORCED`). |
+| CSP/SRI/frontend hardening | Completado operativo | CSP configurada para CDNs actuales, Firebase SDK web y reCAPTCHA; SRI agregado; frontend ya no expone lista hardcodeada nombre→token ni guarda extras con token en `localStorage`; App Check activo con enforcement. |
 | Deploy frontend producción | Completado | `master` actualizado y Vercel producción desplegado/aliasado a `https://territorios-lb-2026.vercel.app`; smoke Playwright OK. |
 | Deploy reglas producción | Completado | `firestore.rules` desplegado con Firebase CLI; anónimo bloqueado y capitán real autenticado lee `capitanes`, `sesiones` y `config/ciclos`. |
 
@@ -175,11 +175,11 @@ Tareas:
 - [x] Preparar frontend para App Check opcional sin enforcement: `app-check.js` configura `X-Firebase-AppCheck` solo si existen `appId` y `siteKey`.
 - [x] Ajustar CSP para Firebase SDK web y reCAPTCHA v3.
 - [x] Obtener Web App ID existente con Firebase CLI y dejarlo en `app-check.js`.
-- [ ] Registrar/proteger app web en App Check con reCAPTCHA v3. **Requiere consola Firebase.**
-- [ ] Copiar reCAPTCHA v3 site key en `app-check.js`. **Después de registrar en consola.**
-- [ ] Activar modo monitor primero. **No enforcement inicial.**
-- [ ] Revisar tráfico legítimo. **Después de monitor.**
-- [ ] Activar enforcement cuando esté estable. **No activar antes de revisar monitor.**
+- [x] Registrar/proteger app web en App Check con reCAPTCHA v3.
+- [x] Copiar reCAPTCHA v3 site key en `app-check.js`.
+- [x] Activar modo monitor primero.
+- [x] Revisar tráfico legítimo: Firestore mostró 100% verificado y 0 no verificadas.
+- [x] Activar enforcement de Firestore App Check (`ENFORCED`).
 
 ### 5. Revisión de bugs funcionales
 
@@ -260,7 +260,7 @@ Tareas:
 Tareas:
 - [x] Revisar CSP viable para CDN actuales.
 - [x] Evaluar SRI para scripts/CDNs estáticos: agregado a MapLibre, Alpine y GSAP versionados; Google Fonts queda sin SRI por CSS dinámico.
-- [~] Revisar exposición innecesaria de datos en frontend: API key web no es secreta; se quitó lista hardcodeada de tokens de capitán en `app.js`, se retiró el listado público de nombres del finish sheet, se dejaron de persistir territorios extra con token en `localStorage` y el tutorial ya no usa claves por token; reglas hardened ya están desplegadas; App Check ya emite token en producción. Falta revisar monitor y decidir enforcement.
+- [x] Revisar exposición innecesaria de datos en frontend: API key web no es secreta; se quitó lista hardcodeada de tokens de capitán en `app.js`, se retiró el listado público de nombres del finish sheet, se dejaron de persistir territorios extra con token en `localStorage` y el tutorial ya no usa claves por token; reglas hardened ya están desplegadas y App Check está activo con enforcement.
 - [x] Limpiar documentación vieja que menciona Apps Script/Sheets como backend activo.
 
 ### 11. Observabilidad y operación
@@ -295,7 +295,6 @@ Checklist post-deploy autorizado:
 
 ### Bloqueado por consola / validación manual
 
-- Revisar métricas de App Check en modo monitor y activar enforcement solo si el tráfico legítimo aparece verificado.
 - Revisar/cerrar restricciones de Firebase API key en consola.
 - Hacer walkthrough manual con login admin real y link capitán real en dispositivo/navegador de uso final.
 
@@ -408,4 +407,6 @@ python3 -m http.server 5173 --directory "/Users/aleksey/Proyectos/territorios-lb
 - Se configuró reCAPTCHA v3 para App Check en Firebase Console y se desplegó la site key pública en `app-check.js` con commit `6c06bf7`.
 - Deploy Vercel producción de App Check: `dpl_EqmLLc15HDDLgQ2gHfWTAyFfZtit`, alias `https://territorios-lb-2026.vercel.app`.
 - Smoke Playwright App Check producción: tras propagación inicial, `FirebaseAppCheck.getToken()` devuelve token válido, `FB._appCheckTokenProvider` está activo y el mapa carga sin errores/warnings.
-- App Check debe permanecer en monitor hasta revisar tráfico real; no activar enforcement de Firestore sin confirmar que admin/capitanes legítimos aparecen verificados.
+- App Check monitor mostró Cloud Firestore con 100% de solicitudes verificadas (35/35) y 0 no verificadas.
+- Se activó enforcement de App Check para Cloud Firestore vía REST API: `enforcementMode: ENFORCED`, update `2026-04-26T20:54:29.188383Z`.
+- Smoke Playwright post-enforcement: vista pública carga mapa sin errores/warnings, `FirebaseAppCheck.getToken()` funciona y `FB._headers()` incluye `X-Firebase-AppCheck`.

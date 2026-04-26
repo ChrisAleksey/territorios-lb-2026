@@ -5,7 +5,7 @@
 - **UI**: Alpine.js v3.14.1, GSAP 3.13, dark theme inline CSS
 - **Backend activo**: Firebase Firestore REST (`firebase.js`)
 - **Auth**: Firebase Auth Email/Password + custom claims (`admin`, `capitanToken`)
-- **App Check**: pendiente; activar primero en monitor y después enforcement
+- **App Check**: activo con reCAPTCHA v3 y enforcement de Firestore
 - **Data**: `territorios.geojson` (376 features, 106 territorios únicos t1–t106)
 
 ## Backend policy
@@ -22,7 +22,7 @@
 - `admin.html` / `admin.js` / `admin.css` — panel admin Alpine.js
 - `auth.js` — Auth admin/capitán vía Firebase Auth REST
 - `firebase.js` — helper REST para Firestore, preparado para headers Auth/App Check
-- `app-check.js` — App Check web opcional; vacío hasta registrar app/site key en consola
+- `app-check.js` — App Check web con reCAPTCHA v3 para headers `X-Firebase-AppCheck`
 - `territory-model.js` — modelo local/fallback de ciclos por lugar de encuentro
 - `firestore.rules` — reglas Firestore endurecidas para Auth/custom claims
 - `tests/firestore.rules.test.mjs` — pruebas locales de reglas con Firestore Emulator
@@ -60,8 +60,8 @@
 ## Security direction
 - Seguridad real = Firestore rules + Auth + App Check + restricciones de API key.
 - API key web no es secreta.
-- App Check queda pendiente de consola: `app-check.js` ya está preparado, primero monitor, luego enforcement.
-- No activar enforcement de App Check hasta validar tráfico real en monitor.
+- App Check está activo: reCAPTCHA v3 registrado, `app-check.js` envía `X-Firebase-AppCheck` y Firestore está en enforcement.
+- Si App Check falla en producción, validar primero que `FirebaseAppCheck.getToken()` devuelve token y que `FB._headers()` incluye `X-Firebase-AppCheck` antes de tocar enforcement.
 
 ## Territory Types (fill colors from KML)
 - `#388e3c` → presencial (verde)

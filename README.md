@@ -10,7 +10,7 @@ La app ya tiene código para Firebase Auth con custom claims:
 
 - Admin: login simple con passcode, usando usuarios internos de Firebase Auth con claim `admin: true`.
 - Capitán: link `?t=TOKEN`, usando usuario interno de Firebase Auth con claim `capitanToken`.
-- App Check: frontend preparado; pendiente registrar reCAPTCHA v3 site key en consola, primero monitor y después enforcement.
+- App Check: activo con reCAPTCHA v3 y enforcement de Firestore habilitado.
 
 No se deben tocar datos activos ni desplegar reglas a producción sin confirmación explícita.
 
@@ -30,7 +30,7 @@ No se deben tocar datos activos ni desplegar reglas a producción sin confirmaci
 - `admin.html` / `admin.js` / `admin.css` — panel administrativo
 - `auth.js` — Auth admin/capitán sobre Firebase Auth REST
 - `firebase.js` — helper REST para Firestore con headers Auth/App Check
-- `app-check.js` — inicialización opcional de App Check para web; permanece apagado si no hay `appId` y `siteKey`
+- `app-check.js` — inicialización de App Check web con reCAPTCHA v3 y envío de `X-Firebase-AppCheck`
 - `territory-model.js` — modelo local/fallback de ciclos por lugar de encuentro
 - `territorios.geojson` — datos geográficos generados desde KML; no editar manualmente
 - `firestore.rules` — reglas de seguridad Firestore endurecidas
@@ -159,17 +159,16 @@ Este comando toca Firebase Auth del proyecto configurado; no ejecutarlo contra p
 
 ## App Check
 
-El frontend ya carga `app-check.js` y tiene configurado el Web App ID. App Check queda apagado mientras `FirebaseAppCheck.CONFIG.siteKey` esté vacío.
+El frontend carga `app-check.js`, inicializa Firebase App Check con reCAPTCHA v3 y envía `X-Firebase-AppCheck` en las peticiones REST a Firestore.
 
-Pasos seguros:
+Estado de producción:
 
-1. En Firebase Console, registrar/proteger la app web en App Check con reCAPTCHA v3.
-2. Copiar la reCAPTCHA v3 site key en `app-check.js`.
-3. Mantener App Check en modo monitor al inicio; no activar enforcement todavía.
-4. Desplegar frontend autorizado y revisar que las peticiones legítimas a Firestore lleguen con App Check.
-5. Después de revisar tráfico real, activar enforcement para Firestore si no hay bloqueos legítimos.
+- App web registrada en App Check con reCAPTCHA v3.
+- Site key pública configurada en `app-check.js`.
+- Firestore App Check enforcement habilitado (`ENFORCED`).
+- Smoke de producción validó token App Check y header `X-Firebase-AppCheck`.
 
-La CSP de `vercel.json` ya permite los dominios necesarios para cargar SDK web de Firebase y reCAPTCHA v3.
+La CSP de `vercel.json` permite los dominios necesarios para cargar SDK web de Firebase y reCAPTCHA v3.
 
 ## Desarrollo local
 
