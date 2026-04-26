@@ -44,11 +44,11 @@
 | CI de reglas | Completado | GitHub Actions ejecuta tests de reglas. |
 | Firebase Auth admin | Completado | Login admin passcode-only conectado a Firebase Auth con custom claim `admin`. |
 | Login admin local | Completado | Probado en `http://localhost:5173/` con admins internos y passcode incorrecto. |
-| Firebase API key restrictions | Parcial / bloqueado por consola | Producción y localhost permitidos; cierre final depende de revisar restricciones en Firebase Console junto con App Check. |
+| Firebase API key restrictions | Completado | Key web verificada con referrers permitidos para producción y localhost; App Check enforcement activo para Firestore. |
 | Firebase Auth capitán | Completado en producción | 28 capitanes activos importados a Firebase Auth; Auth real + claim `capitanToken`, lectura propia de `capitanes/{token}` y sesión real probados. |
-| Revisión de bugs funcionales | Parcial | `ciclo_reset` corregido por lugar y tipo; admin ya no auto-escribe `config/ciclos`; capitán no registra resets; filtros admin carta/presencial corregidos. Faltan pruebas manuales reales. |
+| Revisión de bugs funcionales | Parcial | `ciclo_reset` corregido por lugar y tipo; admin ya no auto-escribe `config/ciclos`; capitán no registra resets; filtros admin carta/presencial corregidos; walkthrough manual producción OK. Falta validar un `ciclo_reset` real cuando ocurra. |
 | Modelo de ciclos por lugar | Completado en producción | `config/ciclos` modela qué territorios lidera cada lugar y cómo calcular ciclo completo por tipo (`casaencasa`/`carta`); sembrado en producción con 11 lugares. |
-| Consistencia UI/UX | Parcial | Lenguaje, controles, labels/foco, responsive estático y smoke Playwright post-reglas revisados; falta validación manual en dispositivo real. |
+| Consistencia UI/UX | Completado operativo | Lenguaje, controles, labels/foco, responsive estático, smoke Playwright y walkthrough manual en producción validados. |
 | Limpieza y organización | Parcial | Mapa de archivos agregado; `.gitignore` evita subir carpetas locales; `PLAN.md` marcado como legacy; archivos sueltos revisados y pendientes de decisión final. |
 | Documentación correcta | Completado en Git | README, CLAUDE.md y AVANCES.md alineados con Firebase/Auth/ciclos/App Check y guardrails de producción. |
 | App Check | Completado en producción | `app-check.js` tiene Web App ID + reCAPTCHA v3 site key; producción obtiene token App Check válido y Firestore está en enforcement (`ENFORCED`). |
@@ -165,7 +165,7 @@ Completado tras probar Auth capitán real.
 
 Tareas:
 - [x] Re-ejecutar `npm test` localmente antes de cualquier deploy.
-- [~] Confirmar manualmente flujo admin + capitán: Auth capitán real probado por API con sesión real; falta walkthrough visual en navegador.
+- [x] Confirmar manualmente flujo admin + capitán: walkthrough producción validado por Aleksey.
 - [x] Desplegar solo reglas Firestore con Firebase CLI.
 - [x] Validar producción sin tocar Vercel prod: anónimo bloqueado; capitán real autenticado lee perfil, sesión propia y `config/ciclos`.
 
@@ -192,16 +192,16 @@ Tareas:
 - [ ] Probar flujo completo de reset de ciclo desde la UI admin con datos reales. **Bloqueado por datos reales/Auth real.**
 - [ ] Confirmar que el historial registra correctamente resets, completos y en progreso con datos reales. **Bloqueado por datos reales.**
 - [~] Revisar que las fechas usadas por sesiones/historial sean consistentes: revisión estática OK; falta validar con datos reales.
-- [~] Revisar errores de consola en `index.html` y `admin.html`: Puppeteer headless sin errores inesperados con backend mock; falta prueba manual con Auth/datos reales.
-- [~] Validar flujos principales en móvil y escritorio: servidor estático responde recursos principales; Puppeteer validó index general, admin con Auth mock y capitán móvil con backend mock; falta interacción manual con Auth/datos reales.
+- [x] Revisar errores de consola en `index.html` y `admin.html`: smoke Playwright y walkthrough manual producción OK.
+- [x] Validar flujos principales en móvil y escritorio: servidor estático, Playwright y walkthrough manual producción OK.
 - [x] Agregar pruebas donde tenga sentido para evitar regresiones: suite de reglas ampliada a 15 pruebas, incluyendo `ciclo_reset` con tipo y bloqueo a capitán.
 
 ### 6. Consistencia UI/UX en toda la app
 
 Tareas:
-- [~] Unificar estilos entre mapa público/capitán y panel admin: revisión estática de lenguaje, controles y estados ya hecha; falta validación visual real antes de marcar completado.
-- [~] Revisar botones, modales, inputs, estados vacíos, loading y mensajes de error: mensajes/labels/foco revisados; smoke Playwright post-reglas OK; falta walkthrough manual real.
-- [~] Revisar responsive en pantallas pequeñas, medianas y escritorio: CSS/HTML, servidor local y Playwright headless OK; falta revisión manual en navegador/dispositivo real.
+- [x] Unificar estilos entre mapa público/capitán y panel admin: revisión estática y walkthrough manual producción OK.
+- [x] Revisar botones, modales, inputs, estados vacíos, loading y mensajes de error: mensajes/labels/foco revisados; smoke Playwright y walkthrough manual OK.
+- [x] Revisar responsive en pantallas pequeñas, medianas y escritorio: CSS/HTML, servidor local, Playwright y walkthrough manual OK.
 - [x] Confirmar que textos, acentos, mayúsculas y nombres de acciones sean consistentes para `parcial`/“En progreso” y pendientes/sin trabajar.
 - [x] Revisar accesibilidad básica: foco visible, labels, `aria-label`, `aria-pressed`, `aria-current` y roles de diálogo agregados/revisados.
 - [~] Evitar comportamientos distintos para acciones similares: toggles y navegación alineados con estados ARIA; falta prueba manual.
@@ -293,11 +293,6 @@ Checklist post-deploy autorizado:
 
 ## Bloqueadores / decisiones pendientes
 
-### Bloqueado por consola / validación manual
-
-- Revisar/cerrar restricciones de Firebase API key en consola.
-- Hacer walkthrough manual con login admin real y link capitán real en dispositivo/navegador de uso final.
-
 ### Bloqueado por datos reales
 
 - Decidir si se conserva, archiva o corrige la sesión histórica `2026-04-18_sin-cap-*` sin capitán activo.
@@ -372,6 +367,7 @@ python3 -m http.server 5173 --directory "/Users/aleksey/Proyectos/territorios-lb
 - Se redujo persistencia local ligada al token: el tutorial usa una clave genérica y los territorios extra dejan de guardarse en `localStorage` por token+fecha.
 - Riesgos aceptados por diseño hasta App Check: el token sigue en el link `?t=TOKEN`, `sessionStorage` mantiene tokens Firebase durante la pestaña y el admin autenticado puede ver/copiar tokens de capitán.
 - Validación post-revisión de exposición frontend: `node --check` OK en JS principal y `npm test` pasó con 15 pruebas.
+- Restricciones de API key web verificadas: producción y localhost permitidos; Firestore queda protegido además por Auth/rules y App Check enforcement.
 - Validación UI local: servidor estático en `localhost:5173` sirvió `index.html`, `admin.html`, CSS/JS locales y `territorios.geojson` con HTTP 200.
 - Validación headless con Puppeteer: `index.html` general, `admin.html` con Auth/Firestore mock y vista capitán móvil `?t=smoke-token` cargaron sin errores JS inesperados.
 - Smoke responsive: viewport móvil 407px validado en vista capitán mock; el finish sheet usa `input` para capitán y ya no expone lista pública de nombres.
@@ -410,3 +406,4 @@ python3 -m http.server 5173 --directory "/Users/aleksey/Proyectos/territorios-lb
 - App Check monitor mostró Cloud Firestore con 100% de solicitudes verificadas (35/35) y 0 no verificadas.
 - Se activó enforcement de App Check para Cloud Firestore vía REST API: `enforcementMode: ENFORCED`, update `2026-04-26T20:54:29.188383Z`.
 - Smoke Playwright post-enforcement: vista pública carga mapa sin errores/warnings, `FirebaseAppCheck.getToken()` funciona y `FB._headers()` incluye `X-Firebase-AppCheck`.
+- Aleksey completó walkthrough manual en producción y confirmó que admin/capitán funcionan bien.
