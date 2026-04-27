@@ -56,7 +56,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasAll(['capitanToken', 'fecha'])
         && request.resource.data.keys().hasOnly([
           'capitanToken', 'fecha', 'tipo', 'hora', 'lugar', 'grupos',
-          'territorios', 'capitan', 'estados'
+          'territorios', 'capitan', 'estados', 'informeEnviado', 'informeActualizado'
         ])
         && request.resource.data.capitanToken is string
         && request.resource.data.capitanToken.size() > 0
@@ -68,12 +68,19 @@ service cloud.firestore {
         && hasOptionalString('grupos', 80)
         && hasOptionalString('capitan', 120)
         && hasOptionalList('territorios')
-        && hasOptionalMap('estados');
+        && hasOptionalMap('estados')
+        && (!request.resource.data.keys().hasAny(['informeEnviado']) || request.resource.data.informeEnviado is bool)
+        && hasOptionalString('informeActualizado', 30);
     }
 
-    function validCaptainStatusUpdate() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estados'])
-        && request.resource.data.estados is map;
+    function validCaptainSesionUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estados', 'informeEnviado', 'informeActualizado', 'capitan'
+        ])
+        && (!request.resource.data.keys().hasAny(['estados']) || request.resource.data.estados is map)
+        && (!request.resource.data.keys().hasAny(['informeEnviado']) || request.resource.data.informeEnviado is bool)
+        && hasOptionalString('informeActualizado', 30)
+        && hasOptionalString('capitan', 120);
     }
 
     function validCycleConfig() {
@@ -120,7 +127,7 @@ service cloud.firestore {
       allow get: if isAdmin() || isCaptain(resource.data.capitanToken);
       allow list: if isAdmin() || isCaptain(resource.data.capitanToken);
       allow create, update: if isAdmin() && validSesion(sesionId);
-      allow update: if isCaptain(resource.data.capitanToken) && validCaptainStatusUpdate();
+      allow update: if isCaptain(resource.data.capitanToken) && validCaptainSesionUpdate();
       allow delete: if isAdmin() || isCaptain(resource.data.capitanToken);
     }
 
@@ -133,7 +140,14 @@ service cloud.firestore {
           && isCaptain(request.resource.data.capitanToken)
         )
       );
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        validHistorial()
+        && resource.data.estado in ['completo', 'parcial']
+        && request.resource.data.estado in ['completo', 'parcial']
+        && request.resource.data.capitanToken == resource.data.capitanToken
+        && isCaptain(resource.data.capitanToken)
+      );
+      allow delete: if isAdmin();
     }
 
     match /config/ciclos {

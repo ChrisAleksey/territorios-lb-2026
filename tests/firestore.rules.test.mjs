@@ -121,7 +121,7 @@ describe('sesiones', () => {
     }));
   });
 
-  test('permite al capitán listar y cerrar solo su propia sesión', async () => {
+  test('permite al capitán listar y marcar como informada solo su propia sesión', async () => {
     await seed('sesiones/2026-04-25_cap-token', sesion);
     await seed('sesiones/2026-04-25_otro-token', { ...sesion, capitanToken: 'otro-token' });
 
@@ -129,8 +129,14 @@ describe('sesiones', () => {
       collection(dbAsCaptain('cap-token'), 'sesiones'),
       where('capitanToken', '==', 'cap-token')
     )));
-    await assertSucceeds(deleteDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_cap-token')));
-    await assertFails(deleteDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_otro-token')));
+    await assertSucceeds(updateDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_cap-token'), {
+      informeEnviado: true,
+      informeActualizado: '09:45',
+      capitan: 'Hno. Prueba',
+    }));
+    await assertFails(updateDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_otro-token'), {
+      informeEnviado: true,
+    }));
   });
 
   test('bloquea a un capitán ajeno', async () => {
@@ -183,8 +189,19 @@ describe('historial', () => {
     await assertSucceeds(getDoc(doc(dbAsCaptain('cap-token'), 'historial/entry-1')));
   });
 
-  test('permite crear historial al capitán correspondiente', async () => {
+  test('permite crear y actualizar historial al capitán correspondiente', async () => {
     await assertSucceeds(setDoc(doc(dbAsCaptain('cap-token'), 'historial/entry-1'), historial));
+    await assertSucceeds(updateDoc(doc(dbAsCaptain('cap-token'), 'historial/entry-1'), {
+      estado: 'parcial',
+      notas: 'actualizado',
+      fechaArchivado: '2026-04-26',
+    }));
+  });
+
+  test('bloquea actualizar historial ajeno o convertirlo en ciclo_reset', async () => {
+    await seed('historial/entry-1', historial);
+    await assertFails(updateDoc(doc(dbAsCaptain('otro-token'), 'historial/entry-1'), { notas: 'ajeno' }));
+    await assertFails(updateDoc(doc(dbAsCaptain('cap-token'), 'historial/entry-1'), { estado: 'ciclo_reset' }));
   });
 
   test('bloquea ciclo_reset para capitán no admin', async () => {
@@ -206,7 +223,7 @@ describe('historial', () => {
     }));
   });
 
-  test('permite update/delete solo al admin', async () => {
+  test('permite delete solo al admin', async () => {
     await seed('historial/entry-1', historial);
 
     await assertFails(deleteDoc(doc(dbAsCaptain('cap-token'), 'historial/entry-1')));

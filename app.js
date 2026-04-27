@@ -515,6 +515,8 @@ const TerritorialApp = {
         territorios: sesion.territorios || [],
         estados
       });
+      this.submitted = sesion.informeEnviado === true;
+      this.submitTime = sesion.informeActualizado || null;
 
       // Restaurar notas
       this.territoryNotes = notas;
@@ -1422,7 +1424,7 @@ const TerritorialApp = {
     if (label) label.textContent = `${reported} / ${total} reportados`;
     if (btn) {
       if (this.submitted) {
-        btn.textContent = 'Enviado ✓';
+        btn.textContent = 'Actualizar informe';
         btn.classList.add('submitted');
       } else {
         btn.textContent = pct === 100 ? 'Finalizar ✓' : 'Finalizar';
@@ -1453,8 +1455,8 @@ const TerritorialApp = {
 
     const btn = document.getElementById('finish-submit-btn');
     if (btn) {
-      btn.disabled = this.submitted;
-      btn.textContent = this.submitted ? 'Informe enviado' : 'Enviar informe';
+      btn.disabled = false;
+      btn.textContent = this.submitted ? 'Actualizar informe' : 'Enviar informe';
     }
 
     // Mostrar capitán asignado y resetear picker
@@ -1499,10 +1501,7 @@ const TerritorialApp = {
   },
 
   async submitInforme() {
-    if (this.submitted) {
-      this.showToast('Este informe ya fue enviado.', 'info');
-      return;
-    }
+    const updatingInforme = this.submitted;
 
     // Usar capitán del picker si se cambió, si no usar el de la sesión
     const sel = document.getElementById('finish-capitan-select');
@@ -1519,7 +1518,7 @@ const TerritorialApp = {
     const confirmedToken = this.token || '';
 
     const btn = document.getElementById('finish-submit-btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    if (btn) { btn.disabled = true; btn.textContent = updatingInforme ? 'Actualizando…' : 'Enviando…'; }
 
     // En vista general usar todos los territorios marcados; en modo capitán usar los asignados
     const srcTerritories = this.token
@@ -1559,30 +1558,28 @@ const TerritorialApp = {
           await this._checkCompletedCycles(entries);
         }
         if (this.token && this._sessionFecha) {
-          try {
-            await FB.deleteSesion(this.token, this._sessionFecha);
-          } catch (err) {
-            console.warn('[TerritorialApp] Informe guardado, pero no se pudo cerrar la sesión:', err.message);
-          }
+          const updateTime = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+          await FB.markSesionInformada(this.token, this._sessionFecha, confirmedCapitan, updateTime);
+          this.submitTime = updateTime;
         }
       } else {
         // Mock: simular delay
         await new Promise(r => setTimeout(r, 800));
       }
 
-      this.submitted  = true;
-      this.submitTime = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      this.submitted = true;
+      if (!this.submitTime) this.submitTime = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
       this.closeFinishSheet();
-      this.showToast('Informe enviado ✓', 'success');
+      this.showToast(updatingInforme ? 'Informe actualizado ✓' : 'Informe enviado ✓', 'success');
       this._updateFinishBar();
 
     } catch (err) {
       console.error('[TerritorialApp] Error sending informe', err);
       this.showToast('No se pudo enviar el informe. Revisa tu conexión e intenta de nuevo.', 'error');
       if (btn) {
-        btn.disabled = this.submitted;
-        btn.textContent = this.submitted ? 'Informe enviado' : 'Enviar informe';
+        btn.disabled = false;
+        btn.textContent = this.submitted ? 'Actualizar informe' : 'Enviar informe';
       }
     }
   },
@@ -2300,8 +2297,8 @@ const TerritorialApp = {
 
     const btn = document.getElementById('finish-submit-btn');
     if (btn) {
-      btn.disabled = this.submitted;
-      btn.textContent = this.submitted ? 'Informe enviado' : 'Enviar informe';
+      btn.disabled = false;
+      btn.textContent = this.submitted ? 'Actualizar informe' : 'Enviar informe';
     }
 
     // Vista general: mostrar picker de capitán + campos extra (lugar y fecha)

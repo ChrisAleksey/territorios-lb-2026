@@ -238,6 +238,15 @@ const FB = {
     return this._patch(`sesiones/${id}`, fields, [fieldPath]);
   },
 
+  async markSesionInformada(token, fecha, capitan, informeActualizado) {
+    const id = this._sesionId(token, fecha);
+    return this._patch(`sesiones/${id}`, this._objToFields({
+      informeEnviado: true,
+      informeActualizado,
+      capitan
+    }), ['informeEnviado', 'informeActualizado', 'capitan']);
+  },
+
   async deleteSesion(token, fecha) {
     const id = this._sesionId(token, fecha);
     const res = await this._fetch(`${this.BASE}/sesiones/${id}?key=${this.API_KEY}`, { method: 'DELETE' });
@@ -246,9 +255,24 @@ const FB = {
   },
 
   /* ── Historial ─────────────────────────────────────────────────────────── */
+  _historialId(entry) {
+    const slug = value => String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'sin-dato';
+    return [
+      slug(entry.fechaPredicacion),
+      slug(entry.capitanToken || entry.capitan),
+      slug(entry.tipo || 'casaencasa'),
+      slug(entry.territorio)
+    ].join('_');
+  },
+
   async addHistorial(entries) {
-    // entries: [{ territorio, lugar, estado, notas, capitan, capitanToken, fechaPredicacion, fechaCompletado, fechaArchivado }]
-    const promises = entries.map(e => this._post('historial', this._objToFields(e)));
+    // Upsert por territorio/fecha/capitán/tipo para que reenviar actualice el mismo informe.
+    const promises = entries.map(e => this._patch(`historial/${this._historialId(e)}`, this._objToFields(e)));
     return Promise.all(promises);
   },
 

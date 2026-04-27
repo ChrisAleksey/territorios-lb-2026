@@ -46,7 +46,7 @@
 | Login admin local | Completado | Probado en `http://localhost:5173/` con admins internos y passcode incorrecto. |
 | Firebase API key restrictions | Completado | Key web verificada con referrers permitidos para producción y localhost; App Check enforcement activo para Firestore. |
 | Firebase Auth capitán | Completado en producción | 28 capitanes activos importados a Firebase Auth; Auth real + claim `capitanToken`, lectura propia de `capitanes/{token}` y sesión real probados. |
-| Revisión de bugs funcionales | Parcial | `ciclo_reset` corregido y cubierto por prueba local; sesión se cierra tras informe exitoso; reenvío duplicado bloqueado; filtros admin carta/presencial corregidos. Falta validar un `ciclo_reset` real cuando ocurra. |
+| Revisión de bugs funcionales | Parcial | `ciclo_reset` corregido y cubierto por prueba local; reenviar informe actualiza historial por ID estable sin duplicar; la sesión queda marcada como informada para correcciones. Falta validar un `ciclo_reset` real cuando ocurra. |
 | Modelo de ciclos por lugar | Completado en producción | `config/ciclos` modela qué territorios lidera cada lugar y cómo calcular ciclo completo por tipo (`casaencasa`/`carta`); sembrado en producción con 11 lugares. |
 | Consistencia UI/UX | Completado operativo | Lenguaje, controles, labels/foco, responsive estático, smoke Playwright y walkthrough manual en producción validados. |
 | Limpieza y organización | Parcial | Mapa de archivos agregado; `.gitignore` evita subir carpetas locales; `PLAN.md` marcado como legacy; archivos sueltos revisados y pendientes de decisión final. |
