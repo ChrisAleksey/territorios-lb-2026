@@ -472,20 +472,28 @@ const TerritorialApp = {
   },
 
   async loadFromBackend() {
-    // Intentar hoy, mañana y pasado (el admin puede generar el programa con anticipación)
-    const candidatos = [0, 1, 2].map(d => this._fechaOffset(d));
     let sesion = null, fecha = null;
-    for (const f of candidatos) {
-      const s = await FB.getSesion(this.token, f).catch(() => null);
-      if (s) { sesion = s; fecha = f; break; }
+
+    try {
+      const sesiones = await FB.listSesiones(this.token);
+      sesion = sesiones[0] || null;
+      fecha = sesion?.fecha || FB.todayMX();
+    } catch (err) {
+      // Fallback para mantener compatibilidad si runQuery no está disponible.
+      const candidatos = [0, 1, 2].map(d => this._fechaOffset(d));
+      for (const f of candidatos) {
+        const s = await FB.getSesion(this.token, f).catch(() => null);
+        if (s) { sesion = s; fecha = f; break; }
+      }
+      if (!sesion) fecha = candidatos[0];
     }
-    if (!sesion) fecha = candidatos[0]; // fallback: hoy para mensajes de error
+
     this._sessionFecha = fecha;
 
     try {
       if (!sesion) {
-        this.showToast('No hay sesión activa para hoy, mañana o pasado mañana.', 'error');
-        console.warn('[TerritorialApp] Sin sesión en Firebase para hoy.');
+        this.showToast('No hay sesión activa para este link.', 'error');
+        console.warn('[TerritorialApp] Sin sesión activa en Firebase.');
         return;
       }
 
@@ -1444,7 +1452,10 @@ const TerritorialApp = {
     if (this.submitTime) setEl('finish-submit-time', this.submitTime);
 
     const btn = document.getElementById('finish-submit-btn');
-    if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+    if (btn) {
+      btn.disabled = this.submitted;
+      btn.textContent = this.submitted ? 'Informe enviado' : 'Enviar informe';
+    }
 
     // Mostrar capitán asignado y resetear picker
     const capName   = this.sessionInfo.capitan || '';
@@ -1488,6 +1499,11 @@ const TerritorialApp = {
   },
 
   async submitInforme() {
+    if (this.submitted) {
+      this.showToast('Este informe ya fue enviado.', 'info');
+      return;
+    }
+
     // Usar capitán del picker si se cambió, si no usar el de la sesión
     const sel = document.getElementById('finish-capitan-select');
     const pickerVal = sel?.value?.trim() || '';
@@ -1542,6 +1558,13 @@ const TerritorialApp = {
           });
           await this._checkCompletedCycles(entries);
         }
+        if (this.token && this._sessionFecha) {
+          try {
+            await FB.deleteSesion(this.token, this._sessionFecha);
+          } catch (err) {
+            console.warn('[TerritorialApp] Informe guardado, pero no se pudo cerrar la sesión:', err.message);
+          }
+        }
       } else {
         // Mock: simular delay
         await new Promise(r => setTimeout(r, 800));
@@ -1557,7 +1580,10 @@ const TerritorialApp = {
     } catch (err) {
       console.error('[TerritorialApp] Error sending informe', err);
       this.showToast('No se pudo enviar el informe. Revisa tu conexión e intenta de nuevo.', 'error');
-      if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+      if (btn) {
+        btn.disabled = this.submitted;
+        btn.textContent = this.submitted ? 'Informe enviado' : 'Enviar informe';
+      }
     }
   },
 
@@ -2273,7 +2299,10 @@ const TerritorialApp = {
     if (this.submitTime) setEl('finish-submit-time', this.submitTime);
 
     const btn = document.getElementById('finish-submit-btn');
-    if (btn) { btn.disabled = false; btn.textContent = this.submitted ? 'Reenviar informe' : 'Enviar informe'; }
+    if (btn) {
+      btn.disabled = this.submitted;
+      btn.textContent = this.submitted ? 'Informe enviado' : 'Enviar informe';
+    }
 
     // Vista general: mostrar picker de capitán + campos extra (lugar y fecha)
     const dispEl = document.getElementById('finish-capitan-display');

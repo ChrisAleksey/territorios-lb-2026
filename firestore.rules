@@ -118,10 +118,10 @@ service cloud.firestore {
 
     match /sesiones/{sesionId} {
       allow get: if isAdmin() || isCaptain(resource.data.capitanToken);
-      allow list: if isAdmin();
+      allow list: if isAdmin() || isCaptain(resource.data.capitanToken);
       allow create, update: if isAdmin() && validSesion(sesionId);
       allow update: if isCaptain(resource.data.capitanToken) && validCaptainStatusUpdate();
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || isCaptain(resource.data.capitanToken);
     }
 
     match /historial/{entryId} {

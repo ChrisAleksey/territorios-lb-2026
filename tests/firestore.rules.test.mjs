@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where } from 'firebase/firestore';
 
 let testEnv;
 
@@ -119,6 +119,18 @@ describe('sesiones', () => {
     await assertFails(updateDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_cap-token'), {
       lugar: 'Otro lugar',
     }));
+  });
+
+  test('permite al capitán listar y cerrar solo su propia sesión', async () => {
+    await seed('sesiones/2026-04-25_cap-token', sesion);
+    await seed('sesiones/2026-04-25_otro-token', { ...sesion, capitanToken: 'otro-token' });
+
+    await assertSucceeds(getDocs(query(
+      collection(dbAsCaptain('cap-token'), 'sesiones'),
+      where('capitanToken', '==', 'cap-token')
+    )));
+    await assertSucceeds(deleteDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_cap-token')));
+    await assertFails(deleteDoc(doc(dbAsCaptain('cap-token'), 'sesiones/2026-04-25_otro-token')));
   });
 
   test('bloquea a un capitán ajeno', async () => {

@@ -46,7 +46,7 @@
 | Login admin local | Completado | Probado en `http://localhost:5173/` con admins internos y passcode incorrecto. |
 | Firebase API key restrictions | Completado | Key web verificada con referrers permitidos para producción y localhost; App Check enforcement activo para Firestore. |
 | Firebase Auth capitán | Completado en producción | 28 capitanes activos importados a Firebase Auth; Auth real + claim `capitanToken`, lectura propia de `capitanes/{token}` y sesión real probados. |
-| Revisión de bugs funcionales | Parcial | `ciclo_reset` corregido por lugar y tipo; admin ya no auto-escribe `config/ciclos`; capitán no registra resets; filtros admin carta/presencial corregidos; walkthrough manual producción OK. Falta validar un `ciclo_reset` real cuando ocurra. |
+| Revisión de bugs funcionales | Parcial | `ciclo_reset` corregido y cubierto por prueba local; sesión se cierra tras informe exitoso; reenvío duplicado bloqueado; filtros admin carta/presencial corregidos. Falta validar un `ciclo_reset` real cuando ocurra. |
 | Modelo de ciclos por lugar | Completado en producción | `config/ciclos` modela qué territorios lidera cada lugar y cómo calcular ciclo completo por tipo (`casaencasa`/`carta`); sembrado en producción con 11 lugares. |
 | Consistencia UI/UX | Completado operativo | Lenguaje, controles, labels/foco, responsive estático, smoke Playwright y walkthrough manual en producción validados. |
 | Limpieza y organización | Parcial | Mapa de archivos agregado; `.gitignore` evita subir carpetas locales; `PLAN.md` marcado como legacy; archivos sueltos revisados y pendientes de decisión final. |
@@ -252,7 +252,7 @@ Tareas:
 - [x] Revisar territorios con polígonos mixtos.
 - [~] Revisar casos visuales reportados como polígonos incorrectos: `t6` tiene 1 polígono verde en GeoJSON; requiere validar contra KML/origen, no parchear a mano.
 - [x] Verificar que filtros por tipo de territorio funcionen por polígono individual.
-- [~] Confirmar que datos de capitanes/sesiones no tengan tokens duplicados o campos inconsistentes: auditoría read-only OK para capitanes; hay 1 sesión histórica `sin-cap-*` sin capitán activo.
+- [x] Confirmar que datos de capitanes/sesiones no tengan tokens duplicados o campos inconsistentes: auditoría OK para capitanes; sesión histórica `sin-cap-*` eliminada tras confirmar historial informado.
 - [x] Preparar checklist para validar cambios cuando se regenere `territorios.geojson`.
 
 ### 10. Hardening frontend
@@ -295,7 +295,6 @@ Checklist post-deploy autorizado:
 
 ### Bloqueado por datos reales
 
-- Decidir si se conserva, archiva o corrige la sesión histórica `2026-04-18_sin-cap-*` sin capitán activo.
 - Validar en un ciclo real nuevo que historial registre `ciclo_reset` por lugar+tipo; actualmente historial real tiene `completo` y `parcial`, pero 0 `ciclo_reset`.
 
 ### Decisiones locales pendientes
@@ -392,7 +391,7 @@ python3 -m http.server 5173 --directory "/Users/aleksey/Proyectos/territorios-lb
 - Se incluyó `app-check.js` en `index.html` y `admin.html`, y se amplió CSP para Firebase SDK web/reCAPTCHA v3 sin activar App Check en producción.
 - Validación post-App Check local: `node --check` OK, `npm test` pasó con 15 pruebas y smoke Playwright confirmó vista pública/redirección admin sin errores al quedar App Check apagado.
 - Se verificó con Firebase CLI la app web existente: `1:41037652213:web:5402152c15385c4f5ee5bc`; Firebase CLI no expone comandos App Check para registrar reCAPTCHA v3 en este entorno, queda pendiente consola.
-- Hallazgo de datos: existe 1 sesión histórica `2026-04-18_sin-cap-*` con capitán vacío y token sintético sin capitán activo; no se modificó.
+- Hallazgo resuelto: la sesión histórica `2026-04-18_sin-cap-1-10-4-5-6-9` seguía activa sin capitán; se confirmó historial informado para ese día y se eliminó solo ese documento de `sesiones`.
 - Validación post-reglas adicional: un capitán real no puede leer el perfil de otro capitán.
 - Se preparó commit `3bd8025` con hardening Firebase/Auth/ciclos/App Check y commit `e5f2acd` corrigiendo globals frontend (`FB`, `AdminAuth`, `CaptainAuth`, `TerritorialApp`) para scripts clásicos/handlers inline.
 - Se subió `master` a GitHub y GitHub Actions Firestore Rules CI pasó en las ejecuciones `24965359373` y `24965420892`.

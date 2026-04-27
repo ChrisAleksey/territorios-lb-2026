@@ -177,6 +177,38 @@ const FB = {
     return doc ? this._docToObj(doc) : null;
   },
 
+  async listSesiones(token) {
+    const res = await this._fetch(`${this.BASE}:runQuery?key=${this.API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'sesiones' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'capitanToken' },
+              op: 'EQUAL',
+              value: this._toFS(token)
+            }
+          },
+          limit: 50
+        }
+      })
+    });
+    if (!res.ok) throw new Error(`Firestore RUNQUERY sesiones → ${res.status}`);
+    const rows = await res.json();
+    return rows
+      .map(row => row.document)
+      .filter(Boolean)
+      .map(doc => {
+        const obj = this._docToObj(doc);
+        if (obj && doc.name) obj._id = doc.name.split('/').pop();
+        return obj;
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
+  },
+
   async saveSesion(token, fecha, data) {
     // Crea o sobreescribe la sesión del día para este capitán
     const id     = this._sesionId(token, fecha);
@@ -204,6 +236,13 @@ const FB = {
       }
     };
     return this._patch(`sesiones/${id}`, fields, [fieldPath]);
+  },
+
+  async deleteSesion(token, fecha) {
+    const id = this._sesionId(token, fecha);
+    const res = await this._fetch(`${this.BASE}/sesiones/${id}?key=${this.API_KEY}`, { method: 'DELETE' });
+    if (res.status === 404) return;
+    if (!res.ok) throw new Error(`Firestore DELETE sesiones/${id} → ${res.status}`);
   },
 
   /* ── Historial ─────────────────────────────────────────────────────────── */
